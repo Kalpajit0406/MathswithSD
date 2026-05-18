@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MathsWithSD</string>
+    <string name="connecting">Connecting to Backend&#8230;</string>
+    <string name="api_success">Success! Received %1$d questions</string>
+    <string name="api_error">API Error: %1$d</string>
+    <string name="connection_failed">Connection Failed: %1$s</string>
+    <string name="loading">Loading&#8230;</string>
+</resources>

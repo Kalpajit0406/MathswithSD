@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+return Astro.redirect("/");
+---
+<BaseLayout>
+    <div class="flex items-center justify-center min-h-screen bg-black/30 backdrop-blur-2xl">
+        <div class="bg-cyan-50 p-4 flex mx-2 gap-2 rounded-md">
+            <h1 class="text-4xl text-red-600">500</h1>
+            <p class="text-xl text-neutral-600">There were some internel issue! My appologies.</p>
+        </div>
+    </div>
+</BaseLayout>

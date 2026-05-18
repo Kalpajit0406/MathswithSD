@@ -1,0 +1,12 @@
+---
+import TeacherLeaderboard from "../../components/teacher/Leaderboard";
+import NavComponent from "../../components/teacher/NavComponent";
+import TeacherLayout from "../../layouts/TeacherLayout.astro";
+
+
+---
+
+<TeacherLayout>
+    <NavComponent client:load />
+    <TeacherLeaderboard client:load />
+</TeacherLayout>

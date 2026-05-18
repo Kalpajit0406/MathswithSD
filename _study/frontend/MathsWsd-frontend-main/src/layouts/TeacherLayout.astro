@@ -1,0 +1,42 @@
+---
+import CommonHead from "../components/CommonHead.astro"
+const publicRole = import.meta.env.PUBLIC_ROLE;
+---
+<html lang="en">
+	<head>
+		<CommonHead />
+		<script is:inline define:vars={{ publicRole }}>
+			const token = localStorage.getItem("token");
+			const role = localStorage.getItem("role");
+
+			if (!token) {
+				window.location.href = "/login";
+			} else {
+				fetch("https://api.mathswithsd.in/api/v1/student/students", {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}).then(res => {
+					if (res.status === 401 || res.status === 403) {
+						//localStorage.removeItem("token");
+						//window.location.href = "/login";
+					}
+				}).catch(err => {
+					console.error("Validation error:", err);
+					//localStorage.removeItem("token");
+					//window.location.href = "/login";
+				});
+			}
+
+			if (!role) {
+				window.location.href = "/login";
+			}
+			else if (role !== publicRole) { // Now using the passed variable
+				window.location.href = "/";    
+			}
+		</script>
+	</head>
+	<body class="bg-cyan-100 select-none">
+		<slot />
+	</body>
+</html>

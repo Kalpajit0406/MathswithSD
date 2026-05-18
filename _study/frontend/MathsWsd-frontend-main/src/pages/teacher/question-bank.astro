@@ -1,0 +1,10 @@
+---
+import TeacherLayout from "../../layouts/TeacherLayout.astro";
+import Questionbank from "../../components/teacher/QuestionBank"
+
+const chapters = Astro.locals.chapters
+---
+
+<TeacherLayout title="Question Bank">
+    <Questionbank chapters={chapters} client:load />
+</TeacherLayout>
