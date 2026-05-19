@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
 import '../models/exam_model.dart';
 import '../models/test_model.dart';
 import '../services/api_service.dart';
 import '../utils/resource_manager.dart';
+import '../services/offline_exam_service.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
@@ -31,6 +31,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   List<Exam> _scheduledTests = [];
   LoadState _testsState = LoadState.idle;
+  final Map<String, double> _examDifficulties = {};
 
   List<Exam> get exams => _exams;
   bool get isLoading => _isLoading;
@@ -46,6 +47,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   List<Exam> get scheduledTests => _scheduledTests;
   LoadState get testsState => _testsState;
+  Map<String, double> get examDifficulties => _examDifficulties;
 
   // ─── Persistence Resumption Engine ───────────────────────────────────────
 
@@ -146,11 +148,28 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     try {
       _scheduledTests = await _apiService.fetchExamsWithRetry();
       _testsState = LoadState.loaded;
+      notifyListeners();
+
+      // Load difficulties in the background
+      for (var test in _scheduledTests) {
+        loadExamDifficulty(test.id);
+      }
     } catch (e) {
       debugPrint('Error loading tests: $e');
       _testsState = LoadState.error;
+      notifyListeners();
     }
-    notifyListeners();
+  }
+
+  Future<void> loadExamDifficulty(String examId) async {
+    if (_examDifficulties.containsKey(examId)) return;
+    try {
+      final diff = await _apiService.fetchExamDifficulty(examId);
+      _examDifficulties[examId] = diff;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading exam difficulty: $e');
+    }
   }
 
   Future<void> startExam(String examId) async {
@@ -188,9 +207,47 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     });
   }
 
+  Future<void> startExamOffline(String examId, int remainingSecs) async {
+    _currentQuestionIndex = 0;
+    _userAnswers = {};
+    _currentExamId = examId;
+    _currentAttemptId = 'offline_$examId';
+    _remainingSeconds = remainingSecs;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final answersRaw = prefs.getString('offline_answers_$examId');
+      if (answersRaw != null) {
+        _userAnswers = Map<String, String>.from(jsonDecode(answersRaw));
+      }
+    } catch (e) {
+      debugPrint('Error loading cached offline answers: $e');
+    }
+    
+    await _saveAttemptToPrefs();
+    _startTimer();
+    notifyListeners();
+  }
+
   void setAnswer(String questionId, String answer) {
     _userAnswers[questionId] = answer;
     _saveAttemptToPrefs();
+    
+    if (_currentAttemptId != null && _currentAttemptId!.startsWith('offline_')) {
+      final response = OfflineResponse(
+        responseId: '${_currentAttemptId}_$questionId',
+        examId: _currentExamId!,
+        questionId: questionId,
+        selectedAnswer: answer,
+        timeSpent: 0,
+        answeredAt: DateTime.now(),
+      );
+      OfflineExamService().saveOfflineResponse(response);
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('offline_answers_$_currentExamId', jsonEncode(_userAnswers));
+      });
+    }
+    
     notifyListeners();
   }
 
@@ -208,7 +265,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     }
   }
 
-  Future<void> submitExam(List<Map<String, dynamic>> answers) async {
+  Future<void> submitExam(List<Map<String, dynamic>> answers, {bool isOffline = false}) async {
     if (_currentAttemptId == null) return;
     
     _timer?.cancel();
@@ -216,10 +273,32 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     notifyListeners();
 
     try {
-      await _apiService.submitAnswersWithRetry(
-        attemptId: _currentAttemptId!,
-        answers: answers,
-      );
+      if (isOffline) {
+        await OfflineExamService().completeOfflineExam(_currentExamId!);
+        for (var ans in answers) {
+          final response = OfflineResponse(
+            responseId: '${_currentAttemptId}_${ans['questionId']}',
+            examId: _currentExamId!,
+            questionId: ans['questionId'],
+            selectedAnswer: ans['answer'] ?? '',
+            timeSpent: 0,
+            answeredAt: DateTime.now(),
+          );
+          await OfflineExamService().saveOfflineResponse(response);
+        }
+        
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('offline_answers_$_currentExamId');
+        } catch (e) {
+          debugPrint('Error clearing local offline answers: $e');
+        }
+      } else {
+        await _apiService.submitAnswersWithRetry(
+          attemptId: _currentAttemptId!,
+          answers: answers,
+        );
+      }
       _currentAttemptId = null;
       _currentExamId = null;
       await _clearAttemptFromPrefs();
@@ -241,21 +320,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   /// Fetch student's performance analytics data
   Future<Map<String, dynamic>?> fetchStudentPerformance() async {
     try {
-      final response = await _apiService.apiClient.get(
-        '${_apiService.baseUrl}/api/v1/analytics/my-performance',
-        options: Options(
-          headers: _apiService.headers,
-          validateStatus: (status) => status! < 500,
-        ),
-      );
-
-      if (response.statusCode == 200 && response.data != null) {
-        return Map<String, dynamic>.from(response.data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Unauthorized - Please login again');
-      } else {
-        throw Exception('Failed to fetch performance data');
-      }
+      return await _apiService.getPerformance();
     } catch (e) {
       debugPrint('Error fetching student performance: $e');
       rethrow;

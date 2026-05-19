@@ -10,6 +10,7 @@ import '../../widgets/difficulty_badge.dart';
 import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
+import '../../services/offline_exam_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -216,7 +217,7 @@ class _HomeTab extends StatelessWidget {
                     final provider = Provider.of<ExamProvider>(context, listen: false);
                     final matchedExam = provider.scheduledTests.firstWhere(
                       (e) => e.id == examId,
-                      orElse: () => Exam(id: examId, title: 'Active Test', duration: remaining ~/ 60, questions: [], classNo: 0, language: 'English'),
+                      orElse: () => Exam(id: examId, title: 'Active Test', duration: remaining ~/ 60, questions: []),
                     );
 
                     return FadeInSlide(
@@ -614,9 +615,55 @@ class _ExamCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    'Duration: ${test.duration} Mins',
-                    style: const TextStyle(color: Color(0xFF75859D), fontSize: 12, fontWeight: FontWeight.w500),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Duration: ${test.duration} Mins',
+                        style: const TextStyle(color: Color(0xFF75859D), fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          try {
+                            final offlineExam = OfflineExam(
+                              examId: test.id,
+                              title: test.title,
+                              duration: test.duration,
+                              questions: test.questions.map((q) => q.toJson()).toList(),
+                              startedAt: DateTime.now(),
+                              isCompleted: false,
+                              status: 'downloaded',
+                            );
+                            await OfflineExamService().saveExamOffline(offlineExam);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('"${test.title}" downloaded for offline use.'),
+                                  backgroundColor: const Color(0xFF4A148C),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.download_for_offline_rounded, size: 16),
+                        label: const Text('Download Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF4A148C),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -633,9 +680,9 @@ class _ExamCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Difficulty indicator - placeholder difficulty level
+                      // Difficulty indicator
                       DifficultyIndicator(
-                        difficulty: 3.0,  // Medium difficulty
+                        difficulty: Provider.of<ExamProvider>(context).examDifficulties[test.id] ?? 3.0,
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       ),
                       const SizedBox(width: 8),

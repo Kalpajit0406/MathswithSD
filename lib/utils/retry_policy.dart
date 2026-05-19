@@ -1,5 +1,11 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' show ClientException;
+import '../services/api_service.dart';
+import '../models/exam_model.dart' as exam;
+import '../models/test_model.dart';
 
 /// Retry policy with exponential backoff for HTTP requests
 class RetryPolicy {
@@ -8,7 +14,6 @@ class RetryPolicy {
   final double backoffMultiplier;
   final Duration maxDelay;
   final Set<int> retryableStatusCodes;
-  final Set<Type> retryableExceptions;
 
   RetryPolicy({
     this.maxRetries = 3,
@@ -16,11 +21,6 @@ class RetryPolicy {
     this.backoffMultiplier = 2.0,
     this.maxDelay = const Duration(seconds: 30),
     this.retryableStatusCodes = const {408, 429, 500, 502, 503, 504},
-    this.retryableExceptions = const {
-      SocketException,
-      TimeoutException,
-      ClientException,
-    },
   });
 
   /// Calculate delay with exponential backoff and jitter
@@ -41,10 +41,10 @@ class RetryPolicy {
   bool shouldRetry(dynamic error, int statusCode) {
     // Retry if it's a retryable exception type
     if (error != null) {
-      for (final retryableType in retryableExceptions) {
-        if (error.runtimeType == retryableType) {
-          return true;
-        }
+      if (error is SocketException ||
+          error is TimeoutException ||
+          error is ClientException) {
+        return true;
       }
     }
 

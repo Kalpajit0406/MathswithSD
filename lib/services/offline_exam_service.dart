@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:async';
@@ -29,7 +30,7 @@ class OfflineExam {
       'examId': examId,
       'title': title,
       'duration': duration,
-      'questions': questions.toString(), // Store as string
+      'questions': jsonEncode(questions), // Store as string
       'startedAt': startedAt.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
       'isCompleted': isCompleted ? 1 : 0,
@@ -38,11 +39,24 @@ class OfflineExam {
   }
 
   factory OfflineExam.fromMap(Map<String, dynamic> map) {
+    List<Map<String, dynamic>> questionsList = [];
+    try {
+      if (map['questions'] != null) {
+        final decoded = jsonDecode(map['questions']);
+        if (decoded is List) {
+          questionsList = List<Map<String, dynamic>>.from(
+            decoded.map((q) => Map<String, dynamic>.from(q))
+          );
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
     return OfflineExam(
       examId: map['examId'],
       title: map['title'],
       duration: map['duration'],
-      questions: [], // Parse from string if needed
+      questions: questionsList,
       startedAt: DateTime.parse(map['startedAt']),
       completedAt: map['completedAt'] != null 
         ? DateTime.parse(map['completedAt']) 

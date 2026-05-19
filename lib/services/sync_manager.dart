@@ -104,8 +104,12 @@ class SyncManager {
             'timeSpent': r.timeSpent,
           }).toList();
 
-          // Submit to backend (mock submission for now - update with actual endpoint)
+          // Submit to backend
           debugPrint('[SyncManager] Syncing exam: ${exam.examId} with ${responses.length} responses');
+          await _apiService.syncOfflineAttemptWithRetry(
+            examId: exam.examId,
+            responses: answers,
+          );
           
           // Mark as synced
           await _offlineService.markExamAsSynced(exam.examId);

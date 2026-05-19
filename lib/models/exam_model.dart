@@ -21,6 +21,15 @@ class Exam {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'duration': duration,
+      'questions': questions.map((q) => q.toJson()).toList(),
+    };
+  }
 }
 
 class Question {
@@ -46,5 +55,15 @@ class Question {
       options: json['options'] != null ? List<String>.from(json['options']) : null,
       correctAnswer: json['correctAnswer'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'questionText': questionText,
+      'options': options,
+      'correctAnswer': correctAnswer,
+    };
   }
 }

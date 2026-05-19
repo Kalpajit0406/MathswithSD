@@ -6,6 +6,8 @@ import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/katex_widget.dart';
 import 'result_screen.dart';
+import '../../services/connectivity_manager.dart';
+import '../../services/offline_exam_service.dart';
 
 class ExamAttemptScreen extends StatefulWidget {
   final Exam exam;
@@ -32,11 +34,40 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
   Future<void> _initializeExam() async {
     final provider = Provider.of<ExamProvider>(context, listen: false);
     try {
-      final cached = await provider.checkForResumableExam();
-      if (cached != null && cached['examId'] == widget.exam.id) {
-        await provider.resumeExam(cached);
+      final isOffline = !ConnectivityManager().isOnline;
+      if (isOffline) {
+        final offlineExam = await OfflineExamService().getOfflineExam(widget.exam.id);
+        if (offlineExam != null) {
+          if (offlineExam.isCompleted) {
+            throw Exception('This exam has already been completed offline.');
+          }
+          final elapsed = DateTime.now().difference(offlineExam.startedAt).inSeconds;
+          final remaining = (offlineExam.duration * 60) - elapsed;
+          if (remaining <= 0) {
+            await OfflineExamService().completeOfflineExam(widget.exam.id);
+            throw Exception('Time limit for this exam has expired.');
+          }
+          await provider.startExamOffline(widget.exam.id, remaining);
+        } else {
+          final newOfflineExam = OfflineExam(
+            examId: widget.exam.id,
+            title: widget.exam.title,
+            duration: widget.exam.duration,
+            questions: widget.exam.questions.map((q) => q.toJson()).toList(),
+            startedAt: DateTime.now(),
+            isCompleted: false,
+            status: 'started',
+          );
+          await OfflineExamService().saveExamOffline(newOfflineExam);
+          await provider.startExamOffline(widget.exam.id, widget.exam.duration * 60);
+        }
       } else {
-        await provider.startExam(widget.exam.id);
+        final cached = await provider.checkForResumableExam();
+        if (cached != null && cached['examId'] == widget.exam.id) {
+          await provider.resumeExam(cached);
+        } else {
+          await provider.startExam(widget.exam.id);
+        }
       }
       if (mounted) {
         setState(() {
@@ -128,8 +159,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
       });
     }
 
+    final isOffline = !ConnectivityManager().isOnline || (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
+
     try {
-      await examProvider.submitExam(finalAnswers);
+      await examProvider.submitExam(finalAnswers, isOffline: isOffline);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -140,6 +173,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
               timeTaken: (widget.exam.duration * 60) - examProvider.remainingSeconds,
               questions: widget.exam.questions,
               userAnswers: examProvider.userAnswers,
+              isOffline: isOffline,
             ),
           ),
         );
@@ -292,6 +326,23 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
         ),
         body: Column(
           children: [
+            if (!ConnectivityManager().isOnline)
+              Container(
+                width: double.infinity,
+                color: Colors.orange.shade800,
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'OFFLINE MODE — Attempt is being saved locally',
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
+              ),
             // Question Palette (Horizontal list of question numbers)
             Container(
               height: 60,

@@ -20,6 +20,7 @@ class AppConstants {
   static const String rejectStudentEndpoint = '/api/v1/student/reject';
   static const String startAttemptEndpoint = '/api/v1/testResponse/start';
   static const String submitAttemptEndpoint = '/api/v1/testResponse/submit';
+  static const String syncOfflineAttemptEndpoint = '/api/v1/testResponse/sync-offline';
   static const String testResponseEndpoint = '/api/v1/testResponse';
 
   // Storage Keys

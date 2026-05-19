@@ -8,6 +8,7 @@ class ResultScreen extends StatelessWidget {
   final int timeTaken;
   final List<Question> questions;
   final Map<String, String> userAnswers;
+  final bool isOffline;
 
   const ResultScreen({
     super.key,
@@ -16,6 +17,7 @@ class ResultScreen extends StatelessWidget {
     required this.timeTaken,
     required this.questions,
     required this.userAnswers,
+    this.isOffline = false,
   });
 
   @override
@@ -97,6 +99,29 @@ class ResultScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (isOffline) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.offline_pin_rounded, color: Colors.orange, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Exam completed offline! Your answers are saved locally and will automatically sync when you reconnect.',
+                      style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
           _buildInsightCard(),
         ],

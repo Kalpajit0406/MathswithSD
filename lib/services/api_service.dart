@@ -127,6 +127,50 @@ class ApiService {
     return list.map((a) => Announcement.fromJson(a)).toList();
   }
 
+  // ─── Analytics ───────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getPerformance() async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/analytics/my-performance'),
+      headers: await _headers(),
+    ).timeout(const Duration(seconds: 15));
+    return _processResponse(response);
+  }
+
+  Future<double> fetchExamDifficulty(String examId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/v1/ratings/exam-analytics/$examId'),
+        headers: await _headers(),
+      ).timeout(const Duration(seconds: 10));
+      
+      final body = _processResponse(response);
+      if (body['success'] == true && body['data'] != null) {
+        final List list = body['data'] as List;
+        if (list.isNotEmpty) {
+          double totalDiff = 0;
+          int count = 0;
+          for (var item in list) {
+            final diffRaw = item['averageDifficulty'];
+            if (diffRaw != null) {
+              final val = double.tryParse(diffRaw.toString());
+              if (val != null) {
+                totalDiff += val;
+                count++;
+              }
+            }
+          }
+          if (count > 0) {
+            return totalDiff / count;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching exam difficulty: $e');
+    }
+    return 3.0; // Default fallback
+  }
+
   // ─── Retry Methods ───────────────────────────────────────────────────────────
 
   /// Login with exponential backoff retry (1s → 2s → 4s)
@@ -225,5 +269,50 @@ class ApiService {
       }
     }
     throw ApiException('Get announcements failed after $maxAttempts attempts', 500);
+  }
+
+  Future<Map<String, dynamic>> syncOfflineAttempt({
+    required String examId,
+    required List<Map<String, dynamic>> responses,
+  }) async {
+    final Map<String, dynamic> bodyData = {
+      'examId': examId,
+      'responses': responses
+          .where((r) => r['questionId'] != null)
+          .map((r) => {
+                'questionId': r['questionId'],
+                'selectedAnswer': r['selectedAnswer'] ?? r['answer'],
+                'timeSpent': r['timeSpent'] ?? 0,
+              })
+          .toList(),
+    };
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl${AppConstants.syncOfflineAttemptEndpoint}'),
+      headers: await _headers(),
+      body: jsonEncode(bodyData),
+    ).timeout(const Duration(seconds: 20));
+    return _processResponse(response);
+  }
+
+  Future<Map<String, dynamic>> syncOfflineAttemptWithRetry({
+    required String examId,
+    required List<Map<String, dynamic>> responses,
+  }) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await syncOfflineAttempt(examId: examId, responses: responses);
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Sync offline attempt failed after $maxAttempts attempts', 500);
   }
 }
