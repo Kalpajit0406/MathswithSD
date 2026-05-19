@@ -1,5 +1,5 @@
 name: mathswithsd
-description: "MathsWithSD - AI-powered math exam platform for students and teachers."
+description: "MathsWithSD - Math learning and examination platform for students."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -23,18 +23,11 @@ dependencies:
   shared_preferences: ^2.5.5
   flutter_secure_storage: ^9.2.4
   
-  # Image handling
+  # Image handling (Optional for profile)
   image_picker: ^1.2.2
   image_cropper: ^12.2.1
   image: ^4.8.0
   cached_network_image: ^3.4.1
-  
-  # OCR
-  google_mlkit_text_recognition: ^0.15.1
-  
-  # Camera
-  camera: ^0.12.0+1
-  permission_handler: ^12.0.1
   
   # Navigation
   go_router: ^15.1.2
@@ -43,9 +36,13 @@ dependencies:
   webview_flutter: ^4.13.0
   
   # Utils
+  device_info_plus: ^12.4.0
   intl: ^0.20.2
   path_provider: ^2.1.5
   path: ^1.9.1
+
+dependency_overrides:
+  path_provider_android: 2.2.12
 
 dev_dependencies:
   flutter_test:

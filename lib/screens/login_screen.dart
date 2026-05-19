@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
+import '../../widgets/fade_in_slide.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onNavigateToRegister;
@@ -12,27 +13,16 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _passwordVisible = false;
-  late AnimationController _fadeCtrl;
-  late Animation<double> _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    _fadeCtrl.forward();
-  }
 
   @override
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
-    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -44,9 +34,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage ?? 'Login failed'),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: const Color(0xFFBA1A1A),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -57,185 +47,225 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: const Color(0xFF0F172A), // Deep Academic Blue theme
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnim,
+          child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28.0),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 60),
-                    // Logo / Branding
+                    // Logo / Branding with elegant slide
                     Center(
-                      child: Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00BCD4), Color(0xFF006064)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      child: FadeInSlide(
+                        duration: const Duration(milliseconds: 700),
+                        slideOffset: 30,
+                        child: Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0051D5), Color(0xFF316BF3)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0051D5).withOpacity(0.35),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              )
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF00BCD4).withValues(alpha: 0.4),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            )
-                          ],
+                          child: const Icon(Icons.school_rounded, color: Colors.white, size: 44),
                         ),
-                        child: const Icon(Icons.school, color: Colors.white, size: 48),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
+                    
                     Center(
-                      child: ShaderMask(
-                        shaderCallback: (bounds) => const LinearGradient(
-                          colors: [Color(0xFF00BCD4), Color(0xFF80DEEA)],
-                        ).createShader(bounds),
+                      child: FadeInSlide(
+                        duration: const Duration(milliseconds: 700),
+                        delay: const Duration(milliseconds: 100),
+                        slideOffset: 20,
                         child: const Text(
                           'MathsWithSD',
                           style: TextStyle(
                             fontSize: 32,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                             color: Colors.white,
-                            letterSpacing: 1,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Center(
-                      child: Text(
-                        'Sign in to continue your journey',
-                        style: TextStyle(color: Color(0xFF8897AE), fontSize: 15),
+                    const SizedBox(height: 6),
+                    
+                    Center(
+                      child: FadeInSlide(
+                        duration: const Duration(milliseconds: 700),
+                        delay: const Duration(milliseconds: 150),
+                        slideOffset: 15,
+                        child: const Text(
+                          'Sign in to your student academy portal',
+                          style: TextStyle(
+                            color: Color(0xFF75859D),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 56),
+                    const SizedBox(height: 48),
 
-                    // Phone Field
-                    _buildLabel('Mobile Number'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: _inputDecoration(
-                        hint: 'Enter 10-digit number',
-                        icon: Icons.phone_android,
+                    // Phone Field with slide-up
+                    FadeInSlide(
+                      duration: const Duration(milliseconds: 650),
+                      delay: const Duration(milliseconds: 200),
+                      slideOffset: 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Mobile Number'),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                            decoration: _inputDecoration(
+                              hint: 'Enter your 10-digit number',
+                              icon: Icons.phone_android_rounded,
+                            ),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) return 'Phone number is required';
+                              if (val.length < 10) return 'Enter a valid 10-digit number';
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
-                      validator: (val) {
-                        if (val == null || val.isEmpty) return 'Phone is required';
-                        if (val.length < 10) return 'Enter a valid phone number';
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 20),
 
-                    // Password Field
-                    _buildLabel('Password'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: !_passwordVisible,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: _inputDecoration(
-                        hint: 'Enter your password',
-                        icon: Icons.lock_outline,
-                        suffix: IconButton(
-                          icon: Icon(
-                            _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                            color: const Color(0xFF8897AE),
-                          ),
-                          onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
-                        ),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.isEmpty) return 'Password is required';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: auth.status == AuthStatus.loading
-                          ? Center(
-                              child: CircularProgressIndicator(
-                                color: const Color(0xFF00BCD4),
-                              ),
-                            )
-                          : DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF00BCD4), Color(0xFF006064)],
+                    // Password Field with slide-up
+                    FadeInSlide(
+                      duration: const Duration(milliseconds: 650),
+                      delay: const Duration(milliseconds: 250),
+                      slideOffset: 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Account Password'),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: !_passwordVisible,
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                            decoration: _inputDecoration(
+                              hint: 'Enter your account password',
+                              icon: Icons.lock_outline_rounded,
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                                  color: const Color(0xFF75859D),
                                 ),
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF00BCD4).withValues(alpha: 0.3),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _login,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Sign In',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
                               ),
                             ),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) return 'Password is required';
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // Login Button
+                    FadeInSlide(
+                      duration: const Duration(milliseconds: 650),
+                      delay: const Duration(milliseconds: 300),
+                      slideOffset: 24,
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: auth.status == AuthStatus.loading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF0051D5),
+                                ),
+                              )
+                            : BounceOnTap(
+                                onTap: _login,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF0051D5), Color(0xFF316BF3)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF0051D5).withOpacity(0.3),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
                     ),
                     const SizedBox(height: 28),
 
                     // Register Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "New here? ",
-                          style: TextStyle(color: Color(0xFF8897AE), fontSize: 15),
-                        ),
-                        TextButton(
-                          onPressed: widget.onNavigateToRegister,
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF00BCD4),
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
+                    FadeInSlide(
+                      duration: const Duration(milliseconds: 650),
+                      delay: const Duration(milliseconds: 350),
+                      slideOffset: 20,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "New to MathsWithSD? ",
+                            style: TextStyle(color: Color(0xFF75859D), fontSize: 15, fontWeight: FontWeight.w500),
                           ),
-                          child: const Text(
-                            'Create Account',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
+                          TextButton(
+                            onPressed: widget.onNavigateToRegister,
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF0051D5),
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Create Account',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -250,9 +280,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return Text(
       text,
       style: const TextStyle(
-        color: Color(0xFF8897AE),
+        color: Color(0xFF75859D),
         fontSize: 13,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: 0.5,
       ),
     );
@@ -265,33 +295,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF4A5568)),
-      prefixIcon: Icon(icon, color: const Color(0xFF00BCD4), size: 20),
+      hintStyle: const TextStyle(color: Color(0xFF4A5568), fontWeight: FontWeight.w500),
+      prefixIcon: Icon(icon, color: const Color(0xFF0051D5), size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFF1A2744),
+      fillColor: const Color(0xFF1E293B), // Sleek slate container
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF2D3748)),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF2D3748)),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF00BCD4), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF0051D5), width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
       errorStyle: const TextStyle(color: Colors.redAccent),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     );
   }
 }

@@ -104,7 +104,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
     }
 
     try {
-      await examProvider.submitExam(finalAnswers, authProvider.user!.token);
+      await examProvider.submitExam(finalAnswers);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -112,8 +112,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
             builder: (context) => ResultScreen(
               score: score,
               totalQuestions: widget.exam.questions.length,
-              totalTime: widget.exam.duration * 60,
               timeTaken: (widget.exam.duration * 60) - examProvider.remainingSeconds,
+              questions: widget.exam.questions,
+              userAnswers: examProvider.userAnswers,
             ),
           ),
         );

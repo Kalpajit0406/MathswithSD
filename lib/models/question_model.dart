@@ -46,33 +46,6 @@ class Question {
   }
 }
 
-// OCR scan result from AI backend
-class ScanData {
-  final String questionText;
-  final List<String> options;
-  final String? correctAnswer;
-  final String? latex;
-  final String? rawText;
-
-  ScanData({
-    required this.questionText,
-    required this.options,
-    this.correctAnswer,
-    this.latex,
-    this.rawText,
-  });
-
-  factory ScanData.fromJson(Map<String, dynamic> json) {
-    return ScanData(
-      questionText: json['questionText'] ?? '',
-      options: List<String>.from(json['options'] ?? []),
-      correctAnswer: json['correctAnswer'],
-      latex: json['latex'],
-      rawText: json['rawText'],
-    );
-  }
-}
-
 // For exam taking
 class ExamQuestion {
   final String id;

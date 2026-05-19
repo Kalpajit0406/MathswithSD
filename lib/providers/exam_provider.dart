@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/exam_model.dart';
+import '../models/test_model.dart';
 import '../services/api_service.dart';
+
+enum LoadState { idle, loading, error, loaded }
 
 class ExamProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -16,34 +19,63 @@ class ExamProvider with ChangeNotifier {
   int _remainingSeconds = 0;
   Timer? _timer;
 
+  // Added states for announcements and scheduled tests
+  List<Announcement> _announcements = [];
+  LoadState _announcementsState = LoadState.idle;
+  String? _announcementsError;
+
+  List<Exam> _scheduledTests = [];
+  LoadState _testsState = LoadState.idle;
+
   List<Exam> get exams => _exams;
   bool get isLoading => _isLoading;
   int get currentQuestionIndex => _currentQuestionIndex;
   Map<String, String> get userAnswers => _userAnswers;
   int get remainingSeconds => _remainingSeconds;
 
-  Future<void> fetchExams(String token) async {
-    _isLoading = true;
+  List<Announcement> get announcements => _announcements;
+  LoadState get announcementsState => _announcementsState;
+  String? get announcementsError => _announcementsError;
+
+  List<Exam> get scheduledTests => _scheduledTests;
+  LoadState get testsState => _testsState;
+
+  Future<void> loadAnnouncements({String? targetClass}) async {
+    _announcementsState = LoadState.loading;
+    _announcementsError = null;
     notifyListeners();
     try {
-      _exams = await _apiService.fetchExams(token);
+      _announcements = await _apiService.getAnnouncements(targetClass: targetClass);
+      _announcementsState = LoadState.loaded;
     } catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      _announcementsError = 'Failed to load announcements';
+      _announcementsState = LoadState.error;
     }
+    notifyListeners();
   }
 
-  Future<void> startExam(String examId, String token) async {
+  Future<void> loadTests() async {
+    _testsState = LoadState.loading;
+    notifyListeners();
+    try {
+      _scheduledTests = await _apiService.fetchExams();
+      _testsState = LoadState.loaded;
+    } catch (e) {
+      _testsState = LoadState.error;
+    }
+    notifyListeners();
+  }
+
+  Future<void> startExam(String examId) async {
     _currentQuestionIndex = 0;
     _userAnswers = {};
-    // Find the exam to get its duration
-    final exam = _exams.firstWhere((e) => e.id == examId);
+    
+    // Find exam to set duration
+    final exam = _scheduledTests.firstWhere((e) => e.id == examId);
     _remainingSeconds = exam.duration * 60;
     
     try {
-      _currentAttemptId = await _apiService.startAttempt(examId, token);
+      _currentAttemptId = await _apiService.startAttempt(examId);
       _startTimer();
       notifyListeners();
     } catch (e) {
@@ -83,7 +115,7 @@ class ExamProvider with ChangeNotifier {
     }
   }
 
-  Future<void> submitExam(List<Map<String, dynamic>> answers, String token) async {
+  Future<void> submitExam(List<Map<String, dynamic>> answers) async {
     if (_currentAttemptId == null) return;
     
     _timer?.cancel();
@@ -94,7 +126,6 @@ class ExamProvider with ChangeNotifier {
       await _apiService.submitAnswers(
         attemptId: _currentAttemptId!,
         answers: answers,
-        token: token,
       );
       _currentAttemptId = null;
     } catch (e) {

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/admin_provider.dart';
+import '../../providers/exam_provider.dart';
 import '../../models/test_model.dart';
-import 'create_announcement_screen.dart';
 
 class AnnouncementsScreen extends StatefulWidget {
   final bool isAdmin;
@@ -19,7 +18,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AdminProvider>(context, listen: false)
+      Provider.of<ExamProvider>(context, listen: false)
           .loadAnnouncements(targetClass: widget.isAdmin ? null : widget.studentClass);
     });
   }
@@ -34,20 +33,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Announcements', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        actions: [
-          if (widget.isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              tooltip: 'New Announcement',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateAnnouncementScreen()),
-              ),
-            ),
-        ],
         elevation: 0,
       ),
-      body: Consumer<AdminProvider>(
+      body: Consumer<ExamProvider>(
         builder: (context, provider, _) {
           if (provider.announcementsState == LoadState.loading) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFF1565C0)));
