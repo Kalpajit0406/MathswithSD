@@ -8,6 +8,8 @@ import 'providers/auth_provider.dart';
 import 'providers/exam_provider.dart';
 
 import 'utils/app_theme.dart';
+import 'widgets/offline_indicator.dart';
+import 'utils/error_boundary.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student/student_dashboard.dart';
@@ -123,20 +125,24 @@ class MathsWithSDApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MathsWithSD',
-      theme: AppTheme.lightTheme,
-      debugShowCheckedModeBanner: false,
-      home: const _AuthGate(),
-      routes: {
-        '/login': (context) => LoginScreen(
+    return ErrorBoundary(
+      child: OfflineIndicator(
+        child: MaterialApp(
+          title: 'MathsWithSD',
+          theme: AppTheme.lightTheme,
+          debugShowCheckedModeBanner: false,
+          home: const _AuthGate(),
+          routes: {
+            '/login': (context) => LoginScreen(
               onNavigateToRegister: () => Navigator.pushReplacementNamed(context, '/register'),
             ),
-        '/register': (context) => RegisterScreen(
+            '/register': (context) => RegisterScreen(
               onBackToLogin: () => Navigator.pushReplacementNamed(context, '/login'),
             ),
-        '/student': (context) => const StudentDashboard(),
-      },
+            '/student': (context) => const StudentDashboard(),
+          },
+        ),
+      ),
     );
   }
 }

@@ -9,10 +9,13 @@ class ImageService {
   Future<File?> pickAndCropImage(BuildContext context) async {
     final primaryColor = Theme.of(context).primaryColor;
     try {
-      // 1. Pick Image from Camera
+      // 1. Pick Image with resolution constraints to save memory
+      // 60% quality and 1600px max is high quality for OCR but memory-safe
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 100,
+        imageQuality: 60,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
 
       if (photo == null) return null;
@@ -20,6 +23,8 @@ class ImageService {
       // 2. Open Crop Screen
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: photo.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 80,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Question',
@@ -55,5 +60,15 @@ class ImageService {
       debugPrint("ImageService Error: $e");
       return null;
     }
+  }
+
+  /// Handles Android specific process death when camera is launched
+  Future<XFile?> getLostData() async {
+    if (Platform.isAndroid) {
+      final LostDataResponse response = await _picker.retrieveLostData();
+      if (response.isEmpty) return null;
+      return response.file;
+    }
+    return null;
   }
 }

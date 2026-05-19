@@ -2,7 +2,7 @@ class AppConstants {
   // Use local LAN IP since you are testing on a physical device
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.37.148.88:5000',
+    defaultValue: 'http://10.37.148.209:5000',
   );
   // static const String baseUrl = 'http://10.0.2.2:5000'; // For emulator
   // API Endpoints
@@ -29,6 +29,94 @@ class AppConstants {
   static const String userClassKey = 'user_class';
   static const String userFirstNameKey = 'user_first_name';
   static const String userLastNameKey = 'user_last_name';
+
+  // Class Chapters
+  static const Map<int, List<String>> classChapters = {
+    9: [
+      'Real Numbers',
+      'Laws of Indices',
+      'Graph',
+      'Co-ordinate Geometry: Distance Formula',
+      'Linear Simultaneous Equations',
+      'Properties of Parallelogram',
+      'Polynomial',
+      'Factorisation',
+      'Transversal and Mid-Point Theorem',
+      'Profit and Loss',
+      'Statistics',
+      'Theorems on Area',
+      'Construction: Parallelogram Equal in Area to a Triangle',
+      'Construction: Triangle Equal in Area to a Quadrilateral',
+      'Area & Perimeter of Triangle and Quadrilateral',
+      'Circumference of Circle',
+      'Concurrent Theorems',
+      'Area of Circle',
+      'Co-ordinate Geometry: Internal and External Division',
+      'Co-ordinate Geometry: Area of Triangular Region',
+      'Logarithm',
+    ],
+    10: [
+      'Quadratic Equation in One Variable',
+      'Simple Interest',
+      'Theorems Related to Circle',
+      'Rectangular Parallelepiped or Cuboid',
+      'Ratio and Proportion',
+      'Compound Interest and Uniform Rate of Increase or Decrease',
+      'Theorems Related to Angles in a Circle',
+      'Right Circular Cylinder',
+      'Quadratic Surd',
+      'Theorems Related to Cyclic Quadrilateral',
+      'Construction: Construction of Circumcircle and Incircle of a Triangle',
+      'Sphere',
+      'Variation',
+      'Partnership Business',
+      'Theorems Related to Tangent to a Circle',
+      'Right Circular Cone',
+      'Construction: Construction of Tangent to a Circle',
+      'Similarity',
+      'Problems Related to Different Solid Objects',
+      'Trigonometry: Concept of Measurement of Angle',
+      'Construction: Determination of Mean Proportional',
+      'Pythagoras Theorem',
+      'Trigonometric Ratios and Trigonometric Identities',
+      'Trigonometric Ratios of Complementary Angles',
+      'Application of Trigonometric Ratios: Heights and Distances',
+      'Statistics: Mean, Median, Ogive, Mode',
+    ],
+    11: [
+      'Sets',
+      'Relations and Functions',
+      'Trigonometric Functions',
+      'Principle of Mathematical Induction',
+      'Complex Numbers and Quadratic Equations',
+      'Linear Inequalities',
+      'Permutations and Combinations',
+      'Binomial Theorem',
+      'Sequences and Series',
+      'Straight Lines',
+      'Conic Sections',
+      'Introduction to Three-dimensional Geometry',
+      'Limits and Derivatives',
+      'Mathematical Reasoning',
+      'Statistics',
+      'Probability',
+    ],
+    12: [
+      'Relations and Functions',
+      'Inverse Trigonometric Functions',
+      'Matrices',
+      'Determinants',
+      'Continuity and Differentiability',
+      'Application of Derivatives',
+      'Integrals',
+      'Application of Integrals',
+      'Differential Equations',
+      'Vector Algebra',
+      'Three Dimensional Geometry',
+      'Linear Programming',
+      'Probability',
+    ],
+  };
 }
 
 class AppColors {

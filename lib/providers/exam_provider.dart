@@ -2,13 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import '../models/exam_model.dart';
 import '../models/test_model.dart';
 import '../services/api_service.dart';
+import '../utils/resource_manager.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
-class ExamProvider with ChangeNotifier {
+class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   final ApiService _apiService = ApiService();
   
   List<Exam> _exams = [];
@@ -128,10 +130,11 @@ class ExamProvider with ChangeNotifier {
     _announcementsError = null;
     notifyListeners();
     try {
-      _announcements = await _apiService.getAnnouncements(targetClass: targetClass);
+      _announcements = await _apiService.getAnnouncementsWithRetry(targetClass: targetClass);
       _announcementsState = LoadState.loaded;
     } catch (e) {
-      _announcementsError = 'Failed to load announcements';
+      debugPrint('Error loading announcements: $e');
+      _announcementsError = 'Failed to load announcements. Please check your internet connection.';
       _announcementsState = LoadState.error;
     }
     notifyListeners();
@@ -141,9 +144,10 @@ class ExamProvider with ChangeNotifier {
     _testsState = LoadState.loading;
     notifyListeners();
     try {
-      _scheduledTests = await _apiService.fetchExams();
+      _scheduledTests = await _apiService.fetchExamsWithRetry();
       _testsState = LoadState.loaded;
     } catch (e) {
+      debugPrint('Error loading tests: $e');
       _testsState = LoadState.error;
     }
     notifyListeners();
@@ -159,19 +163,19 @@ class ExamProvider with ChangeNotifier {
     _remainingSeconds = exam.duration * 60;
     
     try {
-      _currentAttemptId = await _apiService.startAttempt(examId);
+      _currentAttemptId = await _apiService.startAttemptWithRetry(examId);
       await _saveAttemptToPrefs();
       _startTimer();
       notifyListeners();
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('Error starting exam: $e');
       rethrow;
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _timer = createSafeTimer(const Duration(seconds: 1), (timer) async {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
         if (_remainingSeconds % 5 == 0) {
@@ -212,7 +216,7 @@ class ExamProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.submitAnswers(
+      await _apiService.submitAnswersWithRetry(
         attemptId: _currentAttemptId!,
         answers: answers,
       );
@@ -220,7 +224,7 @@ class ExamProvider with ChangeNotifier {
       _currentExamId = null;
       await _clearAttemptFromPrefs();
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('Error submitting exam: $e');
       rethrow;
     } finally {
       _isLoading = false;
@@ -232,5 +236,29 @@ class ExamProvider with ChangeNotifier {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  /// Fetch student's performance analytics data
+  Future<Map<String, dynamic>?> fetchStudentPerformance() async {
+    try {
+      final response = await _apiService.apiClient.get(
+        '${_apiService.baseUrl}/api/v1/analytics/my-performance',
+        options: Options(
+          headers: _apiService.headers,
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized - Please login again');
+      } else {
+        throw Exception('Failed to fetch performance data');
+      }
+    } catch (e) {
+      debugPrint('Error fetching student performance: $e');
+      rethrow;
+    }
   }
 }

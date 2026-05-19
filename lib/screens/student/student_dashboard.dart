@@ -6,6 +6,8 @@ import '../../models/exam_model.dart';
 import '../../models/test_model.dart';
 import '../shared/announcements_screen.dart';
 import '../../widgets/animations.dart';
+import '../../widgets/difficulty_badge.dart';
+import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
 
@@ -396,11 +398,9 @@ class _HomeTab extends StatelessWidget {
                       delay: const Duration(milliseconds: 350),
                       child: BounceOnTap(
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Complete a test to view results'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PerformanceScreen()),
                           );
                         },
                         child: const _ActionCard(
@@ -631,6 +631,12 @@ class _ExamCard extends StatelessWidget {
                           '${test.questions.length} Questions',
                           style: const TextStyle(color: Color(0xFF4CAF50), fontWeight: FontWeight.w700, fontSize: 11),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Difficulty indicator - placeholder difficulty level
+                      DifficultyIndicator(
+                        difficulty: 3.0,  // Medium difficulty
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(

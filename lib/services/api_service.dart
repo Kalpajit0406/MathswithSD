@@ -126,4 +126,104 @@ class ApiService {
     final list = data['data'] as List? ?? [];
     return list.map((a) => Announcement.fromJson(a)).toList();
   }
+
+  // ─── Retry Methods ───────────────────────────────────────────────────────────
+
+  /// Login with exponential backoff retry (1s → 2s → 4s)
+  Future<Map<String, dynamic>> loginWithRetry(String phone, String password) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await login(phone, password);
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Login failed after $maxAttempts attempts', 500);
+  }
+
+  /// Fetch exams with retry logic
+  Future<List<exam.Exam>> fetchExamsWithRetry() async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await fetchExams();
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Fetch exams failed after $maxAttempts attempts', 500);
+  }
+
+  /// Start exam attempt with retry
+  Future<String> startAttemptWithRetry(String examId) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await startAttempt(examId);
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Start attempt failed after $maxAttempts attempts', 500);
+  }
+
+  /// Submit answers with retry
+  Future<Map<String, dynamic>> submitAnswersWithRetry({
+    required String attemptId,
+    required List<Map<String, dynamic>> answers,
+  }) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await submitAnswers(attemptId: attemptId, answers: answers);
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Submit answers failed after $maxAttempts attempts', 500);
+  }
+
+  /// Get announcements with retry
+  Future<List<Announcement>> getAnnouncementsWithRetry({String? targetClass}) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await getAnnouncements(targetClass: targetClass);
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    throw ApiException('Get announcements failed after $maxAttempts attempts', 500);
+  }
 }
