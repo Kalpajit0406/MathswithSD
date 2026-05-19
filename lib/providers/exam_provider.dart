@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exam_model.dart';
 import '../models/test_model.dart';
 import '../services/api_service.dart';
@@ -12,6 +14,7 @@ class ExamProvider with ChangeNotifier {
   List<Exam> _exams = [];
   bool _isLoading = false;
   String? _currentAttemptId;
+  String? _currentExamId;
   
   // Attempt State
   int _currentQuestionIndex = 0;
@@ -32,6 +35,8 @@ class ExamProvider with ChangeNotifier {
   int get currentQuestionIndex => _currentQuestionIndex;
   Map<String, String> get userAnswers => _userAnswers;
   int get remainingSeconds => _remainingSeconds;
+  String? get currentAttemptId => _currentAttemptId;
+  String? get currentExamId => _currentExamId;
 
   List<Announcement> get announcements => _announcements;
   LoadState get announcementsState => _announcementsState;
@@ -39,6 +44,84 @@ class ExamProvider with ChangeNotifier {
 
   List<Exam> get scheduledTests => _scheduledTests;
   LoadState get testsState => _testsState;
+
+  // ─── Persistence Resumption Engine ───────────────────────────────────────
+
+  Future<void> _saveAttemptToPrefs() async {
+    if (_currentAttemptId == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_attempt_id', _currentAttemptId!);
+      await prefs.setString('active_exam_id', _currentExamId ?? '');
+      await prefs.setString('active_answers', jsonEncode(_userAnswers));
+      await prefs.setInt('active_last_tick', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt('active_remaining_seconds', _remainingSeconds);
+    } catch (e) {
+      debugPrint('Error caching exam attempt locally: $e');
+    }
+  }
+
+  Future<void> _clearAttemptFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('active_attempt_id');
+      await prefs.remove('active_exam_id');
+      await prefs.remove('active_answers');
+      await prefs.remove('active_last_tick');
+      await prefs.remove('active_remaining_seconds');
+    } catch (e) {
+      debugPrint('Error clearing cached exam attempt: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> checkForResumableExam() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final attemptId = prefs.getString('active_attempt_id');
+      if (attemptId == null) return null;
+      
+      final examId = prefs.getString('active_exam_id') ?? '';
+      final answersRaw = prefs.getString('active_answers') ?? '{}';
+      final lastTick = prefs.getInt('active_last_tick') ?? DateTime.now().millisecondsSinceEpoch;
+      final cachedRemaining = prefs.getInt('active_remaining_seconds') ?? 0;
+      
+      final elapsedSeconds = (DateTime.now().millisecondsSinceEpoch - lastTick) ~/ 1000;
+      final calculatedRemaining = cachedRemaining - elapsedSeconds;
+
+      if (calculatedRemaining <= 0) {
+        await _clearAttemptFromPrefs();
+        return null;
+      }
+
+      return {
+        'attemptId': attemptId,
+        'examId': examId,
+        'answers': Map<String, String>.from(jsonDecode(answersRaw)),
+        'remainingSeconds': calculatedRemaining,
+      };
+    } catch (e) {
+      debugPrint('Error checking for resumable exam: $e');
+      return null;
+    }
+  }
+
+  Future<bool> resumeExam(Map<String, dynamic> cachedData) async {
+    try {
+      _currentAttemptId = cachedData['attemptId'];
+      _currentExamId = cachedData['examId'];
+      _userAnswers = cachedData['answers'];
+      _remainingSeconds = cachedData['remainingSeconds'];
+      _currentQuestionIndex = 0;
+      _startTimer();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Resume Exam failed: $e');
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> loadAnnouncements({String? targetClass}) async {
     _announcementsState = LoadState.loading;
@@ -69,6 +152,7 @@ class ExamProvider with ChangeNotifier {
   Future<void> startExam(String examId) async {
     _currentQuestionIndex = 0;
     _userAnswers = {};
+    _currentExamId = examId;
     
     // Find exam to set duration
     final exam = _scheduledTests.firstWhere((e) => e.id == examId);
@@ -76,6 +160,7 @@ class ExamProvider with ChangeNotifier {
     
     try {
       _currentAttemptId = await _apiService.startAttempt(examId);
+      await _saveAttemptToPrefs();
       _startTimer();
       notifyListeners();
     } catch (e) {
@@ -86,9 +171,12 @@ class ExamProvider with ChangeNotifier {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
+        if (_remainingSeconds % 5 == 0) {
+          await _saveAttemptToPrefs();
+        }
         notifyListeners();
       } else {
         _timer?.cancel();
@@ -98,6 +186,7 @@ class ExamProvider with ChangeNotifier {
 
   void setAnswer(String questionId, String answer) {
     _userAnswers[questionId] = answer;
+    _saveAttemptToPrefs();
     notifyListeners();
   }
 
@@ -128,6 +217,8 @@ class ExamProvider with ChangeNotifier {
         answers: answers,
       );
       _currentAttemptId = null;
+      _currentExamId = null;
+      await _clearAttemptFromPrefs();
     } catch (e) {
       debugPrint(e.toString());
       rethrow;

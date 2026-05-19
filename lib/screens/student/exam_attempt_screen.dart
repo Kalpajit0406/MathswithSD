@@ -19,13 +19,38 @@ class ExamAttemptScreen extends StatefulWidget {
 class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindingObserver {
   int _violations = 0;
   bool _isSubmitted = false;
+  bool _isInitializing = true;
+  String? _initError;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Prevent screenshots if possible using a plugin, or rely on native Android code.
-    // In Flutter, we can use flutter_windowmanager for secure flag, but we'll stick to basic lifecycle observation here.
+    _initializeExam();
+  }
+
+  Future<void> _initializeExam() async {
+    final provider = Provider.of<ExamProvider>(context, listen: false);
+    try {
+      final cached = await provider.checkForResumableExam();
+      if (cached != null && cached['examId'] == widget.exam.id) {
+        await provider.resumeExam(cached);
+      } else {
+        await provider.startExam(widget.exam.id);
+      }
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+          _initError = e.toString();
+        });
+      }
+    }
   }
 
   @override
@@ -36,7 +61,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_isSubmitted) return;
+    if (_isSubmitted || _isInitializing || _initError != null) return;
     
     // Security check: if app goes to background (user switched apps or opened split screen)
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
@@ -137,6 +162,67 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F9FB),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF4A148C)),
+              const SizedBox(height: 20),
+              Text(
+                'Securing examination environment...',
+                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_initError != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F9FB),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF4A148C),
+          title: const Text('Exam Initialization Error'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
+                const SizedBox(height: 20),
+                Text(
+                  'Initialization Failed',
+                  style: TextStyle(color: Colors.grey.shade900, fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _initError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A148C),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final examProvider = Provider.of<ExamProvider>(context);
     final totalQ = widget.exam.questions.length;
     final currentQIndex = examProvider.currentQuestionIndex;
