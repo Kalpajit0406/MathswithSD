@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/exam_model.dart';
-import '../shared/katex_widget.dart';
+import '../shared/latex_widget.dart';
 
 class ResultScreen extends StatelessWidget {
   final int score;
@@ -205,7 +205,7 @@ class ResultScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    KaTeXWidget(text: q.questionText),
+                    LaTeXWidget(text: q.questionText),
                     const SizedBox(height: 16),
                     _ReviewOption(label: 'Your Answer', value: userAns ?? 'Not Answered', isCorrect: isCorrect, color: isCorrect ? Colors.green : Colors.red),
                     if (!isCorrect)
