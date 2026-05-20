@@ -13,9 +13,6 @@ class ImageService {
       // 60% quality and 1600px max is high quality for OCR but memory-safe
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 60,
-        maxWidth: 1600,
-        maxHeight: 1600,
       );
 
       if (photo == null) return null;
