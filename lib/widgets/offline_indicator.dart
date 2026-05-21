@@ -27,7 +27,14 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
     super.initState();
     _connectivityManager = ConnectivityManager();
     _syncManager = SyncManager();
-    _isOnline = _connectivityManager.isOnline;
+    _connectivityManager.initialize().then((_) {
+      if (mounted) {
+        setState(() {
+          _isOnline = _connectivityManager.isOnline;
+        });
+      }
+    });
+    _syncManager.initialize();
   }
 
   @override

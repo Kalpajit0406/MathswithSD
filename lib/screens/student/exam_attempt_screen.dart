@@ -138,10 +138,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
   }
 
   Future<void> _submit() async {
-    if (_isSubmitted) return;
+    final examProvider = Provider.of<ExamProvider>(context, listen: false);
+    if (_isSubmitted || examProvider.isLoading) return;
     _isSubmitted = true;
 
-    final examProvider = Provider.of<ExamProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     // Build answer array
@@ -258,6 +258,24 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
     }
 
     final examProvider = Provider.of<ExamProvider>(context);
+    if (examProvider.isLoading || _isSubmitted) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F9FB),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF4A148C)),
+              const SizedBox(height: 20),
+              const Text(
+                'Submitting your answers securely...',
+                style: TextStyle(color: Color(0xFF4A148C), fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final totalQ = widget.exam.questions.length;
     final currentQIndex = examProvider.currentQuestionIndex;
     final currentQ = widget.exam.questions[currentQIndex];

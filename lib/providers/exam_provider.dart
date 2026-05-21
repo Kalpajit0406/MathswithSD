@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/exam_model.dart';
 import '../models/test_model.dart';
 import '../services/api_service.dart';
 import '../utils/resource_manager.dart';
 import '../services/offline_exam_service.dart';
+import '../services/connectivity_manager.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
@@ -23,6 +25,29 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   Map<String, String> _userAnswers = {}; // questionId -> answer
   int _remainingSeconds = 0;
   Timer? _timer;
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+
+  ExamProvider() {
+    _initConnectivityListener();
+  }
+
+  void _initConnectivityListener() {
+    ConnectivityManager().initialize().then((_) {
+      _connectivitySubscription = ConnectivityManager().statusChanges.listen((status) async {
+        if (status != ConnectivityResult.none) {
+          debugPrint('[ExamProvider] Connectivity restored. Checking for resumable exam...');
+          final cached = await checkForResumableExam();
+          if (cached != null && _currentAttemptId == null) {
+            debugPrint('[ExamProvider] Found resumable exam, restoring state.');
+            await resumeExam(cached);
+          }
+        }
+      });
+    }).catchError((e) {
+      debugPrint('[ExamProvider] Failed to initialize connectivity listener: $e');
+    });
+  }
+
 
   // Added states for announcements and scheduled tests
   List<Announcement> _announcements = [];
@@ -267,6 +292,10 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   Future<void> submitExam(List<Map<String, dynamic>> answers, {bool isOffline = false}) async {
     if (_currentAttemptId == null) return;
+    if (_isLoading) {
+      debugPrint('[ExamProvider] submitExam called while already loading. Ignoring duplicate call.');
+      return;
+    }
     
     _timer?.cancel();
     _isLoading = true;
@@ -314,6 +343,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   @override
   void dispose() {
     _timer?.cancel();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
