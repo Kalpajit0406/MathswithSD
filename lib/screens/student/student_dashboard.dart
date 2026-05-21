@@ -5,6 +5,7 @@ import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../../models/test_model.dart';
 import '../shared/announcements_screen.dart';
+import '../shared/settings_screen.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/difficulty_badge.dart';
 import '../student/performance_screen.dart';
@@ -25,6 +26,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   final List<Widget> _pages = [
     const _HomeTab(),
     const ProfileScreen(),
+    const SettingsScreen(),
   ];
 
   @override
@@ -63,6 +65,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person_rounded),
               label: 'Profile',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings_rounded),
+              label: 'Settings',
             ),
           ],
         ),

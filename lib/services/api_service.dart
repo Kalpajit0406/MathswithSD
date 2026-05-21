@@ -17,7 +17,51 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  final String _baseUrl = AppConstants.baseUrl;
+  // Static value from build-time env; resolved at runtime by _getBaseUrl
+  final String _staticBaseUrl = AppConstants.baseUrl;
+  String? _resolvedBaseUrl;
+
+  Future<String> _getBaseUrl() async {
+    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty) return _resolvedBaseUrl!;
+    // Check for a manual override stored in secure storage
+    try {
+      final override = await AuthStorageService.getBaseUrlOverride();
+      if (override != null && override.isNotEmpty) {
+        _resolvedBaseUrl = override;
+        debugPrint('[ApiService] Using stored base URL override: $override');
+        return override;
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Error reading base URL override: $e');
+    }
+
+    final candidates = <String>[
+      _staticBaseUrl,
+      'http://10.0.2.2:5000', // Android emulator
+      'http://localhost:5000', // Desktop
+    ];
+    for (final c in candidates) {
+      try {
+        final probeUri = Uri.parse('$c${AppConstants.questionsEndpoint}?classNo=1&language=English');
+        final resp = await http.get(probeUri).timeout(const Duration(seconds: 3));
+        if (resp.statusCode >= 200 && resp.statusCode < 300) {
+          _resolvedBaseUrl = c;
+          debugPrint('[ApiService] Resolved base URL to $c');
+          return c;
+        }
+      } catch (e) {
+        debugPrint('[ApiService] Probe failed for $c -> $e');
+      }
+    }
+    debugPrint('[ApiService] Falling back to static base URL: $_staticBaseUrl');
+    _resolvedBaseUrl = _staticBaseUrl;
+    return _staticBaseUrl;
+  }
+
+  Future<Uri> _uri(String endpoint) async {
+    final base = await _getBaseUrl();
+    return Uri.parse('$base$endpoint');
+  }
 
   Future<Map<String, String>> _headers({bool includeAuth = true}) async {
     final headers = <String, String>{
@@ -34,25 +78,65 @@ class ApiService {
     return headers;
   }
 
+  Future<void> _handleUnauthorized() async {
+    debugPrint('[ApiService] 401 Unauthorized - clearing all stored data');
+    await AuthStorageService.clearAll();
+    // Notify listeners to redirect to login (if using Provider or similar)
+  }
+
   dynamic _processResponse(http.Response response) {
+    debugPrint('[ApiService] Response: ${response.statusCode} (${response.request?.url})');
+    
+    // Handle 401 unauthorized
+    if (response.statusCode == 401) {
+      _handleUnauthorized();
+    }
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (response.body.isEmpty) return {};
-      return jsonDecode(response.body);
+      if (response.body.isEmpty) {
+        debugPrint('[ApiService] Empty response body');
+        return {};
+      }
+      try {
+        final decoded = jsonDecode(response.body);
+        debugPrint('[ApiService] Response body (truncated): ${response.body.length > 200 ? response.body.substring(0, 200) + '...' : response.body}');
+        return decoded;
+      } catch (e) {
+        debugPrint('[ApiService] JSON decode error: $e');
+        throw ApiException('Invalid JSON response: $e', response.statusCode);
+      }
     }
     String message = 'Request failed (${response.statusCode})';
     try {
       final body = jsonDecode(response.body);
       message = body['message'] ?? message;
-    } catch (_) {}
+    } catch (_) {
+      debugPrint('[ApiService] Error response body: ${response.body}');
+    }
+    debugPrint('[ApiService] Error: $message');
     throw ApiException(message, response.statusCode);
+  }
+
+  Future<void> _logRequest(String method, Uri uri, Map<String, String>? headers) async {
+    debugPrint('[ApiService] Request: $method ${uri.path}');
+    if (headers != null) {
+      final sanitized = Map<String, String>.from(headers);
+      if (sanitized.containsKey('Authorization')) {
+        sanitized['Authorization'] = sanitized['Authorization']!.replaceAll(RegExp(r'.{20}'), 'X');
+      }
+      debugPrint('[ApiService] Headers: $sanitized');
+    }
   }
 
   // ─── Auth ────────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> login(String phone, String password) async {
+    final uri = await _uri(AppConstants.loginEndpoint);
+    final headers = await _headers(includeAuth: false);
+    await _logRequest('POST', uri, headers);
     final response = await http.post(
-      Uri.parse('$_baseUrl${AppConstants.loginEndpoint}'),
-      headers: await _headers(includeAuth: false),
+      uri,
+      headers: headers,
       body: jsonEncode({'studentPhone': phone, 'password': password}),
     ).timeout(const Duration(seconds: 20));
     return _processResponse(response);
@@ -60,7 +144,7 @@ class ApiService {
 
   Future<http.Response> register(Map<String, dynamic> data) async {
     return await http.post(
-      Uri.parse('$_baseUrl${AppConstants.registerEndpoint}'),
+      await _uri(AppConstants.registerEndpoint),
       headers: await _headers(includeAuth: false),
       body: jsonEncode(data),
     ).timeout(const Duration(seconds: 20));
@@ -70,7 +154,7 @@ class ApiService {
 
   Future<List<exam.Exam>> fetchExams() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl${AppConstants.testsEndpoint}'),
+      await _uri(AppConstants.testsEndpoint),
       headers: await _headers(),
     ).timeout(const Duration(seconds: 15));
     final data = _processResponse(response);
@@ -80,7 +164,7 @@ class ApiService {
 
   Future<String> startAttempt(String examId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl${AppConstants.startAttemptEndpoint}'),
+      await _uri(AppConstants.startAttemptEndpoint),
       headers: await _headers(),
       body: jsonEncode({'examId': examId}),
     ).timeout(const Duration(seconds: 15));
@@ -104,7 +188,7 @@ class ApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl${AppConstants.submitAttemptEndpoint}'),
+      await _uri(AppConstants.submitAttemptEndpoint),
       headers: await _headers(),
       body: jsonEncode(bodyData),
     ).timeout(const Duration(seconds: 15));
@@ -117,7 +201,7 @@ class ApiService {
     final params = <String, String>{};
     if (targetClass != null) params['targetClass'] = targetClass;
     
-    final uri = Uri.parse('$_baseUrl${AppConstants.announcementsEndpoint}').replace(queryParameters: params);
+    final uri = (await _uri(AppConstants.announcementsEndpoint)).replace(queryParameters: params);
     final response = await http.get(
       uri,
       headers: await _headers(),
@@ -132,7 +216,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getPerformance() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/api/v1/analytics/my-performance'),
+      await _uri('/api/v1/analytics/my-performance'),
       headers: await _headers(),
     ).timeout(const Duration(seconds: 15));
     return _processResponse(response);
@@ -141,7 +225,7 @@ class ApiService {
   Future<double> fetchExamDifficulty(String examId) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/v1/ratings/exam-analytics/$examId'),
+        await _uri('/api/v1/ratings/exam-analytics/$examId'),
         headers: await _headers(),
       ).timeout(const Duration(seconds: 10));
       
@@ -289,7 +373,7 @@ class ApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl${AppConstants.syncOfflineAttemptEndpoint}'),
+      await _uri(AppConstants.syncOfflineAttemptEndpoint),
       headers: await _headers(),
       body: jsonEncode(bodyData),
     ).timeout(const Duration(seconds: 20));
