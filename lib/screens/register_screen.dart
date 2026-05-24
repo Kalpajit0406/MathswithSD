@@ -102,7 +102,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
           widget.onBackToLogin();
         } else {
-          _showError('Registration failed. Please try again.');
+          String errMsg = 'Registration failed. Please try again.';
+          try {
+            final Map<String, dynamic> body = jsonDecode(response.body);
+            if (body.containsKey('message')) {
+              errMsg = body['message'];
+            }
+          } catch (_) {}
+          _showError(errMsg);
         }
       }
     } catch (e) {

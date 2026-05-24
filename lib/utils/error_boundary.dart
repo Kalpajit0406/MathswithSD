@@ -25,13 +25,18 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
     
     // Catch all Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
-      setState(() {
-        _hasError = true;
-        _errorDetails = details;
-      });
-      debugPrint('Flutter Error: ${details.exceptionAsString()}\n'
+      debugPrint('Flutter Error caught: ${details.exceptionAsString()}\n'
           'Error: ${details.exception}\n'
           'StackTrace: ${details.stack}');
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorDetails = details;
+          });
+        }
+      });
       widget.onError?.call();
     };
 

@@ -88,4 +88,4 @@ flutter run
 ## 📈 Next Milestones
 - [ ] **Dynamic Batch Scanning**: Expand OCR pipeline to ingest and parse multi-question images into structured MCQ questionnaires.
 - [ ] **LaTeX Question Editor**: Real-time interactive preview of LaTeX structures inside the "Create Question" tab.
-- [ ] **Automatic IP Syncing Utility**: Build a simple local shell script to auto-generate `constants.dart` based on active network adapters.
+- [x] **Automatic IP Syncing Utility**: Build a simple local shell script to auto-generate `constants.dart` based on active network adapters.

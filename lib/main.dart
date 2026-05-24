@@ -126,22 +126,23 @@ class MathsWithSDApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ErrorBoundary(
-      child: OfflineIndicator(
-        child: MaterialApp(
-          title: 'MathsWithSD',
-          theme: AppTheme.lightTheme,
-          debugShowCheckedModeBanner: false,
-          home: const _AuthGate(),
-          routes: {
-            '/login': (context) => LoginScreen(
-              onNavigateToRegister: () => Navigator.pushReplacementNamed(context, '/register'),
-            ),
-            '/register': (context) => RegisterScreen(
-              onBackToLogin: () => Navigator.pushReplacementNamed(context, '/login'),
-            ),
-            '/student': (context) => const StudentDashboard(),
-          },
-        ),
+      child: MaterialApp(
+        title: 'MathsWithSD',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return OfflineIndicator(child: child!);
+        },
+        home: const _AuthGate(),
+        routes: {
+          '/login': (context) => LoginScreen(
+            onNavigateToRegister: () => Navigator.pushReplacementNamed(context, '/register'),
+          ),
+          '/register': (context) => RegisterScreen(
+            onBackToLogin: () => Navigator.pushReplacementNamed(context, '/login'),
+          ),
+          '/student': (context) => const StudentDashboard(),
+        },
       ),
     );
   }
@@ -154,7 +155,7 @@ class _AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        if (auth.status == AuthStatus.initial || auth.status == AuthStatus.loading && auth.user == null) {
+        if (auth.status == AuthStatus.initial) {
           // Splash screen while checking auto-login
           return const Scaffold(
             backgroundColor: Color(0xFF0A1628),
