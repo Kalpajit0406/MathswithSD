@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
 import '../models/test_model.dart';
@@ -17,6 +18,7 @@ class ApiException implements Exception {
 }
 
 class ApiService {
+  static VoidCallback? onUnauthorized;
   // Static value from build-time env; resolved at runtime by _getBaseUrl
   final String _staticBaseUrl = AppConstants.baseUrl;
   String? _resolvedBaseUrl;
@@ -27,9 +29,13 @@ class ApiService {
     try {
       final override = await AuthStorageService.getBaseUrlOverride();
       if (override != null && override.isNotEmpty) {
-        _resolvedBaseUrl = override;
-        debugPrint('[ApiService] Using stored base URL override: $override');
-        return override;
+        final overrideResolved = await _probeBaseUrl(override);
+        if (overrideResolved) {
+          _resolvedBaseUrl = override;
+          debugPrint('[ApiService] Using stored base URL override: $override');
+          return override;
+        }
+        debugPrint('[ApiService] Stored base URL override is unreachable, rediscovering: $override');
       }
     } catch (e) {
       debugPrint('[ApiService] Error reading base URL override: $e');
@@ -42,20 +48,99 @@ class ApiService {
     ];
     for (final c in candidates) {
       try {
-        final probeUri = Uri.parse('$c${AppConstants.questionsEndpoint}?classNo=1&language=English');
-        final resp = await http.get(probeUri).timeout(const Duration(seconds: 3));
-        if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        if (await _probeBaseUrl(c)) {
           _resolvedBaseUrl = c;
-          debugPrint('[ApiService] Resolved base URL to $c');
+          await AuthStorageService.saveBaseUrlOverride(c);
+          debugPrint('[ApiService] Resolved base URL to $c via health probe');
           return c;
         }
       } catch (e) {
         debugPrint('[ApiService] Probe failed for $c -> $e');
       }
     }
+
+    // Try LAN subnet discovery as a final fallback for physical devices.
+    try {
+      final discovered = await _discoverLanBackendBaseUrl();
+      if (discovered != null && discovered.isNotEmpty) {
+        _resolvedBaseUrl = discovered;
+        await AuthStorageService.saveBaseUrlOverride(discovered);
+        debugPrint('[ApiService] Resolved base URL via LAN discovery to $discovered');
+        return discovered;
+      }
+    } catch (e) {
+      debugPrint('[ApiService] LAN discovery failed: $e');
+    }
+
     debugPrint('[ApiService] Falling back to static base URL: $_staticBaseUrl');
     _resolvedBaseUrl = _staticBaseUrl;
     return _staticBaseUrl;
+  }
+
+  Future<bool> _probeBaseUrl(String baseUrl) async {
+    try {
+      final probeUri = Uri.parse('$baseUrl/health');
+      final resp = await http.get(probeUri).timeout(const Duration(milliseconds: 1000));
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<String?> _discoverLanBackendBaseUrl() async {
+    final interfaces = await NetworkInterface.list(
+      type: InternetAddressType.IPv4,
+      includeLoopback: false,
+    );
+
+    final candidates = <String>{};
+    for (final interface in interfaces) {
+      for (final address in interface.addresses) {
+        final octets = address.address.split('.');
+        if (octets.length != 4) continue;
+
+        final prefix = '${octets[0]}.${octets[1]}.${octets[2]}';
+        final lastOctet = int.tryParse(octets[3]);
+        final commonHosts = <int>{1, 2, 3, 4, 5, 10, 11, 20, 50, 100, 101, 110, 111, 120, 125, 150, 200, 254};
+        if (lastOctet != null) commonHosts.remove(lastOctet);
+
+        for (final host in commonHosts) {
+          candidates.add('http://$prefix.$host:5000');
+        }
+
+        // Full /24 scan
+        for (var host = 1; host <= 254; host++) {
+          if (lastOctet == host) continue;
+          candidates.add('http://$prefix.$host:5000');
+        }
+      }
+    }
+
+    if (candidates.isEmpty) return null;
+
+    final candidateList = candidates.toList();
+    String? foundUrl;
+
+    const batchSize = 40;
+    for (var i = 0; i < candidateList.length; i += batchSize) {
+      final end = (i + batchSize < candidateList.length) ? i + batchSize : candidateList.length;
+      final batch = candidateList.sublist(i, end);
+
+      await Future.wait(batch.map((url) async {
+        if (foundUrl != null) return;
+        final ok = await _probeBaseUrl(url);
+        if (ok) {
+          foundUrl = url;
+        }
+      }));
+
+      if (foundUrl != null) {
+        return foundUrl;
+      }
+    }
+
+    return null;
   }
 
   Future<Uri> _uri(String endpoint) async {
@@ -81,7 +166,7 @@ class ApiService {
   Future<void> _handleUnauthorized() async {
     debugPrint('[ApiService] 401 Unauthorized - clearing all stored data');
     await AuthStorageService.clearAll();
-    // Notify listeners to redirect to login (if using Provider or similar)
+    onUnauthorized?.call();
   }
 
   dynamic _processResponse(http.Response response) {
@@ -399,5 +484,33 @@ class ApiService {
       }
     }
     throw ApiException('Sync offline attempt failed after $maxAttempts attempts', 500);
+  }
+
+  Future<List<String>> getCompletedExamIds() async {
+    final response = await http.get(
+      await _uri('/api/v1/testResponse/completed-exam-ids'),
+      headers: await _headers(),
+    ).timeout(const Duration(seconds: 15));
+    final data = _processResponse(response);
+    final list = data['data'] as List? ?? [];
+    return list.map((id) => id.toString()).toList();
+  }
+
+  Future<List<String>> getCompletedExamIdsWithRetry() async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await getCompletedExamIds();
+      } on ApiException catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    return []; // Return empty list on failure rather than crashing
   }
 }

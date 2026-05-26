@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
 import '../services/api_service.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/fade_in_slide.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onBackToLogin;
@@ -54,9 +57,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF00BCD4),
-            surface: Color(0xFF1A2744),
+            primary: Color(0xFF8B5CF6),
+            surface: Color(0xFF1E1B4B),
+            onPrimary: Colors.white,
+            onSurface: Colors.white,
           ),
+          dialogBackgroundColor: const Color(0xFF0A0F1D),
         ),
         child: child!,
       ),
@@ -132,141 +138,219 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A1628),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF00BCD4)),
-          onPressed: widget.onBackToLogin,
+      body: Container(
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-        title: const Text(
-          'Create Account',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionTitle('Personal Information'),
-                const SizedBox(height: 16),
-                Row(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Clean Glass Custom AppBar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
                   children: [
-                    Expanded(child: _darkField('First Name', _firstNameCtrl, icon: Icons.person_outline)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _darkField('Last Name', _lastNameCtrl, icon: Icons.person_outline)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: _pickDate,
-                  child: AbsorbPointer(
-                    child: _darkField('Date of Birth', _dobCtrl,
-                      icon: Icons.calendar_today,
-                      hint: 'dd/mm/yyyy',
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
+                      onPressed: widget.onBackToLogin,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _darkField('Father\'s Name', _fatherNameCtrl, icon: Icons.family_restroom),
-                const SizedBox(height: 16),
-                _dropdownField('Gender', _gender, _genders, (val) => setState(() => _gender = val!),
-                    icon: Icons.wc),
-                const SizedBox(height: 24),
-
-                _sectionTitle('Academic Details'),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _dropdownField('Class', _classNo, _classes,
-                        (val) => setState(() => _classNo = val!), icon: Icons.class_),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _dropdownField('Medium', _language, _languages,
-                        (val) => setState(() => _language = val!), icon: Icons.translate),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                _sectionTitle('Contact Information'),
-                const SizedBox(height: 16),
-                _darkField('Student\'s Phone', _studentPhoneCtrl,
-                  icon: Icons.phone, keyboardType: TextInputType.phone,
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return 'Required';
-                    if (val.length != 10) return 'Must be 10 digits';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _darkField('Guardian\'s Phone', _guardianPhoneCtrl,
-                  icon: Icons.phone_in_talk_outlined, keyboardType: TextInputType.phone,
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return 'Required';
-                    if (val.length != 10) return 'Must be 10 digits';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                _sectionTitle('Security'),
-                const SizedBox(height: 16),
-                _passwordField('Password', _passwordCtrl, _passwordVisible,
-                  () => setState(() => _passwordVisible = !_passwordVisible)),
-                const SizedBox(height: 16),
-                _passwordField('Confirm Password', _confirmPasswordCtrl, _confirmPasswordVisible,
-                  () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible)),
-                const SizedBox(height: 36),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF00BCD4)))
-                      : DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF00BCD4), Color(0xFF006064)],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _register,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            child: const Text(
-                              'Register Account',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Personal Information Card
+                        FadeInSlide(
+                          duration: const Duration(milliseconds: 600),
+                          slideOffset: 20,
+                          child: GlassCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle('Personal Info'),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(child: _darkField('First Name', _firstNameCtrl, icon: Icons.person_outline)),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _darkField('Last Name', _lastNameCtrl, icon: Icons.person_outline)),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                GestureDetector(
+                                  onTap: _pickDate,
+                                  child: AbsorbPointer(
+                                    child: _darkField(
+                                      'Date of Birth',
+                                      _dobCtrl,
+                                      icon: Icons.calendar_today_rounded,
+                                      hint: 'dd/mm/yyyy',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _darkField('Father\'s Name', _fatherNameCtrl, icon: Icons.family_restroom_rounded),
+                                const SizedBox(height: 16),
+                                _dropdownField('Gender', _gender, _genders, (val) => setState(() => _gender = val!),
+                                    icon: Icons.wc_rounded),
+                              ],
                             ),
                           ),
                         ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Already have an account? ', style: TextStyle(color: Color(0xFF8897AE))),
-                    TextButton(
-                      onPressed: widget.onBackToLogin,
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF00BCD4), padding: EdgeInsets.zero),
-                      child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 20),
+
+                        // Academic Details Card
+                        FadeInSlide(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 100),
+                          slideOffset: 20,
+                          child: GlassCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle('Academic Details'),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _dropdownField('Class', _classNo, _classes,
+                                          (val) => setState(() => _classNo = val!), icon: Icons.class_rounded),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _dropdownField('Medium', _language, _languages,
+                                          (val) => setState(() => _language = val!), icon: Icons.translate_rounded),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Contact & Security Card
+                        FadeInSlide(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 150),
+                          slideOffset: 20,
+                          child: GlassCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle('Contact & Security'),
+                                const SizedBox(height: 20),
+                                _darkField('Student\'s Phone', _studentPhoneCtrl,
+                                  icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone,
+                                  validator: (val) {
+                                    if (val == null || val.isEmpty) return 'Required';
+                                    if (val.length != 10) return 'Must be 10 digits';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _darkField('Guardian\'s Phone', _guardianPhoneCtrl,
+                                  icon: Icons.phone_in_talk_rounded, keyboardType: TextInputType.phone,
+                                  validator: (val) {
+                                    if (val == null || val.isEmpty) return 'Required';
+                                    if (val.length != 10) return 'Must be 10 digits';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _passwordField('Password', _passwordCtrl, _passwordVisible,
+                                  () => setState(() => _passwordVisible = !_passwordVisible)),
+                                const SizedBox(height: 16),
+                                _passwordField('Confirm Password', _confirmPasswordCtrl, _confirmPasswordVisible,
+                                  () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Submit Button
+                        FadeInSlide(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 200),
+                          slideOffset: 20,
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: _isLoading
+                                ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)))
+                                : BounceOnTap(
+                                    onTap: _register,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Text(
+                                        'Register Account',
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Already have an account? ', style: TextStyle(color: Color(0xFFA8A5B8))),
+                            TextButton(
+                              onPressed: widget.onBackToLogin,
+                              style: TextButton.styleFrom(foregroundColor: const Color(0xFFD3BBFF), padding: EdgeInsets.zero),
+                              child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w800)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -280,14 +364,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF00BCD4),
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
+            color: Color(0xFFD3BBFF),
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(height: 1, color: const Color(0xFF2D3748)),
+        const SizedBox(height: 6),
+        Container(height: 1, color: Colors.white.withOpacity(0.1)),
       ],
     );
   }
@@ -303,20 +387,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: ctrl,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: const TextStyle(color: Color(0xFF8897AE)),
-        hintStyle: const TextStyle(color: Color(0xFF4A5568)),
-        prefixIcon: Icon(icon, color: const Color(0xFF00BCD4), size: 20),
+        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+        prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
         filled: true,
-        fillColor: const Color(0xFF1A2744),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00BCD4), width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+        fillColor: Colors.white.withOpacity(0.04),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
         errorStyle: const TextStyle(color: Colors.redAccent),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
@@ -328,20 +427,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: ctrl,
       obscureText: !visible,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF8897AE)),
-        prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF00BCD4), size: 20),
+        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFFD3BBFF), size: 20),
         suffixIcon: IconButton(
-          icon: Icon(visible ? Icons.visibility : Icons.visibility_off, color: const Color(0xFF8897AE)),
+          icon: Icon(visible ? Icons.visibility : Icons.visibility_off, color: const Color(0xFFD3BBFF)),
           onPressed: toggle,
         ),
         filled: true,
-        fillColor: const Color(0xFF1A2744),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00BCD4), width: 1.5)),
+        fillColor: Colors.white.withOpacity(0.04),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        errorStyle: const TextStyle(color: Colors.redAccent),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       validator: (val) {
@@ -356,17 +473,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return DropdownButtonFormField<String>(
       value: value,
       onChanged: onChanged,
-      dropdownColor: const Color(0xFF1A2744),
-      style: const TextStyle(color: Colors.white),
+      dropdownColor: const Color(0xFF1E1B4B),
+      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF8897AE)),
-        prefixIcon: Icon(icon, color: const Color(0xFF00BCD4), size: 20),
+        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
+        prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
         filled: true,
-        fillColor: const Color(0xFF1A2744),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D3748))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00BCD4), width: 1.5)),
+        fillColor: Colors.white.withOpacity(0.04),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),

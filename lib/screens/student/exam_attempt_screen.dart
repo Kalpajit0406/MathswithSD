@@ -1,13 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:async';
-import '../../providers/auth_provider.dart';
 import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
 import 'result_screen.dart';
 import '../../services/connectivity_manager.dart';
 import '../../services/offline_exam_service.dart';
+import '../../services/exam_security_service.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Colour constants (matches app theme)
+// ─────────────────────────────────────────────────────────────────────────────
+const _kPurple = Color(0xFF4A148C);
+const _kPurpleLight = Color(0xFF9C27B0);
+const _kPurpleSelected = Color(0xFFF3E5F5);
+const _kAmber = Color(0xFFFFB300);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ExamAttemptScreen
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ExamAttemptScreen extends StatefulWidget {
   final Exam exam;
@@ -18,11 +30,21 @@ class ExamAttemptScreen extends StatefulWidget {
   State<ExamAttemptScreen> createState() => _ExamAttemptScreenState();
 }
 
-class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindingObserver {
-  int _violations = 0;
+class _ExamAttemptScreenState extends State<ExamAttemptScreen>
+    with WidgetsBindingObserver {
+  // ── State ────────────────────────────────────────────────────────────────
   bool _isSubmitted = false;
   bool _isInitializing = true;
   String? _initError;
+
+  // Security
+  final ExamSecurityService _security = ExamSecurityService();
+  StreamSubscription<ViolationEvent>? _violationSub;
+  bool _showViolationBanner = false;
+  String _violationBannerMessage = '';
+  Timer? _bannerTimer;
+
+  // ── Init ─────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
@@ -34,14 +56,19 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
   Future<void> _initializeExam() async {
     final provider = Provider.of<ExamProvider>(context, listen: false);
     try {
+      // ── Try to recover autosaved answers (crash recovery) ──
+      final recovered = await _security.recoverAutosavedAnswers(widget.exam.id);
+
       final isOffline = !ConnectivityManager().isOnline;
       if (isOffline) {
-        final offlineExam = await OfflineExamService().getOfflineExam(widget.exam.id);
+        final offlineExam =
+            await OfflineExamService().getOfflineExam(widget.exam.id);
         if (offlineExam != null) {
           if (offlineExam.isCompleted) {
             throw Exception('This exam has already been completed offline.');
           }
-          final elapsed = DateTime.now().difference(offlineExam.startedAt).inSeconds;
+          final elapsed =
+              DateTime.now().difference(offlineExam.startedAt).inSeconds;
           final remaining = (offlineExam.duration * 60) - elapsed;
           if (remaining <= 0) {
             await OfflineExamService().completeOfflineExam(widget.exam.id);
@@ -59,7 +86,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
             status: 'started',
           );
           await OfflineExamService().saveExamOffline(newOfflineExam);
-          await provider.startExamOffline(widget.exam.id, widget.exam.duration * 60);
+          await provider.startExamOffline(
+              widget.exam.id, widget.exam.duration * 60);
         }
       } else {
         final cached = await provider.checkForResumableExam();
@@ -69,108 +97,233 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
           await provider.startExam(widget.exam.id);
         }
       }
+
+      // Restore autosaved answers if available
+      if (recovered != null && recovered.isNotEmpty) {
+        for (final entry in recovered.entries) {
+          provider.setAnswer(entry.key, entry.value);
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  '✅ Previous session recovered — your answers have been restored.'),
+              backgroundColor: Color(0xFF2E7D32),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+
+      // ── Activate security AFTER exam is successfully initialized ──
+      await _security.startSecureExam(
+        examId: widget.exam.id,
+        answersProvider: () => Map<String, String>.from(provider.userAnswers),
+      );
+
+      // Listen to violation events
+      _violationSub = _security.violationStream.listen(_onViolation);
+
       if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
+        setState(() => _isInitializing = false);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isInitializing = false;
-          _initError = e.toString();
+          _initError = e.toString().replaceFirst('Exception: ', '');
         });
       }
     }
   }
 
+  // ── Dispose ──────────────────────────────────────────────────────────────
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _violationSub?.cancel();
+    _bannerTimer?.cancel();
+    _security.dispose();
     super.dispose();
   }
+
+  // ── Lifecycle Observer ───────────────────────────────────────────────────
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_isSubmitted || _isInitializing || _initError != null) return;
-    
-    // Security check: if app goes to background (user switched apps or opened split screen)
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      _violations++;
-      if (_violations >= 2) {
-        // Auto submit
-        _autoSubmitExam('Multiple security violations detected. Exam auto-submitted.');
-      } else {
-        _showViolationWarning();
-      }
+    _security.onAppLifecycleChanged(state);
+  }
+
+  // ── Violation Handler ────────────────────────────────────────────────────
+
+  void _onViolation(ViolationEvent event) {
+    if (_isSubmitted) return;
+
+    switch (event.severity) {
+      case ViolationSeverity.low:
+        _showTemporaryBanner(event.message, color: _kAmber);
+        break;
+
+      case ViolationSeverity.medium:
+        _showViolationDialog(event);
+        break;
+
+      case ViolationSeverity.critical:
+        _autoSubmitExam(event.message);
+        break;
     }
   }
 
-  void _showViolationWarning() {
+  void _showTemporaryBanner(String message, {Color color = _kAmber}) {
+    setState(() {
+      _showViolationBanner = true;
+      _violationBannerMessage = message;
+    });
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _showViolationBanner = false);
+    });
+  }
+
+  void _showViolationDialog(ViolationEvent event) {
     if (!mounted) return;
+
+    final count = _security.backgroundViolationCount;
+    final max = _security.maxViolationsAllowed;
+    final remaining = max - count;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Security Warning'),
+            const Icon(Icons.security, color: Colors.deepOrange),
+            const SizedBox(width: 8),
+            Text(
+              count >= max - 1 ? '⚠️ Final Warning' : '🔒 Security Warning',
+              style: const TextStyle(fontSize: 18),
+            ),
           ],
         ),
-        content: const Text('Please do not switch apps during the exam. One more violation will result in automatic submission.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              event.message,
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: remaining <= 1
+                    ? Colors.red.shade50
+                    : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: remaining <= 1 ? Colors.red : Colors.orange,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    remaining <= 1
+                        ? Icons.error_outline
+                        : Icons.warning_amber_rounded,
+                    color: remaining <= 1 ? Colors.red : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      remaining <= 1
+                          ? 'Next violation will AUTO-SUBMIT your exam!'
+                          : '$remaining violation(s) remaining before auto-submit.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            remaining <= 1 ? Colors.red : Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('I Understand', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  remaining <= 1 ? Colors.red : _kPurple,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.check, color: Colors.white, size: 16),
+            label: const Text('I Understand',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
+  // ── Submit ───────────────────────────────────────────────────────────────
+
   Future<void> _autoSubmitExam(String reason) async {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reason), backgroundColor: Colors.red));
-    await _submit();
+    if (!mounted || _isSubmitted) return;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('🔴 $reason'),
+        backgroundColor: Colors.red.shade800,
+        duration: const Duration(seconds: 5),
+      ));
+    }
+    await Future.delayed(const Duration(milliseconds: 800));
+    await _submit(autoSubmitReason: reason);
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({String? autoSubmitReason}) async {
     final examProvider = Provider.of<ExamProvider>(context, listen: false);
     if (_isSubmitted || examProvider.isLoading) return;
-    _isSubmitted = true;
+    setState(() => _isSubmitted = true);
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // End secure session first
+    await _security.endSecureExam();
 
     // Build answer array
     List<Map<String, dynamic>> finalAnswers = [];
     int score = 0;
-
     for (var q in widget.exam.questions) {
       String? userAns = examProvider.userAnswers[q.id];
-      if (userAns != null && userAns == q.correctAnswer) {
-        score++;
-      }
-      finalAnswers.add({
-        'questionId': q.id,
-        'answer': userAns,
-      });
+      if (userAns != null && userAns == q.correctAnswer) score++;
+      finalAnswers.add({'questionId': q.id, 'answer': userAns});
     }
 
-    final isOffline = !ConnectivityManager().isOnline || (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
+    final isOffline = !ConnectivityManager().isOnline ||
+        (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
 
     try {
       await examProvider.submitExam(finalAnswers, isOffline: isOffline);
+      // Clear autosave after successful submit
+      await _security.clearAutosavedAnswers(widget.exam.id);
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => ResultScreen(
+            builder: (_) => ResultScreen(
               score: score,
               totalQuestions: widget.exam.questions.length,
-              timeTaken: (widget.exam.duration * 60) - examProvider.remainingSeconds,
+              timeTaken: (widget.exam.duration * 60) -
+                  examProvider.remainingSeconds,
               questions: widget.exam.questions,
               userAnswers: examProvider.userAnswers,
               isOffline: isOffline,
@@ -179,35 +332,68 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
         );
       }
     } catch (e) {
-      _isSubmitted = false;
+      setState(() => _isSubmitted = false);
+      // Re-engage security since submit failed
+      await _security.startSecureExam(
+        examId: widget.exam.id,
+        answersProvider: () => Map<String, String>.from(examProvider.userAnswers),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to submit: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
   String _formatTime(int seconds) {
-    int m = seconds ~/ 60;
-    int s = seconds % 60;
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    // ── Initializing ────────────────────────────────────────────────────────
     if (_isInitializing) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
+        backgroundColor: const Color(0xFF0A0F1D),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF4A148C)),
-              const SizedBox(height: 20),
+              const SizedBox(
+                width: 64,
+                height: 64,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF8B5CF6),
+                  strokeWidth: 3,
+                ),
+              ),
+              const SizedBox(height: 28),
+              const Icon(Icons.shield_outlined,
+                  color: Color(0xFF8B5CF6), size: 36),
+              const SizedBox(height: 16),
+              const Text(
+                'Securing Examination Environment',
+                style: TextStyle(
+                  color: Color(0xFFEDE9FE),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
-                'Securing examination environment...',
-                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600, fontSize: 16),
+                'Setting up secure mode — please wait',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
               ),
             ],
           ),
@@ -215,12 +401,16 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
       );
     }
 
+    // ── Init Error ───────────────────────────────────────────────────────────
     if (_initError != null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
+        backgroundColor: const Color(0xFF0A0F1D),
         appBar: AppBar(
-          backgroundColor: const Color(0xFF4A148C),
-          title: const Text('Exam Initialization Error'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text('Initialization Error',
+              style: TextStyle(color: Colors.white)),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -228,27 +418,42 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
-                const SizedBox(height: 20),
-                Text(
-                  'Initialization Failed',
-                  style: TextStyle(color: Colors.grey.shade900, fontWeight: FontWeight.bold, fontSize: 20),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red.withValues(alpha: 0.15),
+                  ),
+                  child: const Icon(Icons.error_outline_rounded,
+                      size: 48, color: Colors.redAccent),
                 ),
+                const SizedBox(height: 24),
+                const Text('Failed to Initialize Exam',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20)),
                 const SizedBox(height: 12),
                 Text(
                   _initError!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A148C),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: _kPurple,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 28, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  label: const Text('Go Back',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -257,144 +462,223 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
       );
     }
 
+    // ── Submitting ───────────────────────────────────────────────────────────
     final examProvider = Provider.of<ExamProvider>(context);
     if (examProvider.isLoading || _isSubmitted) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
+        backgroundColor: const Color(0xFF0A0F1D),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF4A148C)),
-              const SizedBox(height: 20),
-              const Text(
-                'Submitting your answers securely...',
-                style: TextStyle(color: Color(0xFF4A148C), fontWeight: FontWeight.w600, fontSize: 16),
+              const CircularProgressIndicator(
+                  color: Color(0xFF8B5CF6), strokeWidth: 3),
+              const SizedBox(height: 24),
+              const Text('Submitting your answers securely...',
+                  style: TextStyle(
+                      color: Color(0xFFEDE9FE),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16)),
+              const SizedBox(height: 8),
+              Text(
+                '${_security.violationLog.length} violation(s) logged',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
               ),
             ],
           ),
         ),
       );
     }
-    final totalQ = widget.exam.questions.length;
-    final currentQIndex = examProvider.currentQuestionIndex;
-    final currentQ = widget.exam.questions[currentQIndex];
 
-    // Check if time is up
+    // ── Time Expired ─────────────────────────────────────────────────────────
     if (examProvider.remainingSeconds == 0 && !_isSubmitted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _autoSubmitExam('Time is up! Exam auto-submitted.');
+        _autoSubmitExam('⏰ Time is up! Exam auto-submitted.');
       });
     }
 
+    final totalQ = widget.exam.questions.length;
+    final currentQIndex = examProvider.currentQuestionIndex;
+    final currentQ = widget.exam.questions[currentQIndex];
+    final answeredCount = examProvider.userAnswers.length;
+
+    // ── Main Exam UI ──────────────────────────────────────────────────────────
     return PopScope(
-      canPop: false, // Disable back button
+      canPop: false,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF7F9FB),
+        // ── AppBar ──────────────────────────────────────────────────────────
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFF4A148C),
+          backgroundColor: _kPurple,
+          elevation: 0,
           title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Q ${currentQIndex + 1}/$totalQ', style: const TextStyle(color: Colors.white, fontSize: 18)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: examProvider.remainingSeconds < 60 ? Colors.red : Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
+              // Shield icon (security active)
+              Tooltip(
+                message: 'Secure Mode Active',
+                child: Icon(
+                  Icons.shield,
+                  color: Colors.greenAccent.shade400,
+                  size: 18,
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.timer, color: Colors.white, size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatTime(examProvider.remainingSeconds),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Q ${currentQIndex + 1}/$totalQ',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Submit Exam?'),
-                    content: const Text('Are you sure you want to submit your answers? You cannot change them later.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _submit();
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A148C)),
-                        child: const Text('Submit', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
+            // Timer
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: examProvider.remainingSeconds < 60
+                    ? Colors.red.shade700
+                    : Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    color: examProvider.remainingSeconds < 60
+                        ? Colors.white
+                        : Colors.white,
+                    size: 16,
                   ),
-                );
-              },
-              child: const Text('FINISH', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatTime(examProvider.remainingSeconds),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Submit button
+            TextButton(
+              onPressed: () => _showSubmitConfirmDialog(),
+              child: const Text('FINISH',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
+
         body: Column(
           children: [
+            // ── Violation Banner ──────────────────────────────────────────
+            AnimatedSlide(
+              offset: _showViolationBanner
+                  ? Offset.zero
+                  : const Offset(0, -1),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              child: AnimatedOpacity(
+                opacity: _showViolationBanner ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                child: Container(
+                  width: double.infinity,
+                  color: Colors.deepOrange.shade700,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_rounded,
+                          color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _violationBannerMessage,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Offline Banner ────────────────────────────────────────────
             if (!ConnectivityManager().isOnline)
               Container(
                 width: double.infinity,
                 color: Colors.orange.shade800,
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.wifi_off_rounded, color: Colors.white, size: 16),
                     SizedBox(width: 8),
                     Text(
-                      'OFFLINE MODE — Attempt is being saved locally',
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      'OFFLINE MODE — Attempt saved locally',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5),
                     ),
                   ],
                 ),
               ),
-            // Question Palette (Horizontal list of question numbers)
+
+            // ── Question Palette ─────────────────────────────────────────
             Container(
               height: 60,
               color: Colors.white,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 10),
                 itemCount: totalQ,
                 itemBuilder: (context, i) {
-                  bool isAnswered = examProvider.userAnswers.containsKey(widget.exam.questions[i].id);
-                  bool isCurrent = i == currentQIndex;
+                  final isAnswered = examProvider.userAnswers
+                      .containsKey(widget.exam.questions[i].id);
+                  final isCurrent = i == currentQIndex;
                   return GestureDetector(
-                    onTap: () {
-                      // We don't have a direct jump method in provider, so we'll just ignore for now,
-                      // or we could add a jumpToQuestion method. But navigation via next/prev is fine.
-                    },
+                    onTap: () => examProvider.jumpToQuestion(i),
                     child: Container(
                       width: 40,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      margin:
+                          const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: isCurrent
-                            ? const Color(0xFF4A148C)
+                            ? _kPurple
                             : isAnswered
                                 ? const Color(0xFF4CAF50)
                                 : Colors.grey.shade300,
                         shape: BoxShape.circle,
-                        border: isCurrent ? Border.all(color: const Color(0xFF9C27B0), width: 2) : null,
+                        border: isCurrent
+                            ? Border.all(
+                                color: _kPurpleLight, width: 2)
+                            : null,
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         '${i + 1}',
                         style: TextStyle(
-                          color: (isCurrent || isAnswered) ? Colors.white : Colors.black87,
+                          color: (isCurrent || isAnswered)
+                              ? Colors.white
+                              : Colors.black87,
                           fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -402,100 +686,248 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
                 },
               ),
             ),
-            const Divider(height: 1),
 
-            // Question Content
+            // ── Progress Bar ──────────────────────────────────────────────
+            LinearProgressIndicator(
+              value: totalQ > 0 ? answeredCount / totalQ : 0,
+              backgroundColor: Colors.grey.shade200,
+              color: const Color(0xFF4CAF50),
+              minHeight: 3,
+            ),
+
+            // ── Question Content ──────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Question text
+                    // Question card
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
-                      child: LaTeXWidget(text: currentQ.questionText),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: const BoxDecoration(
+                                  color: _kPurple,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${currentQIndex + 1}',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('Question',
+                                  style: TextStyle(
+                                      color: Color(0xFF4A148C),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          LaTeXWidget(text: currentQ.questionText),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Options
                     if (currentQ.options != null)
-                      ...currentQ.options!.map((opt) {
-                        bool isSelected = examProvider.userAnswers[currentQ.id] == opt;
+                      ...currentQ.options!.asMap().entries.map((entry) {
+                        final optIndex = entry.key;
+                        final opt = entry.value;
+                        final optLabels = ['A', 'B', 'C', 'D', 'E'];
+                        final label = optIndex < optLabels.length
+                            ? optLabels[optIndex]
+                            : '${optIndex + 1}';
+                        final isSelected =
+                            examProvider.userAnswers[currentQ.id] == opt;
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: InkWell(
-                            onTap: () => examProvider.setAnswer(currentQ.id, opt),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
+                            onTap: () =>
+                                examProvider.setAnswer(currentQ.id, opt),
+                            borderRadius: BorderRadius.circular(14),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFF3E5F5) : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                color: isSelected
+                                    ? _kPurpleSelected
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF9C27B0) : Colors.grey.shade300,
+                                  color: isSelected
+                                      ? _kPurpleLight
+                                      : Colors.grey.shade300,
                                   width: isSelected ? 2 : 1,
                                 ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: _kPurpleLight
+                                              .withValues(alpha: 0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ]
+                                    : [],
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                                    color: isSelected ? const Color(0xFF9C27B0) : Colors.grey,
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? _kPurple
+                                          : Colors.grey.shade100,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black54,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: InlineMathText(text: opt, fontSize: 16)),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                      child: InlineMathText(
+                                          text: opt, fontSize: 15)),
                                 ],
                               ),
                             ),
                           ),
                         );
                       }),
+
+                    // Unanswered note
+                    if (examProvider.userAnswers[currentQ.id] == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 4),
+                        child: Text(
+                          'No answer selected',
+                          style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic),
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
 
-            // Navigation Buttons
+            // ── Stats Bar ─────────────────────────────────────────────────
+            Container(
+              color: Colors.grey.shade50,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$answeredCount/$totalQ answered',
+                    style: TextStyle(
+                        color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  if (_security.backgroundViolationCount > 0)
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber,
+                            size: 14, color: Colors.orange.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
+                          style: TextStyle(
+                              color: Colors.orange.shade700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Navigation Buttons ────────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  ),
                 ],
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: currentQIndex > 0 ? () => examProvider.previousQuestion() : null,
+                    child: OutlinedButton.icon(
+                      onPressed: currentQIndex > 0
+                          ? () => examProvider.previousQuestion()
+                          : null,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: _kPurple.withValues(alpha: 0.6)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('PREVIOUS'),
+                      icon: const Icon(Icons.chevron_left, size: 20),
+                      label: const Text('PREV'),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: currentQIndex < totalQ - 1 ? () => examProvider.nextQuestion(totalQ) : null,
+                    child: ElevatedButton.icon(
+                      onPressed: currentQIndex < totalQ - 1
+                          ? () => examProvider.nextQuestion(totalQ)
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A148C),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: _kPurple,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('NEXT', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(Icons.chevron_right,
+                          color: Colors.white, size: 20),
+                      label: const Text('NEXT',
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
@@ -503,6 +935,89 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> with WidgetsBindi
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Submit Confirmation Dialog ────────────────────────────────────────────
+
+  void _showSubmitConfirmDialog() {
+    final examProvider = Provider.of<ExamProvider>(context, listen: false);
+    final answered = examProvider.userAnswers.length;
+    final total = widget.exam.questions.length;
+    final unanswered = total - answered;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.assignment_turned_in_outlined, color: _kPurple),
+            SizedBox(width: 8),
+            Text('Submit Exam?', style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You have answered $answered out of $total questions.',
+              style: const TextStyle(fontSize: 14),
+            ),
+            if (unanswered > 0) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Colors.orange.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$unanswered question(s) are unanswered and will be marked incorrect.',
+                        style: TextStyle(
+                            color: Colors.orange.shade800, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            const Text('This action cannot be undone.',
+                style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _submit();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kPurple,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.send, color: Colors.white, size: 16),
+            label: const Text('Submit', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

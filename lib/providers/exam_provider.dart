@@ -55,6 +55,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   String? _announcementsError;
 
   List<Exam> _scheduledTests = [];
+  List<String> _completedExamIds = [];
   LoadState _testsState = LoadState.idle;
   final Map<String, double> _examDifficulties = {};
 
@@ -71,6 +72,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   String? get announcementsError => _announcementsError;
 
   List<Exam> get scheduledTests => _scheduledTests;
+  List<String> get completedExamIds => _completedExamIds;
   LoadState get testsState => _testsState;
   Map<String, double> get examDifficulties => _examDifficulties;
 
@@ -172,6 +174,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     notifyListeners();
     try {
       _scheduledTests = await _apiService.fetchExamsWithRetry();
+      _completedExamIds = await _apiService.getCompletedExamIdsWithRetry();
       _testsState = LoadState.loaded;
       notifyListeners();
 
@@ -286,6 +289,13 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void previousQuestion() {
     if (_currentQuestionIndex > 0) {
       _currentQuestionIndex--;
+      notifyListeners();
+    }
+  }
+
+  void jumpToQuestion(int index) {
+    if (index >= 0 && index != _currentQuestionIndex) {
+      _currentQuestionIndex = index;
       notifyListeners();
     }
   }

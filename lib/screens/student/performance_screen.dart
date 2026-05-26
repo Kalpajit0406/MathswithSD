@@ -1,9 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/exam_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/animations.dart';
+import '../../widgets/glass_card.dart';
 
 class PerformanceScreen extends StatefulWidget {
   const PerformanceScreen({super.key});
@@ -30,52 +32,76 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final auth = Provider.of<AuthProvider>(context);
     
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4A148C),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'My Performance',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+      body: Container(
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: () {
-              setState(_loadPerformance);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Performance data refreshed'),
-                  behavior: SnackBarBehavior.floating,
-                  duration: Duration(seconds: 2),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Glass AppBar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'My Performance',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFFD3BBFF)),
+                      onPressed: () {
+                        setState(_loadPerformance);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Performance data refreshed'),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+              Expanded(
+                child: FutureBuilder<Map<String, dynamic>?>(
+                  future: _performanceFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)));
+                    }
+
+                    if (snapshot.hasError || snapshot.data == null) {
+                      return _buildErrorState(() => setState(_loadPerformance));
+                    }
+
+                    final data = snapshot.data!;
+                    return _buildPerformanceContent(data, auth);
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: _performanceFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF4A148C)));
-          }
-
-          if (snapshot.hasError || snapshot.data == null) {
-            return _buildErrorState(() => setState(_loadPerformance));
-          }
-
-          final data = snapshot.data!;
-          return _buildPerformanceContent(data, auth);
-        },
+        ),
       ),
     );
   }
@@ -88,20 +114,21 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFBA1A1A).withOpacity(0.1),
+              color: Colors.white.withOpacity(0.04),
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
             ),
-            child: Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+            child: const Icon(Icons.error_outline_rounded, size: 64, color: Color(0xFFA8A5B8)),
           ),
           const SizedBox(height: 20),
           const Text(
             'Could not load performance data',
-            style: TextStyle(color: Color(0xFF75859D), fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
             'Please check your connection and try again',
-            style: TextStyle(color: Color(0xFF75859D), fontSize: 13),
+            style: TextStyle(color: Color(0xFFCCC3D4), fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -110,9 +137,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A148C),
+              backgroundColor: const Color(0xFF8B5CF6),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -137,41 +164,25 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           // Welcome card
           FadeInSlide(
             duration: const Duration(milliseconds: 700),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF9C27B0), Color(0xFF4A148C)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF9C27B0).withOpacity(0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
+            child: GlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hello, ${auth.user?.phone ?? "Student"}! 👋',
+                    'Hello, ${auth.user?.firstName ?? "Student"}! 👋',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Here\'s your learning journey so far',
+                  const Text(
+                    "Here's your learning journey so far",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Color(0xFFCCC3D4),
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -211,8 +222,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 'Chapter-wise Performance',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -231,8 +242,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 'Recent Attempts',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -243,32 +254,32 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 250),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFECEEF0), width: 1),
-                ),
+              child: GlassCard(
                 child: Column(
                   children: [
-                    Icon(Icons.assignment_outlined, size: 56, color: Colors.grey.shade300),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.assignment_outlined, size: 56, color: Colors.white.withOpacity(0.2)),
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'No attempts yet',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     const Text(
                       'Start your first test to see your performance metrics',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF75859D),
+                        color: Color(0xFFCCC3D4),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -293,39 +304,37 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         delay: const Duration(milliseconds: 100),
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFECEEF0), width: 1),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      chapterName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: Color(0xFF0F172A),
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        chapterName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$attemptCount attempts',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF75859D),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$attemptCount attempts',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFCCC3D4),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              _buildAccuracyBadge(accuracy.toDouble()),
-            ],
+                _buildAccuracyBadge(accuracy.toDouble()),
+              ],
+            ),
           ),
         ),
       );
@@ -346,58 +355,57 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         delay: const Duration(milliseconds: 100),
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFECEEF0), width: 1),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        examTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFCCC3D4),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      examTitle,
+                      '$percentage%',
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: Color(0xFFD3BBFF),
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
-                      date,
+                      '$score/$maxScore',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF75859D),
+                        color: Color(0xFFCCC3D4),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$percentage%',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      color: Color(0xFF4A148C),
-                    ),
-                  ),
-                  Text(
-                    '$score/$maxScore',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF75859D),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -407,18 +415,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Widget _buildAccuracyBadge(double accuracy) {
     Color badgeColor;
     if (accuracy >= 80) {
-      badgeColor = const Color(0xFF4CAF50);
+      badgeColor = const Color(0xFF10B981);
     } else if (accuracy >= 60) {
-      badgeColor = const Color(0xFFFFC107);
+      badgeColor = const Color(0xFFFBBF24);
     } else {
-      badgeColor = const Color(0xFFBA1A1A);
+      badgeColor = const Color(0xFFEF4444);
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
+        color: badgeColor.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: badgeColor.withOpacity(0.2), width: 1),
       ),
       child: Text(
         '${accuracy.toStringAsFixed(1)}%',
@@ -456,7 +465,7 @@ class _MetricsGrid extends StatelessWidget {
                 title: 'Total Attempts',
                 value: totalAttempts.toString(),
                 icon: Icons.assignment_rounded,
-                color: const Color(0xFF2196F3),
+                color: const Color(0xFF3B82F6),
               ),
             ),
             const SizedBox(width: 16),
@@ -464,8 +473,8 @@ class _MetricsGrid extends StatelessWidget {
               child: _MetricCard(
                 title: 'Completion Rate',
                 value: '${completionRate.toStringAsFixed(1)}%',
-                icon: Icons.check_circle_outline,
-                color: const Color(0xFF4CAF50),
+                icon: Icons.check_circle_outline_rounded,
+                color: const Color(0xFF10B981),
               ),
             ),
           ],
@@ -478,7 +487,7 @@ class _MetricsGrid extends StatelessWidget {
                 title: 'Accuracy Rate',
                 value: '${accuracyRate.toStringAsFixed(1)}%',
                 icon: Icons.trending_up_rounded,
-                color: const Color(0xFF9C27B0),
+                color: const Color(0xFF8B5CF6),
               ),
             ),
             const SizedBox(width: 16),
@@ -487,7 +496,7 @@ class _MetricsGrid extends StatelessWidget {
                 title: 'Improvement',
                 value: '${improvementTrend > 0 ? '+' : ''}${improvementTrend.toStringAsFixed(1)}%',
                 icon: improvementTrend >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                color: improvementTrend >= 0 ? const Color(0xFF4CAF50) : const Color(0xFFBA1A1A),
+                color: improvementTrend >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
               ),
             ),
           ],
@@ -512,20 +521,8 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFECEEF0), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -533,18 +530,19 @@ class _MetricCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.2), width: 1.2),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
               fontSize: 24,
-              color: Color(0xFF0F172A),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
@@ -552,8 +550,8 @@ class _MetricCard extends StatelessWidget {
             title,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF75859D),
-              fontWeight: FontWeight.w500,
+              color: Color(0xFFA8A5B8),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -570,25 +568,22 @@ class _TrendIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = trend >= 0;
-    final trendColor = isPositive ? const Color(0xFF4CAF50) : const Color(0xFFBA1A1A);
+    final trendColor = isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444);
     final trendIcon = isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded;
 
-    return Container(
-      width: double.infinity,
+    return GlassCard(
+      color: trendColor.withOpacity(0.08),
+      border: Border.all(color: trendColor.withOpacity(0.2), width: 1.2),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: trendColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: trendColor.withOpacity(0.2), width: 1),
-      ),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: trendColor.withOpacity(0.15),
+              color: trendColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: trendColor.withOpacity(0.2), width: 1.2),
             ),
             child: Icon(trendIcon, color: trendColor, size: 28),
           ),
@@ -598,9 +593,9 @@ class _TrendIndicator extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isPositive ? 'You\'re Improving! 🚀' : 'Keep Trying! 💪',
+                  isPositive ? "You're Improving! 🚀" : 'Keep Trying! 💪',
                   style: TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     fontSize: 16,
                     color: trendColor,
                   ),
@@ -612,7 +607,8 @@ class _TrendIndicator extends StatelessWidget {
                       : 'Your accuracy declined by ${(-trend).toStringAsFixed(1)}% - review challenging topics',
                   style: TextStyle(
                     fontSize: 13,
-                    color: trendColor.withOpacity(0.8),
+                    color: Colors.white.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
