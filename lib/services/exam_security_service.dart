@@ -15,6 +15,8 @@ enum ViolationType {
   splitScreenDetected,
   screenRecordingAttempt,
   examExpired,
+  rootDetected,
+  emulatorDetected,
   unknown,
 }
 
@@ -30,6 +32,13 @@ class ViolationEvent {
     required this.message,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'type': type.name,
+        'severity': severity.name,
+        'message': message,
+        'timestamp': timestamp.toIso8601String(),
+      };
 
   @override
   String toString() =>
@@ -62,10 +71,17 @@ class ExamSecurityService {
   Timer? _autosaveTimer;
   String? _currentExamId;
   Map<String, String> Function()? _answersProvider;
+  bool _isAutosaving = false;
 
   // Kiosk state
   bool _kioskActive = false;
   bool get isKioskActive => _kioskActive;
+
+  // Platform integrity states
+  bool _emulatorDetected = false;
+  bool _rootDetected = false;
+  bool get emulatorDetected => _emulatorDetected;
+  bool get rootDetected => _rootDetected;
 
   // Violation counts
   int get backgroundViolationCount => _backgroundViolationCount;
@@ -83,13 +99,56 @@ class ExamSecurityService {
     _answersProvider = answersProvider;
     _backgroundViolationCount = 0;
     _violationLog.clear();
+    _emulatorDetected = false;
+    _rootDetected = false;
+
+    // Check device integrity
+    final rooted = await isDeviceRooted();
+    final emulator = await isDeviceEmulator();
+    _rootDetected = rooted;
+    _emulatorDetected = emulator;
 
     await _enterKioskMode();
     await _startForegroundMonitor();
     _startAutosave();
     _subscribeToWindowEvents();
 
+    if (rooted) {
+      _addViolation(ViolationEvent(
+        type: ViolationType.rootDetected,
+        severity: ViolationSeverity.critical,
+        message: 'Security Violation: Rooted device detected.',
+      ));
+    }
+    if (emulator) {
+      _addViolation(ViolationEvent(
+        type: ViolationType.emulatorDetected,
+        severity: ViolationSeverity.critical,
+        message: 'Security Violation: Emulator detected.',
+      ));
+    }
+
     debugPrint('[ExamSecurity] Secure exam session started for $examId');
+  }
+
+  Future<bool> isDeviceRooted() async {
+    try {
+      final bool rooted = await _channel.invokeMethod('isRooted');
+      return rooted;
+    } catch (e) {
+      debugPrint('[ExamSecurity] Error checking root: $e');
+      return false;
+    }
+  }
+
+  Future<bool> isDeviceEmulator() async {
+    try {
+      final bool emulator = await _channel.invokeMethod('isEmulator');
+      return emulator;
+    } catch (e) {
+      debugPrint('[ExamSecurity] Error checking emulator: $e');
+      return false;
+    }
   }
 
   /// Call when exam ends (submitted, auto-submitted, or error).
@@ -229,7 +288,13 @@ class ExamSecurityService {
   void _startAutosave() {
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-      await _saveAnswers();
+      if (_isAutosaving) return;
+      _isAutosaving = true;
+      try {
+        await _saveAnswers();
+      } finally {
+        _isAutosaving = false;
+      }
     });
     debugPrint('[ExamSecurity] Autosave started (every 30s).');
   }

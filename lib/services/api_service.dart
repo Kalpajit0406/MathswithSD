@@ -247,19 +247,24 @@ class ApiService {
     return list.map((item) => exam.Exam.fromJson(item)).toList();
   }
 
-  Future<String> startAttempt(String examId) async {
+  Future<Map<String, dynamic>> startAttempt(String examId) async {
     final response = await http.post(
       await _uri(AppConstants.startAttemptEndpoint),
       headers: await _headers(),
       body: jsonEncode({'examId': examId}),
     ).timeout(const Duration(seconds: 15));
     final data = _processResponse(response);
-    return data['data']?['id'] ?? data['data']?['_id'] ?? '';
+    return Map<String, dynamic>.from(data['data'] ?? {});
   }
 
   Future<Map<String, dynamic>> submitAnswers({
     required String attemptId,
     required List<Map<String, dynamic>> answers,
+    List<Map<String, dynamic>>? violations,
+    bool isAutoSubmitted = false,
+    String? autoSubmitReason,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
   }) async {
     final Map<String, dynamic> bodyData = {
       'attemptId': attemptId,
@@ -270,6 +275,11 @@ class ApiService {
                 'userAnswer': a['answer'] ?? a['selectedOption'],
               })
           .toList(),
+      if (violations != null) 'violations': violations,
+      'isAutoSubmitted': isAutoSubmitted,
+      if (autoSubmitReason != null) 'autoSubmitReason': autoSubmitReason,
+      'emulatorDetected': emulatorDetected,
+      'rootDetected': rootDetected,
     };
 
     final response = await http.post(
@@ -382,7 +392,7 @@ class ApiService {
   }
 
   /// Start exam attempt with retry
-  Future<String> startAttemptWithRetry(String examId) async {
+  Future<Map<String, dynamic>> startAttemptWithRetry(String examId) async {
     int attempt = 0;
     const maxAttempts = 3;
     Duration delay = const Duration(seconds: 1);
@@ -404,6 +414,11 @@ class ApiService {
   Future<Map<String, dynamic>> submitAnswersWithRetry({
     required String attemptId,
     required List<Map<String, dynamic>> answers,
+    List<Map<String, dynamic>>? violations,
+    bool isAutoSubmitted = false,
+    String? autoSubmitReason,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
   }) async {
     int attempt = 0;
     const maxAttempts = 3;
@@ -411,7 +426,15 @@ class ApiService {
 
     while (attempt < maxAttempts) {
       try {
-        return await submitAnswers(attemptId: attemptId, answers: answers);
+        return await submitAnswers(
+          attemptId: attemptId,
+          answers: answers,
+          violations: violations,
+          isAutoSubmitted: isAutoSubmitted,
+          autoSubmitReason: autoSubmitReason,
+          emulatorDetected: emulatorDetected,
+          rootDetected: rootDetected,
+        );
       } on ApiException catch (e) {
         attempt++;
         if (attempt >= maxAttempts) rethrow;

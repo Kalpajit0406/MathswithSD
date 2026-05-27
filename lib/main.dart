@@ -57,20 +57,37 @@ Future<bool> _isEmulator() async {
   return false;
 }
 
-class EmulatorWarningApp extends StatelessWidget {
+class EmulatorWarningApp extends StatefulWidget {
   const EmulatorWarningApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Start countdown to close app
+  State<EmulatorWarningApp> createState() => _EmulatorWarningAppState();
+}
+
+class _EmulatorWarningAppState extends State<EmulatorWarningApp> {
+  bool _shutdownScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleShutdown();
+  }
+
+  void _scheduleShutdown() {
+    if (_shutdownScheduled) return;
+    _shutdownScheduled = true;
     Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted) return;
       if (Platform.isAndroid) {
         SystemNavigator.pop();
       } else {
         exit(0);
       }
     });
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
@@ -93,7 +110,7 @@ class EmulatorWarningApp extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Running this app in emulator is not allowd',
+                  'Running this app in an emulator is not allowed',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,

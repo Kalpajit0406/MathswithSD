@@ -13,9 +13,9 @@ class ImageService {
       // 3000px provides ultra high quality for OCR formulas while being safe on 4GB RAM devices
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 3000,
-        maxHeight: 3000,
-        imageQuality: 95,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 70,
       );
 
       if (photo == null) return null;
@@ -24,7 +24,7 @@ class ImageService {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: photo.path,
         compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 90,
+        compressQuality: 80,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Question',

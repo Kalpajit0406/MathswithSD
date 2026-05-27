@@ -26,6 +26,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   int _remainingSeconds = 0;
   Timer? _timer;
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  bool _isDisposed = false;
 
   ExamProvider() {
     _initConnectivityListener();
@@ -34,9 +35,11 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void _initConnectivityListener() {
     ConnectivityManager().initialize().then((_) {
       _connectivitySubscription = ConnectivityManager().statusChanges.listen((status) async {
+        if (_isDisposed) return;
         if (status != ConnectivityResult.none) {
           debugPrint('[ExamProvider] Connectivity restored. Checking for resumable exam...');
           final cached = await checkForResumableExam();
+          if (_isDisposed) return;
           if (cached != null && _currentAttemptId == null) {
             debugPrint('[ExamProvider] Found resumable exam, restoring state.');
             await resumeExam(cached);
@@ -120,7 +123,25 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       final calculatedRemaining = cachedRemaining - elapsedSeconds;
 
       if (calculatedRemaining <= 0) {
-        await _clearAttemptFromPrefs();
+        debugPrint('[ExamProvider] Resumable exam has expired. Triggering auto-submit.');
+        try {
+          final answers = Map<String, String>.from(jsonDecode(answersRaw));
+          List<Map<String, dynamic>> submitPayload = answers.entries.map((e) => {
+            'questionId': e.key,
+            'answer': e.value,
+          }).toList();
+          
+          await _apiService.submitAnswersWithRetry(
+            attemptId: attemptId,
+            answers: submitPayload,
+            isAutoSubmitted: true,
+            autoSubmitReason: '⏰ Exam duration expired while app was closed.',
+          );
+        } catch (err) {
+          debugPrint('[ExamProvider] Failed to auto-submit expired exam on restore: $err');
+        } finally {
+          await _clearAttemptFromPrefs();
+        }
         return null;
       }
 
@@ -138,13 +159,19 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   Future<bool> resumeExam(Map<String, dynamic> cachedData) async {
     try {
+      final remaining = (cachedData['remainingSeconds'] as num?)?.toInt() ?? 0;
+      if (remaining <= 0) {
+        await _clearAttemptFromPrefs();
+        return false;
+      }
+
       _currentAttemptId = cachedData['attemptId'];
       _currentExamId = cachedData['examId'];
       _userAnswers = cachedData['answers'];
-      _remainingSeconds = cachedData['remainingSeconds'];
+      _remainingSeconds = remaining;
       _currentQuestionIndex = 0;
       _startTimer();
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
       return true;
     } catch (e) {
       debugPrint('Resume Exam failed: $e');
@@ -157,7 +184,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   Future<void> loadAnnouncements({String? targetClass}) async {
     _announcementsState = LoadState.loading;
     _announcementsError = null;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
     try {
       _announcements = await _apiService.getAnnouncementsWithRetry(targetClass: targetClass);
       _announcementsState = LoadState.loaded;
@@ -166,17 +193,17 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _announcementsError = 'Failed to load announcements. Please check your internet connection.';
       _announcementsState = LoadState.error;
     }
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   Future<void> loadTests() async {
     _testsState = LoadState.loading;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
     try {
       _scheduledTests = await _apiService.fetchExamsWithRetry();
       _completedExamIds = await _apiService.getCompletedExamIdsWithRetry();
       _testsState = LoadState.loaded;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
 
       // Load difficulties in the background
       for (var test in _scheduledTests) {
@@ -185,7 +212,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     } catch (e) {
       debugPrint('Error loading tests: $e');
       _testsState = LoadState.error;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
@@ -194,7 +221,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     try {
       final diff = await _apiService.fetchExamDifficulty(examId);
       _examDifficulties[examId] = diff;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('Error loading exam difficulty: $e');
     }
@@ -210,12 +237,25 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     _remainingSeconds = exam.duration * 60;
     
     try {
-      _currentAttemptId = await _apiService.startAttemptWithRetry(examId);
+      final attemptData = await _apiService.startAttemptWithRetry(examId);
+      _currentAttemptId = attemptData['id'] ?? attemptData['_id'] ?? '';
+      
+      // If server returns calculated remainingSeconds, override it!
+      if (attemptData['remainingSeconds'] != null) {
+        _remainingSeconds = (attemptData['remainingSeconds'] as num).toInt();
+      }
+      
       await _saveAttemptToPrefs();
       _startTimer();
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('Error starting exam: $e');
+      _timer?.cancel();
+      _currentAttemptId = null;
+      _currentExamId = null;
+      _remainingSeconds = 0;
+      _userAnswers = {};
+      await _clearAttemptFromPrefs();
       rethrow;
     }
   }
@@ -223,12 +263,16 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void _startTimer() {
     _timer?.cancel();
     _timer = createSafeTimer(const Duration(seconds: 1), (timer) async {
+      if (_isDisposed || _currentAttemptId == null) {
+        timer.cancel();
+        return;
+      }
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
         if (_remainingSeconds % 5 == 0) {
           await _saveAttemptToPrefs();
         }
-        notifyListeners();
+        if (!_isDisposed) notifyListeners();
       } else {
         _timer?.cancel();
       }
@@ -254,7 +298,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     
     await _saveAttemptToPrefs();
     _startTimer();
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   void setAnswer(String questionId, String answer) {
@@ -276,31 +320,39 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       });
     }
     
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   void nextQuestion(int totalQuestions) {
     if (_currentQuestionIndex < totalQuestions - 1) {
       _currentQuestionIndex++;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
   void previousQuestion() {
     if (_currentQuestionIndex > 0) {
       _currentQuestionIndex--;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
   void jumpToQuestion(int index) {
     if (index >= 0 && index != _currentQuestionIndex) {
       _currentQuestionIndex = index;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
-  Future<void> submitExam(List<Map<String, dynamic>> answers, {bool isOffline = false}) async {
+  Future<void> submitExam(
+    List<Map<String, dynamic>> answers, {
+    bool isOffline = false,
+    List<Map<String, dynamic>>? violations,
+    bool isAutoSubmitted = false,
+    String? autoSubmitReason,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
+  }) async {
     if (_currentAttemptId == null) return;
     if (_isLoading) {
       debugPrint('[ExamProvider] submitExam called while already loading. Ignoring duplicate call.');
@@ -309,7 +361,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     
     _timer?.cancel();
     _isLoading = true;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
 
     try {
       if (isOffline) {
@@ -336,6 +388,11 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         await _apiService.submitAnswersWithRetry(
           attemptId: _currentAttemptId!,
           answers: answers,
+          violations: violations,
+          isAutoSubmitted: isAutoSubmitted,
+          autoSubmitReason: autoSubmitReason,
+          emulatorDetected: emulatorDetected,
+          rootDetected: rootDetected,
         );
       }
       _currentAttemptId = null;
@@ -346,12 +403,13 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       rethrow;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _timer?.cancel();
     _connectivitySubscription?.cancel();
     super.dispose();

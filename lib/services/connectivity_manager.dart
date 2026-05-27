@@ -7,7 +7,7 @@ class ConnectivityManager {
   static final ConnectivityManager _instance = ConnectivityManager._internal();
   
   final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
   
   ConnectivityResult _currentStatus = ConnectivityResult.none;
   final _statusChangeController = StreamController<ConnectivityResult>.broadcast();
@@ -59,7 +59,7 @@ class ConnectivityManager {
 
   /// Dispose resources
   void dispose() {
-    _subscription.cancel();
+    _subscription?.cancel();
     _statusChangeController.close();
     _isInitialized = false;
   }

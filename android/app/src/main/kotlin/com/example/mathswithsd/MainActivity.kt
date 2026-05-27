@@ -106,9 +106,75 @@ class MainActivity : FlutterActivity() {
                         result.success(inMultiWindow)
                     }
 
+                    // ── Platform Integrity Checks ─────────────────────────────
+                    "isRooted" -> {
+                        result.success(isDeviceRooted())
+                    }
+
+                    "isEmulator" -> {
+                        result.success(isEmulator())
+                    }
+
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun isDeviceRooted(): Boolean {
+        val buildTags = android.os.Build.TAGS
+        if (buildTags != null && buildTags.contains("test-keys")) {
+            return true
+        }
+        val paths = arrayOf(
+            "/system/app/Superuser.apk",
+            "/sbin/su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/data/local/xbin/su",
+            "/data/local/bin/su",
+            "/system/sd/xbin/su",
+            "/system/bin/failsafe/su",
+            "/data/local/su"
+        )
+        for (path in paths) {
+            if (java.io.File(path).exists()) return true
+        }
+        var process: Process? = null
+        try {
+            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            val inStream = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            if (inStream.readLine() != null) return true
+        } catch (_: Throwable) {
+        } finally {
+            process?.destroy()
+        }
+        return false
+    }
+
+    private fun isEmulator(): Boolean {
+        val fingerprint = Build.FINGERPRINT ?: ""
+        val model = Build.MODEL ?: ""
+        val manufacturer = Build.MANUFACTURER ?: ""
+        val host = Build.HOST ?: ""
+        val brand = Build.BRAND ?: ""
+        val device = Build.DEVICE ?: ""
+        val product = Build.PRODUCT ?: ""
+        val hardware = Build.HARDWARE ?: ""
+
+        return (fingerprint.startsWith("generic")
+                || fingerprint.startsWith("unknown")
+                || model.contains("google_sdk")
+                || model.contains("Emulator")
+                || model.contains("Android SDK built for x86")
+                || manufacturer.contains("Genymotion")
+                || host.startsWith("Build")
+                || (brand.startsWith("generic") && device.startsWith("generic"))
+                || "google_sdk" == product
+                || hardware.contains("goldfish")
+                || hardware.contains("ranchu")
+                || hardware.contains("vbox86")
+                || product.contains("sdk_gphone")
+                || product.contains("emulator"))
     }
 
     // ── Window mode change callbacks ──────────────────────────────────────────

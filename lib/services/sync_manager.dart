@@ -14,7 +14,7 @@ class SyncManager {
   final OfflineExamService _offlineService = OfflineExamService();
   final ApiService _apiService = ApiService();
   
-  late StreamSubscription _connectivitySubscription;
+  StreamSubscription? _connectivitySubscription;
   
   SyncStatus _syncStatus = SyncStatus.idle;
   String? _syncError;
@@ -24,6 +24,7 @@ class SyncManager {
   
   bool _isInitialized = false;
   bool _isSyncing = false;
+  bool _isDisposed = false;
 
   SyncManager._internal();
 
@@ -33,6 +34,7 @@ class SyncManager {
 
   /// Initialize sync manager and start listening to connectivity changes
   Future<void> initialize() async {
+    if (_isDisposed) return;
     if (_isInitialized) return;
     
     try {
@@ -40,6 +42,7 @@ class SyncManager {
       
       // Listen for connectivity changes
       _connectivitySubscription = _connectivityManager.statusChanges.listen((_) {
+        if (_isDisposed) return;
         if (_connectivityManager.isOnline && !_isSyncing) {
           debugPrint('[SyncManager] Device came online, triggering sync');
           syncOfflineExams();
@@ -61,6 +64,7 @@ class SyncManager {
 
   /// Sync all unsynced offline exams
   Future<void> syncOfflineExams() async {
+    if (_isDisposed) return;
     if (_isSyncing) {
       debugPrint('[SyncManager] Sync already in progress');
       return;
@@ -75,7 +79,7 @@ class SyncManager {
     _syncStatus = SyncStatus.syncing;
     _syncError = null;
     _syncedCount = 0;
-    _syncStatusController.add(SyncStatus.syncing);
+    if (!_isDisposed) _syncStatusController.add(SyncStatus.syncing);
 
     try {
       // Get all unsynced exams
@@ -84,7 +88,7 @@ class SyncManager {
       if (unsyncedExams.isEmpty) {
         debugPrint('[SyncManager] No exams to sync');
         _syncStatus = SyncStatus.idle;
-        _syncStatusController.add(SyncStatus.idle);
+        if (!_isDisposed) _syncStatusController.add(SyncStatus.idle);
         _isSyncing = false;
         return;
       }
@@ -123,18 +127,19 @@ class SyncManager {
       }
 
       _syncStatus = SyncStatus.success;
-      _syncStatusController.add(SyncStatus.success);
+      if (!_isDisposed) _syncStatusController.add(SyncStatus.success);
       debugPrint('[SyncManager] Sync completed: $_syncedCount exams synced');
       
     } catch (e) {
       debugPrint('[SyncManager] Sync error: $e');
       _syncStatus = SyncStatus.error;
       _syncError = e.toString();
-      _syncStatusController.add(SyncStatus.error);
+      if (!_isDisposed) _syncStatusController.add(SyncStatus.error);
     } finally {
       _isSyncing = false;
       // Reset to idle after delay
       await Future.delayed(const Duration(seconds: 2));
+      if (_isDisposed) return;
       _syncStatus = SyncStatus.idle;
       _syncStatusController.add(SyncStatus.idle);
     }
@@ -175,7 +180,8 @@ class SyncManager {
 
   /// Dispose resources
   void dispose() {
-    _connectivitySubscription.cancel();
+    _isDisposed = true;
+    _connectivitySubscription?.cancel();
     _syncStatusController.close();
     _isInitialized = false;
   }

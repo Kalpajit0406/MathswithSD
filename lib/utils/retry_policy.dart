@@ -195,7 +195,7 @@ extension ApiServiceRetry on ApiService {
   }
 
   /// Execute with retry for starting an attempt
-  Future<String> startAttemptWithRetry(String examId) async {
+  Future<Map<String, dynamic>> startAttemptWithRetry(String examId) async {
     final resilient = getResilientClient();
     return resilient.executeWithRetry(
       () => startAttempt(examId),

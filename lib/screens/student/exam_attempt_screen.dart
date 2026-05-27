@@ -115,14 +115,14 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         }
       }
 
+      // Listen to violation events
+      _violationSub = _security.violationStream.listen(_onViolation);
+
       // ── Activate security AFTER exam is successfully initialized ──
       await _security.startSecureExam(
         examId: widget.exam.id,
         answersProvider: () => Map<String, String>.from(provider.userAnswers),
       );
-
-      // Listen to violation events
-      _violationSub = _security.violationStream.listen(_onViolation);
 
       if (mounted) {
         setState(() => _isInitializing = false);
@@ -295,6 +295,14 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
     if (_isSubmitted || examProvider.isLoading) return;
     setState(() => _isSubmitted = true);
 
+    // Extract security metadata prior to ending secure exam session
+    final List<Map<String, dynamic>> violationsJson = _security.violationLog
+        .map((v) => v.toJson())
+        .toList();
+    final bool isAutoSubmitted = autoSubmitReason != null;
+    final bool emulator = _security.emulatorDetected;
+    final bool rooted = _security.rootDetected;
+
     // End secure session first
     await _security.endSecureExam();
 
@@ -311,7 +319,15 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
 
     try {
-      await examProvider.submitExam(finalAnswers, isOffline: isOffline);
+      await examProvider.submitExam(
+        finalAnswers,
+        isOffline: isOffline,
+        violations: violationsJson,
+        isAutoSubmitted: isAutoSubmitted,
+        autoSubmitReason: autoSubmitReason,
+        emulatorDetected: emulator,
+        rootDetected: rooted,
+      );
       // Clear autosave after successful submit
       await _security.clearAutosavedAnswers(widget.exam.id);
 
