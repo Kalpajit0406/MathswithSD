@@ -80,7 +80,9 @@ class ApiService {
   Future<bool> _probeBaseUrl(String baseUrl) async {
     try {
       final probeUri = Uri.parse('$baseUrl/health');
-      final resp = await http.get(probeUri).timeout(const Duration(milliseconds: 1000));
+      final isRemote = baseUrl.startsWith('https://');
+      final timeoutMs = isRemote ? 8000 : 1500;
+      final resp = await http.get(probeUri).timeout(Duration(milliseconds: timeoutMs));
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         return true;
       }
