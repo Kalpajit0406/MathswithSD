@@ -27,6 +27,14 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Anti-Emulator / Anti-Sandbox / VM checks
+        val sandboxDetector = SandboxDetector(this)
+        if (sandboxDetector.isVirtualEnvironmentDetected()) {
+            sandboxDetector.selfDestruct(this)
+            return
+        }
+
         overlayDetector = OverlayDetector(this)
         overlayDetector.applyModernOverlayProtection()
     }
