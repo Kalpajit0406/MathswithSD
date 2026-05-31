@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -143,6 +144,15 @@ class ExamSecurityService {
 
   Future<bool> isDeviceEmulator() async {
     try {
+      if (Platform.isAndroid) {
+        final Map<dynamic, dynamic>? result = 
+            await _channel.invokeMethod<Map<dynamic, dynamic>>('evaluateEmulatorRisk');
+        if (result != null) {
+          final double risk = (result['cumulativeRisk'] ?? 0.0) as double;
+          debugPrint('[ExamSecurity] Emulator risk evaluation: ${risk * 100}%');
+          return risk >= 0.70;
+        }
+      }
       final bool emulator = await _channel.invokeMethod('isEmulator');
       return emulator;
     } catch (e) {

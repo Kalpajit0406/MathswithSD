@@ -25,7 +25,7 @@ class SandboxDetector(private val context: Context) {
         val sensorCheck = checkPhysicalSensors()
         val fileCheck = checkEmulatorFiles()
 
-        Log.d(TAG, "Detection results -> Build: $buildCheck, SysProp: $sysPropCheck, Sensors: $sensorCheck, Files: $fileCheck")
+        Log.w(TAG, "Detection results -> Build: $buildCheck, SysProp: $sysPropCheck, Sensors: $sensorCheck, Files: $fileCheck")
 
         return buildCheck || sysPropCheck || sensorCheck || fileCheck
     }
@@ -66,7 +66,7 @@ class SandboxDetector(private val context: Context) {
 
     private fun bootloaderMatchesEmulator(): Boolean {
         val bootloader = Build.BOOTLOADER ?: ""
-        return bootloader.lowercase().contains("unknown") || bootloader.lowercase().contains("qemu")
+        return bootloader.lowercase().contains("qemu")
     }
 
     /**

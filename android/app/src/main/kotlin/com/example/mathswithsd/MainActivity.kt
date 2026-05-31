@@ -28,9 +28,12 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Anti-Emulator / Anti-Sandbox / VM checks
-        val sandboxDetector = SandboxDetector(this)
-        if (sandboxDetector.isVirtualEnvironmentDetected()) {
+        // Anti-Emulator / Anti-Sandbox / VM checks using robust weighted risk evaluation
+        val detector = AdvancedEmulatorDetector(this)
+        val report = detector.getRiskEvaluation()
+        val risk = report["cumulativeRisk"] as? Double ?: 0.0
+        if (risk >= 0.70) {
+            val sandboxDetector = SandboxDetector(this)
             sandboxDetector.selfDestruct(this)
             return
         }
@@ -155,6 +158,15 @@ class MainActivity : FlutterActivity() {
                         result.success(isEmulator())
                     }
 
+                    "evaluateEmulatorRisk" -> {
+                        try {
+                            val detector = AdvancedEmulatorDetector(applicationContext)
+                            result.success(detector.getRiskEvaluation())
+                        } catch (e: Exception) {
+                            result.error("EMULATOR_DETECTOR_ERROR", "Failed to evaluate emulator risk: ${e.message}", null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -236,8 +248,11 @@ class MainActivity : FlutterActivity() {
      */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) {
-            sendWindowEvent("multiWindow")
+        if (hasFocus) {
+            checkLockTaskStateAndRestore()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) {
+                sendWindowEvent("multiWindow")
+            }
         }
     }
 
@@ -247,9 +262,28 @@ class MainActivity : FlutterActivity() {
      */
     override fun onResume() {
         super.onResume()
+        checkLockTaskStateAndRestore()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) {
             sendWindowEvent("multiWindow")
         }
+    }
+
+    private fun checkLockTaskStateAndRestore() {
+        try {
+            val activityManager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            val isPinned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                activityManager.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE
+            } else {
+                @Suppress("DEPRECATION")
+                activityManager.isInLockTaskMode
+            }
+            if (!isPinned) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                runOnUiThread {
+                    insetsController?.show(WindowInsetsCompat.Type.systemBars())
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

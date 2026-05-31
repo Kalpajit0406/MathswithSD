@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -46,6 +47,22 @@ void main() async {
 }
 
 Future<bool> _isEmulator() async {
+  const channel = MethodChannel('com.mathswithsd.exam_security');
+  try {
+    if (Platform.isAndroid) {
+      final Map<dynamic, dynamic>? result = 
+          await channel.invokeMethod<Map<dynamic, dynamic>>('evaluateEmulatorRisk');
+      if (result != null) {
+        final double risk = (result['cumulativeRisk'] ?? 0.0) as double;
+        debugPrint('[Security] Startup emulator risk evaluation: ${risk * 100}%');
+        return risk >= 0.70;
+      }
+    }
+  } catch (e) {
+    debugPrint('Error detecting emulator via native channel: $e');
+  }
+
+  // Fallback to DeviceInfoPlugin if native channel is unavailable or on other platforms
   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   try {
     if (Platform.isAndroid) {
@@ -56,7 +73,7 @@ Future<bool> _isEmulator() async {
       return !iosInfo.isPhysicalDevice;
     }
   } catch (e) {
-    debugPrint('Error detecting emulator: $e');
+    debugPrint('Fallback error detecting emulator: $e');
   }
   return false;
 }
@@ -141,8 +158,38 @@ class _EmulatorWarningAppState extends State<EmulatorWarningApp> {
   }
 }
 
-class MathsWithSDApp extends StatelessWidget {
+class MathsWithSDApp extends StatefulWidget {
   const MathsWithSDApp({super.key});
+
+  @override
+  State<MathsWithSDApp> createState() => _MathsWithSDAppState();
+}
+
+class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObserver {
+  bool _isMultiWindowPhase = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() {
+      if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+        _isMultiWindowPhase = true;
+      } else if (state == AppLifecycleState.resumed) {
+        _isMultiWindowPhase = false;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +199,54 @@ class MathsWithSDApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
-          return OfflineIndicator(child: child!);
+          return Stack(
+            children: [
+              OfflineIndicator(child: child!),
+              if (_isMultiWindowPhase)
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        color: Colors.black.withOpacity(0.65),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.security_rounded,
+                                color: Colors.amberAccent,
+                                size: 80,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Security Protection Active',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'App content obscured for privacy',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
         },
         home: const _AuthGate(),
         routes: {
