@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/exam_provider.dart';
+import 'services/kiosk_service.dart';
 
 import 'utils/app_theme.dart';
 import 'widgets/offline_indicator.dart';
@@ -29,6 +30,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
+  // Start global Kiosk mode
+  await KioskService.startKioskMode();
   
   runApp(
     MultiProvider(

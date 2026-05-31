@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/fade_in_slide.dart';
 import '../widgets/glass_card.dart';
+import '../services/kiosk_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onNavigateToRegister;
@@ -47,29 +48,55 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
-    return Scaffold(
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Logo / Branding with elegant slide
-                      Center(
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Exit App Button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => KioskService.exitApp(),
+                              icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent, size: 20),
+                              label: const Text(
+                                'Exit App',
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Logo / Branding with elegant slide
+                        Center(
                         child: FadeInSlide(
                           duration: const Duration(milliseconds: 700),
                           slideOffset: 30,
@@ -270,8 +297,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLabel(String text) {
     return Text(

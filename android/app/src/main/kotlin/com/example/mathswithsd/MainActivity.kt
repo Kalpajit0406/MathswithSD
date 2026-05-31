@@ -2,6 +2,8 @@ package com.example.mathswithsd
 
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -17,10 +19,25 @@ class MainActivity : FlutterActivity() {
         private const val EVENT_CHANNEL    = "com.mathswithsd.exam_window_events"
     }
 
+    private lateinit var overlayDetector: OverlayDetector
     private var insetsController: WindowInsetsControllerCompat? = null
 
     // EventChannel sink — non-null only while Flutter is listening
     private var windowEventSink: EventChannel.EventSink? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        overlayDetector = OverlayDetector(this)
+        overlayDetector.applyModernOverlayProtection()
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Discard touch and terminate app if touch is obscured (Tapjacking/Screen Overlay protection)
+        if (overlayDetector.checkTouchEventForOverlay(event)) {
+            return false
+        }
+        return super.dispatchTouchEvent(event)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

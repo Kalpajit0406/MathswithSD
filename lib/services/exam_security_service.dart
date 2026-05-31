@@ -256,13 +256,10 @@ class ExamSecurityService {
   }
 
   Future<void> _exitKioskMode() async {
-    try {
-      await _channel.invokeMethod('disableKioskMode');
-    } catch (e) {
-      debugPrint('[ExamSecurity] Failed to disable kiosk: $e');
-    } finally {
-      _kioskActive = false;
-    }
+    // Kiosk mode is managed globally for the Student App and should not be disabled
+    // at the end of the exam transition.
+    _kioskActive = false;
+    debugPrint('[ExamSecurity] Global Kiosk mode remains active after exam.');
   }
 
   // ── Foreground Service ────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import '../../services/storage_service.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glass_card.dart';
+import '../../services/kiosk_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -98,6 +99,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+              tooltip: 'Exit App',
+              onPressed: () => KioskService.showExitDialog(context),
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
       );
@@ -113,6 +122,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+            tooltip: 'Exit App',
+            onPressed: () => KioskService.showExitDialog(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),

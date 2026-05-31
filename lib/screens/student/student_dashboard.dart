@@ -14,6 +14,7 @@ import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
 import '../../services/offline_exam_service.dart';
+import '../../services/kiosk_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -32,14 +33,50 @@ class _StudentDashboardState extends State<StudentDashboard> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final examProvider = Provider.of<ExamProvider>(context, listen: false);
+      final cached = await examProvider.checkForResumableExam();
+      if (cached != null) {
+        final examId = cached['examId'];
+        await examProvider.loadTests();
+        final matchedExam = examProvider.scheduledTests.firstWhere(
+          (e) => e.id == examId,
+          orElse: () => Exam(
+            id: examId,
+            title: 'Active Test',
+            duration: (cached['remainingSeconds'] as int) ~/ 60,
+            questions: [],
+            date: '',
+            time: '',
+            classNo: 0,
+            language: 'English',
+          ),
+        );
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ExamAttemptScreen(exam: matchedExam),
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _currentIndex == 0,
+      canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        setState(() {
-          _currentIndex = 0;
-        });
+        if (_currentIndex != 0) {
+          setState(() {
+            _currentIndex = 0;
+          });
+        }
       },
       child: Scaffold(
         body: Container(
@@ -138,6 +175,11 @@ class _HomeTab extends StatelessWidget {
         ),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+            tooltip: 'Exit App',
+            onPressed: () => KioskService.showExitDialog(context),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFFD3BBFF)),
             onPressed: () {},
