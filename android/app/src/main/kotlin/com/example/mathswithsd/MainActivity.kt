@@ -97,6 +97,21 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
+                    "isAppPinned" -> {
+                        try {
+                            val activityManager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                            val isPinned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                activityManager.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE
+                            } else {
+                                @Suppress("DEPRECATION")
+                                activityManager.isInLockTaskMode
+                            }
+                            result.success(isPinned)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+
                     // ── Foreground Service ────────────────────────────────────
                     "startForegroundMonitor" -> {
                         try {

@@ -55,12 +55,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ),
         );
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ExamAttemptScreen(exam: matchedExam),
-            ),
-          );
+          KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: matchedExam));
         }
       }
     });
@@ -330,14 +325,7 @@ class _HomeTab extends StatelessWidget {
                               ),
                             ),
                             ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ExamAttemptScreen(exam: matchedExam),
-                                  ),
-                                );
-                              },
+                              onPressed: () => KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: matchedExam)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF881337),
@@ -924,14 +912,7 @@ class _ExamCard extends StatelessWidget {
 
     return ElevatedButton(
       onPressed: enabled
-          ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ExamAttemptScreen(exam: test),
-                ),
-              );
-            }
+          ? () => KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: test))
           : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF8B5CF6),
