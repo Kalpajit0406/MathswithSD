@@ -14,6 +14,7 @@ enum LoadState { idle, loading, error, loaded }
 
 class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   final ApiService _apiService = ApiService();
+  String get baseUrl => _apiService.baseUrl;
   
   final List<Exam> _exams = [];
   bool _isLoading = false;

@@ -8,7 +8,7 @@ import '../../services/kiosk_service.dart';
 import '../../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -336,7 +336,7 @@ class _ThemeOptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF0051D5).withOpacity(0.08) : Colors.transparent,
+          color: isActive ? const Color(0xFF0051D5).withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive ? const Color(0xFF0051D5) : borderColor,
@@ -347,7 +347,7 @@ class _ThemeOptionCard extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isActive ? const Color(0xFF0051D5) : (textColor.withOpacity(0.6)),
+              color: isActive ? const Color(0xFF0051D5) : (textColor.withValues(alpha: 0.6)),
               size: 28,
             ),
             const SizedBox(height: 8),

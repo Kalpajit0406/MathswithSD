@@ -6,10 +6,7 @@ class ErrorBoundary extends StatefulWidget {
   final Widget child;
   final VoidCallback? onError;
 
-  const ErrorBoundary({
-    required this.child,
-    this.onError,
-  });
+  const ErrorBoundary({super.key, required this.child, this.onError});
 
   @override
   State<ErrorBoundary> createState() => _ErrorBoundaryState();
@@ -22,13 +19,15 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   @override
   void initState() {
     super.initState();
-    
+
     // Catch all Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
-      debugPrint('Flutter Error caught: ${details.exceptionAsString()}\n'
-          'Error: ${details.exception}\n'
-          'StackTrace: ${details.stack}');
-      
+      debugPrint(
+        'Flutter Error caught: ${details.exceptionAsString()}\n'
+        'Error: ${details.exception}\n'
+        'StackTrace: ${details.stack}',
+      );
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
@@ -77,6 +76,7 @@ class ErrorDisplayWidget extends StatelessWidget {
   final String? suggestion;
 
   const ErrorDisplayWidget({
+    super.key,
     required this.error,
     required this.onRetry,
     this.suggestion,
@@ -90,11 +90,7 @@ class ErrorDisplayWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.red[400],
-          ),
+          Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
           const SizedBox(height: 24),
           Text(
             'Oops! Something went wrong',
@@ -110,9 +106,9 @@ class ErrorDisplayWidget extends StatelessWidget {
             ),
             child: Text(
               error,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.red[900],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.red[900]),
               textAlign: TextAlign.center,
             ),
           ),
@@ -178,7 +174,7 @@ extension SafeAsync on Future {
     } catch (e) {
       final message = '$operationName failed: ${e.toString()}';
       errorNotifier.setError(message);
-      
+
       // Show snackbar if context still valid
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

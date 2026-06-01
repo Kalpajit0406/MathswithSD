@@ -135,10 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: themePrimary.withOpacity(0.2), width: 2),
+                  border: Border.all(color: themePrimary.withValues(alpha: 0.2), width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: themePrimary.withOpacity(0.05),
+                      color: themePrimary.withValues(alpha: 0.05),
                       blurRadius: 16,
                     )
                   ],
@@ -177,8 +177,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Pending Approval Banner
             if (hasPendingEdit) ...[
               GlassCard(
-                color: Colors.amber.withOpacity(isDark ? 0.15 : 0.08),
-                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.08),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
@@ -270,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: borderColor),
                     ),
@@ -405,14 +405,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.06),
+                        color: Colors.redAccent.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
                       ),
                       child: const Row(
                         children: [
                           Icon(Icons.info_outline_rounded, color: Colors.redAccent, size: 20),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Other details (Name, Father\'s Name, Phone) cannot be modified.',
@@ -472,9 +472,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
+                  side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: Colors.redAccent.withOpacity(0.06),
+                  backgroundColor: Colors.redAccent.withValues(alpha: 0.06),
                 ),
               ),
             ),
@@ -490,7 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: themePrimary.withOpacity(0.06),
+            color: themePrimary.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderColor),
           ),
@@ -514,7 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         if (isLocked)
-          Icon(Icons.lock_outline_rounded, color: secondaryTextColor.withOpacity(0.4), size: 18),
+          Icon(Icons.lock_outline_rounded, color: secondaryTextColor.withValues(alpha: 0.4), size: 18),
       ],
     );
   }

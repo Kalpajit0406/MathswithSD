@@ -189,9 +189,12 @@ class _AnnouncementCard extends StatelessWidget {
                       const Spacer(),
                       Icon(Icons.schedule_rounded, size: 14, color: secondaryTextColor),
                       const SizedBox(width: 6),
-                      Text(
-                        ann.formattedDate,
-                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                      Flexible(
+                        child: Text(
+                          ann.formattedDate,
+                          style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

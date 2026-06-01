@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                             ),
@@ -112,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF8B5CF6).withOpacity(0.35),
+                                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.35),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 )
@@ -233,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             borderRadius: BorderRadius.circular(16),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
                                                 blurRadius: 16,
                                                 offset: const Offset(0, 6),
                                               ),
@@ -320,18 +320,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontWeight: FontWeight.w500, fontSize: 14),
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontWeight: FontWeight.w500, fontSize: 14),
       prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white.withOpacity(0.04),
+      fillColor: Colors.white.withValues(alpha: 0.04),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),

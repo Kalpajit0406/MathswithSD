@@ -205,9 +205,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           children: [
             const Icon(Icons.security, color: Colors.deepOrange),
             const SizedBox(width: 8),
-            Text(
-              count >= max - 1 ? '⚠️ Final Warning' : '🔒 Security Warning',
-              style: const TextStyle(fontSize: 18),
+            Expanded(
+              child: Text(
+                count >= max - 1 ? '⚠️ Final Warning' : '🔒 Security Warning',
+                style: const TextStyle(fontSize: 18),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -645,13 +648,16 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                   children: [
                     Icon(Icons.wifi_off_rounded, color: Colors.white, size: 16),
                     SizedBox(width: 8),
-                    Text(
-                      'OFFLINE MODE — Attempt saved locally',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5),
+                    Flexible(
+                      child: Text(
+                        'OFFLINE MODE — Attempt saved locally',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -754,6 +760,21 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                           ),
                           const SizedBox(height: 14),
                           LaTeXWidget(text: currentQ.questionText, color: const Color(0xFF0F172A)),
+                          if (currentQ.diagram != null && currentQ.diagram!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                currentQ.diagram!.startsWith('http')
+                                    ? currentQ.diagram!
+                                    : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${currentQ.diagram}',
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -862,25 +883,35 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '$answeredCount/$totalQ answered',
-                    style: const TextStyle(
-                        color: Color(0xFF75859D), fontSize: 12),
+                  Expanded(
+                    child: Text(
+                      '$answeredCount/$totalQ answered',
+                      style: const TextStyle(
+                          color: Color(0xFF75859D), fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   if (_security.backgroundViolationCount > 0)
-                    Row(
-                      children: [
-                        Icon(Icons.warning_amber,
-                            size: 14, color: Colors.orange.shade700),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
-                          style: TextStyle(
-                              color: Colors.orange.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.warning_amber,
+                              size: 14, color: Colors.orange.shade700),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
+                              style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),

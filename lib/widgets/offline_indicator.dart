@@ -153,17 +153,17 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
         String message;
 
         if (syncStatus.toString().contains('syncing')) {
-          backgroundColor = const Color(0xFF2196F3).withOpacity(0.1);
+          backgroundColor = const Color(0xFF2196F3).withValues(alpha: 0.1);
           textColor = const Color(0xFF2196F3);
           icon = Icons.sync_rounded;
           message = 'Syncing offline changes...';
         } else if (syncStatus.toString().contains('success')) {
-          backgroundColor = const Color(0xFF4CAF50).withOpacity(0.1);
+          backgroundColor = const Color(0xFF4CAF50).withValues(alpha: 0.1);
           textColor = const Color(0xFF4CAF50);
           icon = Icons.check_circle_rounded;
           message = '$syncedCount exam(s) synced successfully! ✓';
         } else {
-          backgroundColor = const Color(0xFFBA1A1A).withOpacity(0.1);
+          backgroundColor = const Color(0xFFBA1A1A).withValues(alpha: 0.1);
           textColor = const Color(0xFFBA1A1A);
           icon = Icons.error_rounded;
           message = syncError ?? 'Sync error occurred';
@@ -175,7 +175,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: textColor.withOpacity(0.3), width: 1),
+            border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
           ),
           child: Row(
             children: [
@@ -240,17 +240,17 @@ class OfflineExamStatusBadge extends StatelessWidget {
 
     if (isSynced) {
       label = 'Synced';
-      backgroundColor = const Color(0xFF4CAF50).withOpacity(0.1);
+      backgroundColor = const Color(0xFF4CAF50).withValues(alpha: 0.1);
       textColor = const Color(0xFF4CAF50);
       icon = Icons.check_circle_rounded;
     } else if (isPending) {
       label = 'Pending Sync';
-      backgroundColor = const Color(0xFFFFC107).withOpacity(0.1);
+      backgroundColor = const Color(0xFFFFC107).withValues(alpha: 0.1);
       textColor = const Color(0xFFFFC107);
       icon = Icons.cloud_upload_rounded;
     } else if (isDownloaded) {
       label = 'Downloaded';
-      backgroundColor = const Color(0xFF2196F3).withOpacity(0.1);
+      backgroundColor = const Color(0xFF2196F3).withValues(alpha: 0.1);
       textColor = const Color(0xFF2196F3);
       icon = Icons.download_done_rounded;
     } else {
@@ -262,7 +262,7 @@ class OfflineExamStatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: textColor.withOpacity(0.3), width: 1),
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

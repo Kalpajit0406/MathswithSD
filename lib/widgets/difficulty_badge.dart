@@ -58,12 +58,15 @@ class DifficultyBadge extends StatelessWidget {
               ),
             ),
             SizedBox(width: 4),
-            Text(
-              _getDifficultyLabel(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _getDifficultyColor(),
+            Flexible(
+              child: Text(
+                _getDifficultyLabel(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _getDifficultyColor(),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

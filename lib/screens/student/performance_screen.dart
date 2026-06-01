@@ -101,9 +101,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: themePrimary.withOpacity(0.04),
+              color: themePrimary.withValues(alpha: 0.04),
               shape: BoxShape.circle,
-              border: Border.all(color: themePrimary.withOpacity(0.08)),
+              border: Border.all(color: themePrimary.withValues(alpha: 0.08)),
             ),
             child: Icon(Icons.error_outline_rounded, size: 64, color: secondaryTextColor),
           ),
@@ -249,10 +249,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: themePrimary.withOpacity(0.04),
+                        color: themePrimary.withValues(alpha: 0.04),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.assignment_outlined, size: 56, color: secondaryTextColor.withOpacity(0.4)),
+                      child: Icon(Icons.assignment_outlined, size: 56, color: secondaryTextColor.withValues(alpha: 0.4)),
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -414,9 +414,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.12),
+        color: badgeColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: badgeColor.withOpacity(0.2), width: 1),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.2), width: 1),
       ),
       child: Text(
         '${accuracy.toStringAsFixed(1)}%',
@@ -535,9 +535,9 @@ class _MetricCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withOpacity(0.2), width: 1.2),
+              border: Border.all(color: color.withValues(alpha: 0.2), width: 1.2),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -579,8 +579,8 @@ class _TrendIndicator extends StatelessWidget {
     final trendIcon = isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded;
 
     return GlassCard(
-      color: trendColor.withOpacity(0.08),
-      border: Border.all(color: trendColor.withOpacity(0.2), width: 1.2),
+      color: trendColor.withValues(alpha: 0.08),
+      border: Border.all(color: trendColor.withValues(alpha: 0.2), width: 1.2),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -588,9 +588,9 @@ class _TrendIndicator extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: trendColor.withOpacity(0.12),
+              color: trendColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: trendColor.withOpacity(0.2), width: 1.2),
+              border: Border.all(color: trendColor.withValues(alpha: 0.2), width: 1.2),
             ),
             child: Icon(trendIcon, color: trendColor, size: 28),
           ),
@@ -614,7 +614,7 @@ class _TrendIndicator extends StatelessWidget {
                       : 'Your accuracy declined by ${(-trend).toStringAsFixed(1)}% - review challenging topics',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isPositive ? trendColor.withOpacity(0.9) : textColor.withOpacity(0.85),
+                    color: isPositive ? trendColor.withValues(alpha: 0.9) : textColor.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                   ),
                 ),

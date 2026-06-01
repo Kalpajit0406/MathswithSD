@@ -1,5 +1,4 @@
 import 'fade_in_slide.dart' as shared;
-import 'package:flutter/material.dart';
 
 class FadeInSlide extends shared.FadeInSlide {
   const FadeInSlide({

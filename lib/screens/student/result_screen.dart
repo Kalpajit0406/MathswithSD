@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
 import '../../widgets/glass_card.dart';
@@ -94,13 +96,29 @@ class ResultScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _StatColumn(label: 'Score', value: '$score / $totalQuestions', textColor: textColor, secondaryTextColor: secondaryTextColor),
-                    _StatColumn(label: 'Accuracy', value: '${percentage.toStringAsFixed(1)}%', textColor: textColor, secondaryTextColor: secondaryTextColor),
-                    _StatColumn(
-                      label: 'Time',
-                      value: '${(timeTaken / 60).floor()}m ${timeTaken % 60}s',
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Score',
+                        value: '$score / $totalQuestions',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
+                    ),
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Accuracy',
+                        value: '${percentage.toStringAsFixed(1)}%',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
+                    ),
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Time',
+                        value: '${(timeTaken / 60).floor()}m ${timeTaken % 60}s',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
                     ),
                   ],
                 ),
@@ -211,6 +229,21 @@ class ResultScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       LaTeXWidget(text: q.questionText, color: textColor),
+                      if (q.diagram != null && q.diagram!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            q.diagram!.startsWith('http')
+                                ? q.diagram!
+                                : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${q.diagram}',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _ReviewOption(label: 'Your Answer', value: userAns ?? 'Not Answered', isCorrect: isCorrect, color: isCorrect ? Colors.green : Colors.red, textColor: textColor),
                       if (!isCorrect)

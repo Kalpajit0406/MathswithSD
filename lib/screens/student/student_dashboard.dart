@@ -1069,9 +1069,12 @@ class _ExamCard extends StatelessWidget {
                     children: [
                       Icon(Icons.calendar_today_rounded, size: 12, color: secondaryTextColor),
                       const SizedBox(width: 6),
-                      Text(
-                        '${test.date} @ ${test.time}',
-                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                      Flexible(
+                        child: Text(
+                          '${test.date} @ ${test.time}',
+                          style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -1079,50 +1082,56 @@ class _ExamCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Duration: ${test.duration} Mins',
-                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                      Flexible(
+                        child: Text(
+                          'Duration: ${test.duration} Mins',
+                          style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       if (!isCompleted && !isMissed)
-                        TextButton.icon(
-                          onPressed: () async {
-                            try {
-                              final offlineExam = OfflineExam(
-                                examId: test.id,
-                                title: test.title,
-                                duration: test.duration,
-                                questions: test.questions.map((q) => q.toJson()).toList(),
-                                startedAt: DateTime.now(),
-                                isCompleted: false,
-                                status: 'downloaded',
-                              );
-                              await OfflineExamService().saveExamOffline(offlineExam);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('"${test.title}" downloaded for offline use.'),
-                                    backgroundColor: const Color(0xFF8B5CF6),
-                                  ),
+                        Flexible(
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              try {
+                                final offlineExam = OfflineExam(
+                                  examId: test.id,
+                                  title: test.title,
+                                  duration: test.duration,
+                                  questions: test.questions.map((q) => q.toJson()).toList(),
+                                  startedAt: DateTime.now(),
+                                  isCompleted: false,
+                                  status: 'downloaded',
                                 );
+                                await OfflineExamService().saveExamOffline(offlineExam);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('"${test.title}" downloaded for offline use.'),
+                                      backgroundColor: const Color(0xFF8B5CF6),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to download: ${e.toString()}'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
                               }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Failed to download: ${e.toString()}'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.download_for_offline_rounded, size: 16),
-                          label: const Text('Download Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                          style: TextButton.styleFrom(
-                            foregroundColor: themePrimary,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            },
+                            icon: const Icon(Icons.download_for_offline_rounded, size: 16),
+                            label: const Text('Download Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+                            style: TextButton.styleFrom(
+                              foregroundColor: themePrimary,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
                         ),
                     ],

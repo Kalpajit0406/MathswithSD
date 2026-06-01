@@ -63,7 +63,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onPrimary: Colors.white,
             onSurface: Colors.white,
           ),
-          dialogBackgroundColor: const Color(0xFF0A0F1D),
+          dialogTheme: DialogThemeData(
+            backgroundColor: const Color(0xFF0A0F1D),
+          ),
         ),
         child: child!,
       ),
@@ -102,7 +104,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Registration successful! Please wait for admin approval.'),
+              content: const Text(
+                'Registration successful! Please wait for admin approval.',
+              ),
               backgroundColor: Colors.green.shade700,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 4),
@@ -154,11 +158,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               // Clean Glass Custom AppBar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Color(0xFFD3BBFF),
+                        size: 20,
+                      ),
                       onPressed: widget.onBackToLogin,
                     ),
                     const SizedBox(width: 8),
@@ -179,7 +190,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   key: _formKey,
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -195,9 +209,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SizedBox(height: 20),
                                 Row(
                                   children: [
-                                    Expanded(child: _darkField('First Name', _firstNameCtrl, icon: Icons.person_outline)),
+                                    Expanded(
+                                      child: _darkField(
+                                        'First Name',
+                                        _firstNameCtrl,
+                                        icon: Icons.person_outline,
+                                      ),
+                                    ),
                                     const SizedBox(width: 12),
-                                    Expanded(child: _darkField('Last Name', _lastNameCtrl, icon: Icons.person_outline)),
+                                    Expanded(
+                                      child: _darkField(
+                                        'Last Name',
+                                        _lastNameCtrl,
+                                        icon: Icons.person_outline,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
@@ -213,10 +239,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                _darkField('Father\'s Name', _fatherNameCtrl, icon: Icons.family_restroom_rounded),
+                                _darkField(
+                                  'Father\'s Name',
+                                  _fatherNameCtrl,
+                                  icon: Icons.family_restroom_rounded,
+                                ),
                                 const SizedBox(height: 16),
-                                _dropdownField('Gender', _gender, _genders, (val) => setState(() => _gender = val!),
-                                    icon: Icons.wc_rounded),
+                                _dropdownField(
+                                  'Gender',
+                                  _gender,
+                                  _genders,
+                                  (val) => setState(() => _gender = val!),
+                                  icon: Icons.wc_rounded,
+                                ),
                               ],
                             ),
                           ),
@@ -237,18 +272,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: _dropdownField('Class', _classNo, _classes,
-                                          (val) => setState(() {
-                                            _classNo = val!;
-                                            if (_classNo != '11' && _classNo != '12') {
-                                              _isJoint = false;
-                                            }
-                                          }), icon: Icons.class_rounded),
+                                      child: _dropdownField(
+                                        'Class',
+                                        _classNo,
+                                        _classes,
+                                        (val) => setState(() {
+                                          _classNo = val!;
+                                          if (_classNo != '11' &&
+                                              _classNo != '12') {
+                                            _isJoint = false;
+                                          }
+                                        }),
+                                        icon: Icons.class_rounded,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: _dropdownField('Medium', _language, _languages,
-                                          (val) => setState(() => _language = val!), icon: Icons.translate_rounded),
+                                      child: _dropdownField(
+                                        'Medium',
+                                        _language,
+                                        _languages,
+                                        (val) =>
+                                            setState(() => _language = val!),
+                                        icon: Icons.translate_rounded,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -272,16 +319,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             const Text(
                                               'Enroll in Joint Entrance preparation',
-                                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
                                               'Optional curriculum for engineering entrance prep',
-                                              style: TextStyle(color: Colors.white60, fontSize: 11),
+                                              style: TextStyle(
+                                                color: Colors.white60,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -306,29 +361,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               children: [
                                 _sectionTitle('Contact & Security'),
                                 const SizedBox(height: 20),
-                                _darkField('Student\'s Phone', _studentPhoneCtrl,
-                                  icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone,
+                                _darkField(
+                                  'Student\'s Phone',
+                                  _studentPhoneCtrl,
+                                  icon: Icons.phone_android_rounded,
+                                  keyboardType: TextInputType.phone,
                                   validator: (val) {
-                                    if (val == null || val.isEmpty) return 'Required';
-                                    if (val.length != 10) return 'Must be 10 digits';
+                                    if (val == null || val.isEmpty)
+                                      return 'Required';
+                                    if (val.length != 10)
+                                      return 'Must be 10 digits';
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                _darkField('Guardian\'s Phone', _guardianPhoneCtrl,
-                                  icon: Icons.phone_in_talk_rounded, keyboardType: TextInputType.phone,
+                                _darkField(
+                                  'Guardian\'s Phone',
+                                  _guardianPhoneCtrl,
+                                  icon: Icons.phone_in_talk_rounded,
+                                  keyboardType: TextInputType.phone,
                                   validator: (val) {
-                                    if (val == null || val.isEmpty) return 'Required';
-                                    if (val.length != 10) return 'Must be 10 digits';
+                                    if (val == null || val.isEmpty)
+                                      return 'Required';
+                                    if (val.length != 10)
+                                      return 'Must be 10 digits';
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                _passwordField('Password', _passwordCtrl, _passwordVisible,
-                                  () => setState(() => _passwordVisible = !_passwordVisible)),
+                                _passwordField(
+                                  'Password',
+                                  _passwordCtrl,
+                                  _passwordVisible,
+                                  () => setState(
+                                    () => _passwordVisible = !_passwordVisible,
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
-                                _passwordField('Confirm Password', _confirmPasswordCtrl, _confirmPasswordVisible,
-                                  () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible)),
+                                _passwordField(
+                                  'Confirm Password',
+                                  _confirmPasswordCtrl,
+                                  _confirmPasswordVisible,
+                                  () => setState(
+                                    () => _confirmPasswordVisible =
+                                        !_confirmPasswordVisible,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -344,19 +422,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             width: double.infinity,
                             height: 56,
                             child: _isLoading
-                                ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)))
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF8B5CF6),
+                                    ),
+                                  )
                                 : BounceOnTap(
                                     onTap: _register,
                                     child: Container(
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         gradient: const LinearGradient(
-                                          colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
+                                          colors: [
+                                            Color(0xFF8B5CF6),
+                                            Color(0xFF4C1D95),
+                                          ],
                                         ),
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                                            color: const Color(
+                                              0xFF8B5CF6,
+                                            ).withValues(alpha: 0.3),
                                             blurRadius: 16,
                                             offset: const Offset(0, 6),
                                           ),
@@ -376,15 +463,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text('Already have an account? ', style: TextStyle(color: Color(0xFFA8A5B8))),
+                            const Text(
+                              'Already have an account? ',
+                              style: TextStyle(color: Color(0xFFA8A5B8)),
+                            ),
                             TextButton(
                               onPressed: widget.onBackToLogin,
-                              style: TextButton.styleFrom(foregroundColor: const Color(0xFFD3BBFF), padding: EdgeInsets.zero),
-                              child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w800)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFFD3BBFF),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text(
+                                'Login',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
                             ),
                           ],
                         ),
@@ -415,7 +511,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Container(height: 1, color: Colors.white.withOpacity(0.1)),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
       ],
     );
   }
@@ -431,22 +527,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: ctrl,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+        labelStyle: const TextStyle(
+          color: Color(0xFFCCC3D4),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
         prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.04),
+        fillColor: Colors.white.withValues(alpha: 0.04),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -461,34 +565,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
         errorStyle: const TextStyle(color: Colors.redAccent),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
-      validator: validator ?? (val) => (val == null || val.isEmpty) ? 'Required' : null,
+      validator:
+          validator ??
+          (val) => (val == null || val.isEmpty) ? 'Required' : null,
     );
   }
 
-  Widget _passwordField(String label, TextEditingController ctrl, bool visible, VoidCallback toggle) {
+  Widget _passwordField(
+    String label,
+    TextEditingController ctrl,
+    bool visible,
+    VoidCallback toggle,
+  ) {
     return TextFormField(
       controller: ctrl,
       obscureText: !visible,
-      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
-        prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFFD3BBFF), size: 20),
+        labelStyle: const TextStyle(
+          color: Color(0xFFCCC3D4),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        prefixIcon: const Icon(
+          Icons.lock_outline_rounded,
+          color: Color(0xFFD3BBFF),
+          size: 20,
+        ),
         suffixIcon: IconButton(
-          icon: Icon(visible ? Icons.visibility : Icons.visibility_off, color: const Color(0xFFD3BBFF)),
+          icon: Icon(
+            visible ? Icons.visibility : Icons.visibility_off,
+            color: const Color(0xFFD3BBFF),
+          ),
           onPressed: toggle,
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.04),
+        fillColor: Colors.white.withValues(alpha: 0.04),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -503,7 +632,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
         errorStyle: const TextStyle(color: Colors.redAccent),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
       validator: (val) {
         if (val == null || val.isEmpty) return 'Required';
@@ -513,33 +645,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _dropdownField(String label, String value, List<String> options, ValueChanged<String?> onChanged, {required IconData icon}) {
+  Widget _dropdownField(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String?> onChanged, {
+    required IconData icon,
+  }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       onChanged: onChanged,
       dropdownColor: const Color(0xFF1E1B4B),
-      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+          color: Color(0xFFCCC3D4),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
         prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.04),
+        fillColor: Colors.white.withValues(alpha: 0.04),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
-      items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+      items: options
+          .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+          .toList(),
     );
   }
 }

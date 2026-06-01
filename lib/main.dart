@@ -212,7 +212,7 @@ class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObse
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
-                        color: Colors.black.withOpacity(0.65),
+                        color: Colors.black.withValues(alpha: 0.65),
                         child: const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
