@@ -40,8 +40,8 @@ class LaTeXWidget extends StatelessWidget {
     result = result.replaceAllMapped(RegExp(r'(?<!\\)\$(?!\$)(\w)'), (m) => '\$ ${m[1]}');
 
     // 3. LaTeX inline/block brackets
-    result = result.replaceAllMapped(RegExp(r'(\w)(\\\\(\\\\|\\\\\\\\[))'), (m) => '${m[1]} ${m[2]}');
-    result = result.replaceAllMapped(RegExp(r'(\\\\|\\\\\\\\])(\w)'), (m) => '${m[1]} ${m[2]}');
+      result = result.replaceAllMapped(RegExp(r'(\w)(\\\(|\\\[)'), (m) => '${m[1]} ${m[2]}');
+      result = result.replaceAllMapped(RegExp(r'(\\\)|\\\])(\w)'), (m) => '${m[1]} ${m[2]}');
 
     return result;
   }
@@ -93,7 +93,7 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
   double _contentHeight = 45.0; // Start with compact default height
 
   String _getHtml(Color color) {
-    final hexColor = '#${(color.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+    final hexColor = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     return '''
 <!DOCTYPE html>
 <html>

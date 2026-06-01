@@ -15,7 +15,7 @@ enum LoadState { idle, loading, error, loaded }
 class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   final ApiService _apiService = ApiService();
   
-  List<Exam> _exams = [];
+  final List<Exam> _exams = [];
   bool _isLoading = false;
   String? _currentAttemptId;
   String? _currentExamId;
@@ -27,6 +27,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   Timer? _timer;
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   bool _isDisposed = false;
+  Future<void> _pendingAttemptSave = Future.value();
 
   ExamProvider() {
     _initConnectivityListener();
@@ -93,6 +94,12 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     } catch (e) {
       debugPrint('Error caching exam attempt locally: $e');
     }
+  }
+
+  void _scheduleAttemptSave() {
+    _pendingAttemptSave = _pendingAttemptSave.then((_) => _saveAttemptToPrefs()).catchError((e) {
+      debugPrint('Error scheduling exam attempt save: $e');
+    });
   }
 
   Future<void> _clearAttemptFromPrefs() async {
@@ -270,7 +277,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
         if (_remainingSeconds % 5 == 0) {
-          await _saveAttemptToPrefs();
+            _scheduleAttemptSave();
         }
         if (!_isDisposed) notifyListeners();
       } else {
@@ -303,7 +310,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   void setAnswer(String questionId, String answer) {
     _userAnswers[questionId] = answer;
-    _saveAttemptToPrefs();
+    _scheduleAttemptSave();
     
     if (_currentAttemptId != null && _currentAttemptId!.startsWith('offline_')) {
       final response = OfflineResponse(
@@ -364,6 +371,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     if (!_isDisposed) notifyListeners();
 
     try {
+        await _pendingAttemptSave;
       if (isOffline) {
         await OfflineExamService().completeOfflineExam(_currentExamId!);
         for (var ans in answers) {
