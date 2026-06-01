@@ -539,7 +539,7 @@ class _HomeTabState extends State<_HomeTab> {
                           border: Border.all(color: themePrimary.withOpacity(0.2), width: 1),
                         ),
                         child: Text(
-                          'Class ${auth.user!.classNo} cohort',
+                          'Class ${auth.user!.classNo}${auth.user!.isJoint == true ? ' Joint' : ''}',
                           style: TextStyle(
                             color: themePrimary,
                             fontWeight: FontWeight.w800,

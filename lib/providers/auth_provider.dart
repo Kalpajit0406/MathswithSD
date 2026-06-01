@@ -117,11 +117,11 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> updateProfileRequest(int classNo, String language) async {
+  Future<bool> updateProfileRequest(int classNo, String language, {bool isJoint = false}) async {
     _errorMessage = null;
     notifyListeners();
     try {
-      final response = await _apiService.submitProfileEditRequest(classNo, language);
+      final response = await _apiService.submitProfileEditRequest(classNo, language, isJoint: isJoint);
       if (response['success'] == true) {
         await refreshProfile();
         return true;

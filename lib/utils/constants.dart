@@ -117,8 +117,11 @@ class AppConstants {
       'Differential Equations',
       'Vector Algebra',
       'Three Dimensional Geometry',
-      'Linear Programming',
-      'Probability',
+    ],
+    13: [
+      '11',
+      '12',
+      'Joint',
     ],
   };
 }

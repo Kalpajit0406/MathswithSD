@@ -245,13 +245,14 @@ class ApiService {
     return _processResponse(response);
   }
 
-  Future<Map<String, dynamic>> submitProfileEditRequest(int classNo, String language) async {
+  Future<Map<String, dynamic>> submitProfileEditRequest(int classNo, String language, {bool isJoint = false}) async {
     final response = await http.post(
       await _uri(AppConstants.profileEditEndpoint),
       headers: await _headers(),
       body: jsonEncode({
         'classNo': classNo,
         'language': language,
+        'isJoint': isJoint,
       }),
     ).timeout(const Duration(seconds: 15));
     return _processResponse(response);

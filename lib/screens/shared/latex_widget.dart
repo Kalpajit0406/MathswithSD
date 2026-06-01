@@ -29,7 +29,7 @@ class LaTeXWidget extends StatelessWidget {
     String result = val;
 
     // Fix raw \sqrt missing arguments to prevent parsing crash
-    result = result.replaceAll(RegExp(r'\\sqrt\s*(?![\{\[\w\d\\])'), r'\sqrt{}');
+    result = result.replaceAll(RegExp(r'\\sqrt\s*(?![{\[\w\d\\])'), r'\sqrt{}');
 
     // 1. Double dollar block math
     result = result.replaceAllMapped(RegExp(r'(\w)(\$\$)'), (m) => '${m[1]} ${m[2]}');
@@ -40,8 +40,8 @@ class LaTeXWidget extends StatelessWidget {
     result = result.replaceAllMapped(RegExp(r'(?<!\\)\$(?!\$)(\w)'), (m) => '\$ ${m[1]}');
 
     // 3. LaTeX inline/block brackets
-      result = result.replaceAllMapped(RegExp(r'(\w)(\\\(|\\\[)'), (m) => '${m[1]} ${m[2]}');
-      result = result.replaceAllMapped(RegExp(r'(\\\)|\\\])(\w)'), (m) => '${m[1]} ${m[2]}');
+      result = result.replaceAllMapped(RegExp(r'(\w)(\\([(\[]))'), (m) => '${m[1]} ${m[2]}');
+      result = result.replaceAllMapped(RegExp(r'(\\([)\]]))(\w)'), (m) => '${m[1]} ${m[2]}');
 
     return result;
   }

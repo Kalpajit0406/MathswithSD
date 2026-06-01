@@ -17,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSaving = false;
   int? _selectedClassNo;
   String? _selectedLanguage;
+  bool _selectedIsJoint = false;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isEditing = true;
       _selectedClassNo = user.classNo;
       _selectedLanguage = user.language ?? 'English';
+      _selectedIsJoint = user.isJoint ?? false;
     });
   }
 
@@ -41,7 +43,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isSaving = true;
     });
 
-    final success = await auth.updateProfileRequest(_selectedClassNo!, _selectedLanguage!);
+    final success = await auth.updateProfileRequest(
+      _selectedClassNo!,
+      _selectedLanguage!,
+      isJoint: (_selectedClassNo == 11 || _selectedClassNo == 12) ? _selectedIsJoint : false,
+    );
 
     if (mounted) {
       setState(() {
@@ -85,6 +91,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hasPendingEdit = user?.pendingProfileEdit != null;
     final pendingClass = user?.pendingProfileEdit?['classNo'];
     final pendingLanguage = user?.pendingProfileEdit?['language'];
+    final pendingIsJoint = user?.pendingProfileEdit?['isJoint'] == true;
+
+    String getPendingClassDisplay() {
+      if (pendingClass == null) return 'N/A';
+      if (pendingIsJoint && (pendingClass == 11 || pendingClass == 12)) {
+        return '$pendingClass Joint';
+      }
+      return pendingClass.toString();
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -179,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Requested Class: $pendingClass • Medium: $pendingLanguage',
+                            'Requested Class: ${getPendingClassDisplay()} • Medium: $pendingLanguage',
                             style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -203,7 +218,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _divider(borderColor),
                     _profileItem(Icons.family_restroom_outlined, 'Father\'s Name', user?.fatherName ?? 'Not provided', textColor, secondaryTextColor, borderColor, themePrimary, isLocked: true),
                     _divider(borderColor),
-                    _profileItem(Icons.class_outlined, 'Class', user?.classNo != null ? 'Class ${user!.classNo}' : 'N/A', textColor, secondaryTextColor, borderColor, themePrimary),
+                    _profileItem(
+                      Icons.class_outlined,
+                      'Class',
+                      user?.classNo != null
+                          ? 'Class ${user!.classNo}${user.isJoint == true ? ' Joint' : ''}'
+                          : 'N/A',
+                      textColor,
+                      secondaryTextColor,
+                      borderColor,
+                      themePrimary,
+                    ),
+                    if (user?.classNo == 11 || user?.classNo == 12) ...[
+                      _divider(borderColor),
+                      _profileItem(
+                        Icons.school_outlined,
+                        'Joint Entrance',
+                        user?.isJoint == true ? 'Enrolled' : 'Not Enrolled',
+                        textColor,
+                        secondaryTextColor,
+                        borderColor,
+                        themePrimary,
+                      ),
+                    ],
                     _divider(borderColor),
                     _profileItem(Icons.translate_outlined, 'Medium', user?.language ?? 'English', textColor, secondaryTextColor, borderColor, themePrimary),
                   ],
@@ -286,11 +323,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onChanged: (val) {
                             setState(() {
                               _selectedClassNo = val;
+                              if (_selectedClassNo != 11 && _selectedClassNo != 12) {
+                                _selectedIsJoint = false;
+                              }
                             });
                           },
                         ),
                       ),
                     ),
+                    if (_selectedClassNo == 11 || _selectedClassNo == 12) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: _selectedIsJoint,
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedIsJoint = val ?? false;
+                                });
+                              },
+                              activeColor: themePrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Enroll in Joint Entrance preparation',
+                                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Optional curriculum for engineering entrance prep',
+                                  style: TextStyle(color: secondaryTextColor, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 20),
 
                     // Dropdown for Medium (Language)

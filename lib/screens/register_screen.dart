@@ -30,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
   bool _isLoading = false;
+  bool _isJoint = false;
 
   final _classes = ['9', '10', '11', '12'];
   final _languages = ['Bengali', 'English', 'Both'];
@@ -90,6 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'gender': _gender,
         'classNo': int.parse(_classNo),
         'language': _language,
+        'isJoint': (_classNo == '11' || _classNo == '12') ? _isJoint : false,
         'fatherName': _fatherNameCtrl.text.trim(),
         'studentPhone': _studentPhoneCtrl.text.trim(),
         'guardianPhone': _guardianPhoneCtrl.text.trim(),
@@ -236,7 +238,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   children: [
                                     Expanded(
                                       child: _dropdownField('Class', _classNo, _classes,
-                                          (val) => setState(() => _classNo = val!), icon: Icons.class_rounded),
+                                          (val) => setState(() {
+                                            _classNo = val!;
+                                            if (_classNo != '11' && _classNo != '12') {
+                                              _isJoint = false;
+                                            }
+                                          }), icon: Icons.class_rounded),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -245,6 +252,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                   ],
                                 ),
+                                if (_classNo == '11' || _classNo == '12') ...[
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: Checkbox(
+                                          value: _isJoint,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _isJoint = val ?? false;
+                                            });
+                                          },
+                                          activeColor: const Color(0xFF8B5CF6),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Enroll in Joint Entrance preparation',
+                                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Optional curriculum for engineering entrance prep',
+                                              style: TextStyle(color: Colors.white60, fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
