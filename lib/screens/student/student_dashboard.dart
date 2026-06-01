@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -23,8 +25,9 @@ class StudentDashboard extends StatefulWidget {
   State<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard> {
+class _StudentDashboardState extends State<StudentDashboard> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  late AnimationController _animationController;
 
   final List<Widget> _pages = [
     const _HomeTab(),
@@ -35,6 +38,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat(reverse: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final examProvider = Provider.of<ExamProvider>(context, listen: false);
       final cached = await examProvider.checkForResumableExam();
@@ -62,7 +70,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -74,60 +90,114 @@ class _StudentDashboardState extends State<StudentDashboard> {
         }
       },
       child: Scaffold(
-        body: Container(
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            // Animated ambient glowing circles for glassmorphism
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                final progress = _animationController.value;
+                final angle = progress * 2 * math.pi;
+                
+                // Sinusoidal drift offsets to simulate fluid flow
+                final dx1 = math.sin(angle) * 45;
+                final dy1 = math.cos(angle) * 45;
+                
+                final dx2 = math.cos(angle + math.pi / 2) * 55;
+                final dy2 = math.sin(angle + math.pi / 2) * 55;
+                
+                final dx3 = math.sin(angle + math.pi) * 40;
+                final dy3 = math.cos(angle + math.pi) * 40;
+
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: -100 + dy1,
+                      right: -100 + dx1,
+                      child: Container(
+                        width: 340,
+                        height: 340,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark 
+                              ? const Color(0xFF0051D5).withOpacity(0.16) 
+                              : const Color(0xFF0051D5).withOpacity(0.08),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 80 + dy2,
+                      left: -100 + dx2,
+                      child: Container(
+                        width: 360,
+                        height: 360,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark 
+                              ? const Color(0xFFF97316).withOpacity(0.12) 
+                              : const Color(0xFFF97316).withOpacity(0.06),
+                        ),
+                      ),
+                    ),
+                    if (isDark)
+                      Positioned(
+                        top: 260 + dy3,
+                        right: -120 + dx3,
+                        child: Container(
+                          width: 300,
+                          height: 300,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFD946EF).withOpacity(0.09),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
-          ),
-          child: IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
-        ),
-        bottomNavigationBar: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A0F1D).withOpacity(0.85),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withOpacity(0.08),
-                  width: 1,
-                ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: const SizedBox.shrink(),
               ),
             ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
-              selectedItemColor: const Color(0xFFD3BBFF),
-              unselectedItemColor: const Color(0xFFA8A5B8),
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              showUnselectedLabels: true,
-              type: BottomNavigationBarType.fixed,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  activeIcon: Icon(Icons.home_rounded),
-                  label: 'Home',
+            // Core Tab Contents
+            Positioned.fill(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _pages,
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.black.withOpacity(0.4) 
+                        : Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: isDark 
+                          ? Colors.white.withOpacity(0.08) 
+                          : const Color(0x1F000000),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: _CustomBottomNavBar(
+                    currentIndex: _currentIndex,
+                    onTap: (index) => setState(() => _currentIndex = index),
+                  ),
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person_rounded),
-                  label: 'Profile',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings_outlined),
-                  activeIcon: Icon(Icons.settings_rounded),
-                  label: 'Settings',
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -136,39 +206,248 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class _CustomBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
+
+  const _CustomBottomNavBar({
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final items = [
+      {'icon': Icons.home_outlined, 'activeIcon': Icons.home_rounded, 'label': 'Home'},
+      {'icon': Icons.person_outline, 'activeIcon': Icons.person_rounded, 'label': 'Profile'},
+      {'icon': Icons.settings_outlined, 'activeIcon': Icons.settings_rounded, 'label': 'Settings'},
+    ];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: List.generate(items.length, (index) {
+        final item = items[index];
+        final isSelected = currentIndex == index;
+        final iconData = (isSelected ? item['activeIcon'] : item['icon']) as IconData;
+        final label = item['label'] as String;
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onTap(index),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? themePrimary.withOpacity(0.12) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      iconData,
+                      color: isSelected ? themePrimary : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                      color: isSelected ? themePrimary : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _HomeTab extends StatefulWidget {
   const _HomeTab();
+
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  late Timer _timer;
+  String _currentQuote = "";
+
+  static const List<String> _motivationalQuotes = [
+    "Be the wolf they didn't see coming.",
+    "The graveyard is full of unfulfilled potential; don't add to the body count.",
+    "They want you to fail so they feel better about quitting—don’t give them the satisfaction.",
+    "Pain is just a reminder that you haven’t broken yet.",
+    "Build your empire with the stones they threw at you.",
+    "They didn’t believe in you? Good. Now go make them watch you win.",
+    "If you want to take the island, you have to burn the boats.",
+    "Comfort is the slow death of greatness; choose the chaos.",
+    "Stop waiting for the storm to pass and learn how to dismantle it.",
+    "You didn't survive everything you've been through just to be average.",
+    "Lions don't lose sleep over the opinions of sheep.",
+    "Excuses are the nails used to build a house of failure.",
+    "Nobody is coming to save you; get up and save yourself.",
+    "You can have results or excuses, but you can’t have both.",
+    "The only thing standing between you and your goal is the bullshit story you keep telling yourself.",
+    "Work until your idols become your rivals.",
+    "Don't talk about it; be about it.",
+    "If it was easy, everyone would do it.",
+    "Stop telling people your plans; show them your results.",
+    "Starve your distractions, feed your focus.",
+    "Pain is temporary; regret lasts forever.",
+    "Sweat is just fat crying.",
+    "If you're going through hell, keep going.",
+    "The harder the battle, the sweeter the victory.",
+    "Fall seven times, stand up eight.",
+    "Suffering is a choice, but so is strength.",
+    "You have to get comfortable with being uncomfortable.",
+    "Diamonds are made under pressure.",
+    "No pain, no gain.",
+    "Muscle grows when it’s torn; so do you.",
+    "Mind over matter.",
+    "Your mind is a weapon; keep it loaded.",
+    "Control your mind or it will control you.",
+    "Doubt kills more dreams than failure ever will.",
+    "Be a warrior, not a worrier.",
+    "Think like a champion, act like a king.",
+    "Your only limit is you.",
+    "Fear is a liar.",
+    "Master your mind, master your life.",
+    "The greatest prison people live in is the fear of what other people think.",
+    "Go after what you want like your life depends on it.",
+    "Don't watch the clock; do what it does. Keep going.",
+    "Dream big, hustle harder.",
+    "Chase the dream, not the competition.",
+    "The best way to predict the future is to create it.",
+    "Don't wait for opportunity; create it.",
+    "Success is a journey, not a destination.",
+    "Make your dreams reality.",
+    "Live the life you imagined.",
+    "Hunt or be hunted.",
+    "Against all odds, I will rise.",
+    "Prove them wrong.",
+    "They said I couldn't, so I did.",
+    "The odds are just numbers; I am a force.",
+    "Defy expectations.",
+    "Break the mold.",
+    "Shock the world.",
+    "Be the exception to the rule.",
+    "Nothing is impossible to a willing mind.",
+    "I am the storm.",
+    "Let your success be your noise.",
+    "Don't argue with fools; just win.",
+    "Critics don't build monuments.",
+    "Their doubt is my fuel.",
+    "Keep grinding in the dark; let them see the light.",
+    "Actions speak louder than words.",
+    "Kill them with success, bury them with a smile.",
+    "Your success is the best revenge.",
+    "Don't listen to the haters.",
+    "Focus on your lane.",
+    "I am the master of my fate, the captain of my soul.",
+    "You are stronger than you think.",
+    "Own your greatness.",
+    "Step into your power.",
+    "Be unapologetically you.",
+    "You hold the key to your success.",
+    "Believe in yourself.",
+    "You are a force of nature.",
+    "Unstoppable.",
+    "Fearless.",
+    "Rise and grind.",
+    "Sleep is for the weak.",
+    "Hustle until your haters ask if you're hiring.",
+    "No days off.",
+    "The hustle never sleeps.",
+    "Work hard, play harder.",
+    "Put in the work.",
+    "Hustle hard.",
+    "Earned, not given.",
+    "Grind now, shine later.",
+    "Build a legacy, not just a life.",
+    "Be remembered.",
+    "Leave a mark on the world.",
+    "Greatness is within you.",
+    "Strive for excellence.",
+    "Make history.",
+    "Live for something bigger than yourself.",
+    "Your legacy starts now.",
+    "Leave the world better than you found it.",
+    "Die with memories, not dreams."
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentQuote = _getRandomQuote();
+    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentQuote = _getRandomQuote();
+        });
+      }
+    });
+  }
+
+  String _getRandomQuote() {
+    final random = math.Random();
+    String nextQuote;
+    do {
+      nextQuote = _motivationalQuotes[random.nextInt(_motivationalQuotes.length)];
+    } while (nextQuote == _currentQuote && _motivationalQuotes.length > 1);
+    return nextQuote;
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final name = auth.user?.firstName ?? 'Student';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Row(
           children: [
-            const Icon(Icons.school_rounded, color: Color(0xFFD3BBFF), size: 28),
+            Icon(Icons.school_rounded, color: themePrimary, size: 28),
             const SizedBox(width: 10),
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFFD3BBFF), Colors.white],
-              ).createShader(bounds),
-              child: const Text(
-                'MathsWithSD',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: -0.5,
-                ),
+            Text(
+              'MathsWithSD',
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                letterSpacing: -0.5,
               ),
             ),
           ],
         ),
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
@@ -176,8 +455,16 @@ class _HomeTab extends StatelessWidget {
             onPressed: () => KioskService.showExitDialog(context),
           ),
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFFD3BBFF)),
-            onPressed: () {},
+            icon: Icon(Icons.notifications_none_rounded, color: textColor),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AnnouncementsScreen(
+                  isAdmin: false,
+                  studentClass: auth.user?.classNo?.toString(),
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -200,8 +487,8 @@ class _HomeTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Welcome back,\n$name! 👋',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: textColor,
                               fontSize: 26,
                               fontWeight: FontWeight.w900,
                               height: 1.25,
@@ -211,22 +498,35 @@ class _HomeTab extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                            color: themePrimary.withOpacity(0.1),
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                            border: Border.all(color: themePrimary.withOpacity(0.2)),
                           ),
                           child: const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 28),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Keep practicing to sharpen your mathematical instincts and ace your tests!',
-                      style: TextStyle(
-                        color: Color(0xFFCCC3D4),
-                        fontSize: 14,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: 44,
+                        minWidth: double.infinity,
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                        child: Text(
+                          _currentQuote,
+                          key: ValueKey<String>(_currentQuote),
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                            fontSize: 14,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                     if (auth.user?.classNo != null) ...[
@@ -234,14 +534,14 @@ class _HomeTab extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                          color: themePrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(50),
-                          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1),
+                          border: Border.all(color: themePrimary.withOpacity(0.2), width: 1),
                         ),
                         child: Text(
                           'Class ${auth.user!.classNo} cohort',
-                          style: const TextStyle(
-                            color: Color(0xFFD3BBFF),
+                          style: TextStyle(
+                            color: themePrimary,
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
@@ -315,8 +615,8 @@ class _HomeTab extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     '${matchedExam.title} • $timeStr left',
-                                    style: TextStyle(
-                                      color: const Color(0xFFCCC3D4),
+                                    style: const TextStyle(
+                                      color: Color(0xFFCCC3D4),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
                                     ),
@@ -353,12 +653,12 @@ class _HomeTab extends StatelessWidget {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 100),
-              child: const Text(
+              child: Text(
                 'Academic Hub',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: textColor,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -385,7 +685,7 @@ class _HomeTab extends StatelessWidget {
                         title: 'Notices',
                         subtitle: 'Teacher announcements',
                         icon: Icons.campaign_rounded,
-                        color: Color(0xFFF97316), // Orange
+                        color: Color(0xFFF97316),
                       ),
                     ),
                   ),
@@ -400,11 +700,11 @@ class _HomeTab extends StatelessWidget {
                         context,
                         MaterialPageRoute(builder: (_) => const ScheduledExamsScreen(isStartTest: false)),
                       ),
-                      child: const _ActionCard(
+                      child: _ActionCard(
                         title: 'Exams',
                         subtitle: 'Scheduled tests',
                         icon: Icons.event_note_rounded,
-                        color: Color(0xFF3B82F6), // Blue
+                        color: themePrimary,
                       ),
                     ),
                   ),
@@ -430,7 +730,7 @@ class _HomeTab extends StatelessWidget {
                         title: 'Start Test',
                         subtitle: 'Attempt now',
                         icon: Icons.play_circle_outline_rounded,
-                        color: Color(0xFF10B981), // Emerald
+                        color: Color(0xFF10B981),
                       ),
                     ),
                   ),
@@ -451,7 +751,7 @@ class _HomeTab extends StatelessWidget {
                         title: 'Results',
                         subtitle: 'Your performance',
                         icon: Icons.analytics_outlined,
-                        color: Color(0xFFFBBF24), // Amber
+                        color: Color(0xFFFBBF24),
                       ),
                     ),
                   ),
@@ -480,6 +780,10 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -498,19 +802,19 @@ class _ActionCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 15,
-              color: Colors.white,
+              color: textColor,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFFA8A5B8),
+              color: secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -554,150 +858,143 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titleText = widget.isStartTest ? 'Start Test' : 'Scheduled Exams';
-    
-    return Scaffold(
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Custom Glass AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      titleText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Consumer<ExamProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.testsState == LoadState.loading) {
-                      return const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)));
-                    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
 
-                    final now = DateTime.now();
-                    final filteredTests = provider.scheduledTests.where((test) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.isStartTest ? 'Start Test' : 'Scheduled Exams',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Consumer<ExamProvider>(
+                builder: (context, provider, _) {
+                  if (provider.testsState == LoadState.loading) {
+                    return Center(child: CircularProgressIndicator(color: themePrimary));
+                  }
+
+                  final now = DateTime.now();
+                  final filteredTests = provider.scheduledTests.where((test) {
+                    final testTime = test.getExamDateTime();
+                    final isCompleted = provider.completedExamIds.contains(test.id) ||
+                        _localCompletedExamIds.contains(test.id);
+                        
+                    if (testTime == null) return !widget.isStartTest;
+
+                    final diff = testTime.difference(now);
+                    final isUpcoming = diff.inSeconds > 0;
+                    final isOngoing = diff.inMinutes <= 0 && now.isBefore(testTime.add(Duration(minutes: test.duration)));
+                    final isMissed = !isCompleted && diff.inMinutes < 0 && now.isAfter(testTime.add(Duration(minutes: test.duration)));
+
+                    if (widget.isStartTest) {
+                      final isUpcomingWithin1Hour = diff.inMinutes > 0 && diff.inMinutes <= 60;
+                      return !isCompleted && (isUpcomingWithin1Hour || isOngoing);
+                    } else {
+                      return isUpcoming || isCompleted || isMissed;
+                    }
+                  }).toList();
+
+                  if (filteredTests.isEmpty) {
+                    return Center(
+                      child: FadeInSlide(
+                        duration: const Duration(milliseconds: 550),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.white : const Color(0xFF0F172A)).withOpacity(0.04),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: (isDark ? Colors.white : const Color(0xFF0F172A)).withOpacity(0.08)),
+                              ),
+                              child: Icon(
+                                widget.isStartTest ? Icons.play_disabled_rounded : Icons.event_busy_rounded,
+                                size: 64,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              widget.isStartTest
+                                  ? 'No tests startable right now.'
+                                  : 'No exams scheduled.',
+                              style: TextStyle(color: secondaryTextColor, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    itemCount: filteredTests.length,
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (context, i) {
+                      final test = filteredTests[i];
                       final testTime = test.getExamDateTime();
                       final isCompleted = provider.completedExamIds.contains(test.id) ||
                           _localCompletedExamIds.contains(test.id);
-                          
-                      if (testTime == null) return !widget.isStartTest;
+                      
+                      bool isUpcoming = false;
+                      bool isOngoing = false;
+                      bool isMissed = false;
+                      Duration? timeToStart;
 
-                      final diff = testTime.difference(now);
-                      final isUpcoming = diff.inSeconds > 0;
-                      final isOngoing = diff.inMinutes <= 0 && now.isBefore(testTime.add(Duration(minutes: test.duration)));
-                      final isMissed = !isCompleted && diff.inMinutes < 0 && now.isAfter(testTime.add(Duration(minutes: test.duration)));
-
-                      if (widget.isStartTest) {
-                        final isUpcomingWithin1Hour = diff.inMinutes > 0 && diff.inMinutes <= 60;
-                        return !isCompleted && (isUpcomingWithin1Hour || isOngoing);
-                      } else {
-                        return isUpcoming || isCompleted || isMissed;
+                      if (testTime != null) {
+                        final diff = testTime.difference(now);
+                        if (diff.inSeconds > 0) {
+                           isUpcoming = true;
+                           timeToStart = diff;
+                        } else if (now.isBefore(testTime.add(Duration(minutes: test.duration)))) {
+                          isOngoing = true;
+                        } else {
+                          isMissed = !isCompleted;
+                        }
                       }
-                    }).toList();
 
-                    if (filteredTests.isEmpty) {
-                      return Center(
-                        child: FadeInSlide(
-                          duration: const Duration(milliseconds: 550),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.04),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withOpacity(0.08)),
-                                ),
-                                child: Icon(
-                                  widget.isStartTest ? Icons.play_disabled_rounded : Icons.event_busy_rounded,
-                                  size: 64,
-                                  color: const Color(0xFFA8A5B8),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                widget.isStartTest
-                                    ? 'No tests startable right now.'
-                                    : 'No exams scheduled.',
-                                style: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
+                      return FadeInSlide(
+                        duration: const Duration(milliseconds: 500),
+                        delay: Duration(milliseconds: i * 100),
+                        child: _ExamCard(
+                          test: test,
+                          isCompleted: isCompleted,
+                          isUpcoming: isUpcoming,
+                          isOngoing: isOngoing,
+                          isMissed: isMissed,
+                          timeToStart: timeToStart,
                         ),
                       );
-                    }
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      itemCount: filteredTests.length,
-                      physics: const BouncingScrollPhysics(),
-                      itemBuilder: (context, i) {
-                        final test = filteredTests[i];
-                        final testTime = test.getExamDateTime();
-                        final isCompleted = provider.completedExamIds.contains(test.id) ||
-                            _localCompletedExamIds.contains(test.id);
-                        
-                        bool isUpcoming = false;
-                        bool isOngoing = false;
-                        bool isMissed = false;
-                        Duration? timeToStart;
-
-                        if (testTime != null) {
-                          final diff = testTime.difference(now);
-                          if (diff.inSeconds > 0) {
-                            isUpcoming = true;
-                            timeToStart = diff;
-                          } else if (now.isBefore(testTime.add(Duration(minutes: test.duration)))) {
-                            isOngoing = true;
-                          } else {
-                            isMissed = !isCompleted;
-                          }
-                        }
-
-                        return FadeInSlide(
-                          duration: const Duration(milliseconds: 500),
-                          delay: Duration(milliseconds: i * 100),
-                          child: _ExamCard(
-                            test: test,
-                            isCompleted: isCompleted,
-                            isUpcoming: isUpcoming,
-                            isOngoing: isOngoing,
-                            isMissed: isMissed,
-                            timeToStart: timeToStart,
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -723,6 +1020,11 @@ class _ExamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
@@ -734,11 +1036,11 @@ class _ExamCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                color: themePrimary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25), width: 1.2),
+                border: Border.all(color: themePrimary.withOpacity(0.2), width: 1.2),
               ),
-              child: const Icon(Icons.assignment_rounded, color: Color(0xFFD3BBFF), size: 28),
+              child: Icon(Icons.assignment_rounded, color: themePrimary, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -751,10 +1053,10 @@ class _ExamCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           test.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
-                            color: Colors.white,
+                            color: textColor,
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -765,11 +1067,11 @@ class _ExamCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFFCCC3D4)),
+                      Icon(Icons.calendar_today_rounded, size: 12, color: secondaryTextColor),
                       const SizedBox(width: 6),
                       Text(
                         '${test.date} @ ${test.time}',
-                        style: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -779,7 +1081,7 @@ class _ExamCard extends StatelessWidget {
                     children: [
                       Text(
                         'Duration: ${test.duration} Mins',
-                        style: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                       if (!isCompleted && !isMissed)
                         TextButton.icon(
@@ -817,7 +1119,7 @@ class _ExamCard extends StatelessWidget {
                           icon: const Icon(Icons.download_for_offline_rounded, size: 16),
                           label: const Text('Download Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                           style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFD3BBFF),
+                            foregroundColor: themePrimary,
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -850,7 +1152,7 @@ class _ExamCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      _buildActionButton(context),
+                      _buildActionButton(context, isDark, themePrimary),
                     ],
                   ),
                 ],
@@ -893,7 +1195,7 @@ class _ExamCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context) {
+  Widget _buildActionButton(BuildContext context, bool isDark, Color themePrimary) {
     if (isCompleted || isMissed) {
       return const SizedBox.shrink();
     }
@@ -915,8 +1217,9 @@ class _ExamCard extends StatelessWidget {
           ? () => KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: test))
           : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF8B5CF6),
-        disabledBackgroundColor: Colors.white.withOpacity(0.04),
+        backgroundColor: themePrimary,
+        foregroundColor: isDark ? Colors.black : Colors.white,
+        disabledBackgroundColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         minimumSize: const Size(0, 32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -924,7 +1227,9 @@ class _ExamCard extends StatelessWidget {
       child: Text(
         buttonText,
         style: TextStyle(
-          color: enabled ? Colors.white : Colors.white.withOpacity(0.25),
+          color: enabled 
+              ? (isDark ? Colors.black : Colors.white) 
+              : (isDark ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.25)),
           fontSize: 11,
           fontWeight: FontWeight.w800,
         ),

@@ -7,12 +7,14 @@ class LaTeXWidget extends StatelessWidget {
   final String text;
   final double? height;
   final TextAlign? textAlign;
+  final Color? color;
 
   const LaTeXWidget({
     super.key,
     required this.text,
     this.height,
     this.textAlign,
+    this.color,
   });
 
   bool get _hasMath {
@@ -38,8 +40,8 @@ class LaTeXWidget extends StatelessWidget {
     result = result.replaceAllMapped(RegExp(r'(?<!\\)\$(?!\$)(\w)'), (m) => '\$ ${m[1]}');
 
     // 3. LaTeX inline/block brackets
-    result = result.replaceAllMapped(RegExp(r'(\w)(\\\(|\\\[)'), (m) => '${m[1]} ${m[2]}');
-    result = result.replaceAllMapped(RegExp(r'(\\\)|\\\])(\w)'), (m) => '${m[1]} ${m[2]}');
+    result = result.replaceAllMapped(RegExp(r'(\w)(\\\\(\\\\|\\\\\\\\[))'), (m) => '${m[1]} ${m[2]}');
+    result = result.replaceAllMapped(RegExp(r'(\\\\|\\\\\\\\])(\w)'), (m) => '${m[1]} ${m[2]}');
 
     return result;
   }
@@ -47,13 +49,14 @@ class LaTeXWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedText = formatMathSpacing(text);
+    final resolvedColor = color ?? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFFDAE2FD) : const Color(0xFF1A1A2E));
     if (!_hasMath) {
       return Text(
         formattedText,
         textAlign: textAlign,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
-          color: Color(0xFF1A1A2E),
+          color: resolvedColor,
           height: 1.4,
         ),
       );
@@ -62,6 +65,7 @@ class LaTeXWidget extends StatelessWidget {
       text: formattedText,
       height: height,
       textAlign: textAlign,
+      color: resolvedColor,
     );
   }
 }
@@ -70,11 +74,13 @@ class _WebViewLaTeXRenderer extends StatefulWidget {
   final String text;
   final double? height;
   final TextAlign? textAlign;
+  final Color color;
 
   const _WebViewLaTeXRenderer({
     required this.text,
     this.height,
     this.textAlign,
+    required this.color,
   });
 
   @override
@@ -86,7 +92,9 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
   bool _isLoaded = false;
   double _contentHeight = 45.0; // Start with compact default height
 
-  static const String _baseHtml = '''
+  String _getHtml(Color color) {
+    final hexColor = '#${(color.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+    return '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -117,10 +125,11 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
     body {
       font-family: -apple-system, 'Segoe UI', sans-serif;
       font-size: 15px;
-      color: #1A1A2E;
+      color: $hexColor;
       padding: 4px;
       word-wrap: break-word;
       overflow-wrap: break-word;
+      background-color: transparent;
     }
     #content { visibility: hidden; line-height: 1.6; }
     .MathJax { font-size: 1.05em !important; }
@@ -151,6 +160,7 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
 </body>
 </html>
 ''';
+  }
 
   @override
   void initState() {
@@ -169,7 +179,7 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
           }
         },
       )
-      ..loadHtmlString(_baseHtml)
+      ..loadHtmlString(_getHtml(widget.color))
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) {
           if (!mounted) return;
@@ -182,8 +192,12 @@ class _WebViewLaTeXRendererState extends State<_WebViewLaTeXRenderer> {
   @override
   void didUpdateWidget(covariant _WebViewLaTeXRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text && _isLoaded) {
-      _updateContent();
+    if ((oldWidget.text != widget.text || oldWidget.color != widget.color) && _isLoaded) {
+      if (oldWidget.color != widget.color) {
+        _controller.loadHtmlString(_getHtml(widget.color));
+      } else {
+        _updateContent();
+      }
     }
   }
 
@@ -218,12 +232,13 @@ class InlineMathText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedColor = color ?? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFFDAE2FD) : const Color(0xFF1A1A2E));
     if (_hasMath) {
-      return LaTeXWidget(text: text);
+      return LaTeXWidget(text: text, color: resolvedColor);
     }
     return Text(
       text,
-      style: TextStyle(fontSize: fontSize, color: color ?? const Color(0xFF1A1A2E)),
+      style: TextStyle(fontSize: fontSize, color: resolvedColor),
     );
   }
 }

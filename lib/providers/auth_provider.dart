@@ -102,6 +102,42 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshProfile() async {
+    try {
+      final response = await _apiService.fetchProfile();
+      final userData = response['data'] as Map<String, dynamic>;
+      if (_user != null) {
+        _user = AppUser.fromJson(userData, _user!.token);
+        await AuthStorageService.saveUserClass(_user!.classNo ?? 0);
+        await AuthStorageService.saveUserName(_user!.firstName, _user!.lastName);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[AuthProvider] Error refreshing profile: $e');
+    }
+  }
+
+  Future<bool> updateProfileRequest(int classNo, String language) async {
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final response = await _apiService.submitProfileEditRequest(classNo, language);
+      if (response['success'] == true) {
+        await refreshProfile();
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Failed to submit profile edit. Please try again.';
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

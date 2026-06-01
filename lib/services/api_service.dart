@@ -237,6 +237,26 @@ class ApiService {
     ).timeout(const Duration(seconds: 20));
   }
 
+  Future<Map<String, dynamic>> fetchProfile() async {
+    final response = await http.get(
+      await _uri(AppConstants.profileMeEndpoint),
+      headers: await _headers(),
+    ).timeout(const Duration(seconds: 15));
+    return _processResponse(response);
+  }
+
+  Future<Map<String, dynamic>> submitProfileEditRequest(int classNo, String language) async {
+    final response = await http.post(
+      await _uri(AppConstants.profileEditEndpoint),
+      headers: await _headers(),
+      body: jsonEncode({
+        'classNo': classNo,
+        'language': language,
+      }),
+    ).timeout(const Duration(seconds: 15));
+    return _processResponse(response);
+  }
+
   // ─── Tests & Exams ───────────────────────────────────────────────────────────
 
   Future<List<exam.Exam>> fetchExams() async {

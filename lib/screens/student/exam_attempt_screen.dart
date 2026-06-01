@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
+import '../../widgets/glass_card.dart';
 import 'result_screen.dart';
 import '../../services/connectivity_manager.dart';
 import '../../services/offline_exam_service.dart';
@@ -12,9 +14,9 @@ import '../../services/exam_security_service.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Colour constants (matches app theme)
 // ─────────────────────────────────────────────────────────────────────────────
-const _kPurple = Color(0xFF4A148C);
-const _kPurpleLight = Color(0xFF9C27B0);
-const _kPurpleSelected = Color(0xFFF3E5F5);
+const _kPrimary = Color(0xFF0051D5);
+const _kPrimaryLight = Color(0xFFD3E4FF);
+const _kSelectedBg = Color(0xFFE6EFFF);
 const _kAmber = Color(0xFFFFB300);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -262,7 +264,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor:
-                  remaining <= 1 ? Colors.red : _kPurple,
+                  remaining <= 1 ? Colors.red : _kPrimary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -461,7 +463,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _kPurple,
+                    backgroundColor: _kPrimary,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 28, vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -523,11 +525,11 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F9FB),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         // ── AppBar ──────────────────────────────────────────────────────────
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: _kPurple,
+          backgroundColor: const Color(0xFF0F172A),
           elevation: 0,
           title: Row(
             children: [
@@ -658,7 +660,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // ── Question Palette ─────────────────────────────────────────
             Container(
               height: 60,
-              color: Colors.white,
+              color: Colors.transparent,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
@@ -676,14 +678,14 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                           const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: isCurrent
-                            ? _kPurple
+                            ? _kPrimary
                             : isAnswered
-                                ? const Color(0xFF4CAF50)
-                                : Colors.grey.shade300,
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFECEEF0),
                         shape: BoxShape.circle,
                         border: isCurrent
                             ? Border.all(
-                                color: _kPurpleLight, width: 2)
+                                color: _kPrimaryLight, width: 2)
                             : null,
                       ),
                       alignment: Alignment.center,
@@ -692,7 +694,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                         style: TextStyle(
                           color: (isCurrent || isAnswered)
                               ? Colors.white
-                              : Colors.black87,
+                              : const Color(0xFF0F172A),
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -706,8 +708,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // ── Progress Bar ──────────────────────────────────────────────
             LinearProgressIndicator(
               value: totalQ > 0 ? answeredCount / totalQ : 0,
-              backgroundColor: Colors.grey.shade200,
-              color: const Color(0xFF4CAF50),
+              backgroundColor: Colors.white.withOpacity(0.08),
+              color: const Color(0xFF10B981),
               minHeight: 3,
             ),
 
@@ -719,20 +721,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Question card
-                    Container(
-                      width: double.infinity,
+                    GlassCard(
                       padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -742,7 +732,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                 width: 28,
                                 height: 28,
                                 decoration: const BoxDecoration(
-                                  color: _kPurple,
+                                  color: _kPrimary,
                                   shape: BoxShape.circle,
                                 ),
                                 alignment: Alignment.center,
@@ -757,13 +747,13 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                               const SizedBox(width: 10),
                               const Text('Question',
                                   style: TextStyle(
-                                      color: Color(0xFF4A148C),
+                                      color: _kPrimary,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13)),
                             ],
                           ),
                           const SizedBox(height: 14),
-                          LaTeXWidget(text: currentQ.questionText),
+                          LaTeXWidget(text: currentQ.questionText, color: const Color(0xFF0F172A)),
                         ],
                       ),
                     ),
@@ -793,21 +783,21 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? _kPurpleSelected
+                                    ? _kSelectedBg
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isSelected
-                                      ? _kPurpleLight
-                                      : Colors.grey.shade300,
-                                  width: isSelected ? 2 : 1,
+                                      ? _kPrimary
+                                      : const Color(0xFFECEEF0),
+                                  width: isSelected ? 1.5 : 1,
                                 ),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: _kPurpleLight
-                                              .withValues(alpha: 0.2),
-                                          blurRadius: 8,
+                                          color: _kPrimary
+                                              .withValues(alpha: 0.15),
+                                          blurRadius: 10,
                                           offset: const Offset(0, 2),
                                         )
                                       ]
@@ -820,8 +810,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                     height: 32,
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? _kPurple
-                                          : Colors.grey.shade100,
+                                          ? _kPrimary
+                                          : const Color(0xFFECEEF0),
                                       shape: BoxShape.circle,
                                     ),
                                     alignment: Alignment.center,
@@ -830,7 +820,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                       style: TextStyle(
                                         color: isSelected
                                             ? Colors.white
-                                            : Colors.black54,
+                                            : const Color(0xFF0F172A),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
                                       ),
@@ -839,7 +829,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                   const SizedBox(width: 14),
                                   Expanded(
                                       child: InlineMathText(
-                                          text: opt, fontSize: 15)),
+                                          text: opt, fontSize: 15, color: const Color(0xFF0F172A))),
                                 ],
                               ),
                             ),
@@ -866,7 +856,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
 
             // ── Stats Bar ─────────────────────────────────────────────────
             Container(
-              color: Colors.grey.shade50,
+              color: const Color(0xFFF8FAFC),
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
@@ -874,8 +864,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 children: [
                   Text(
                     '$answeredCount/$totalQ answered',
-                    style: TextStyle(
-                        color: Colors.grey.shade600, fontSize: 12),
+                    style: const TextStyle(
+                        color: Color(0xFF75859D), fontSize: 12),
                   ),
                   if (_security.backgroundViolationCount > 0)
                     Row(
@@ -901,13 +891,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
+                border: Border(
+                  top: BorderSide(
+                    color: const Color(0xFFECEEF0),
+                    width: 1,
                   ),
-                ],
+                ),
               ),
               child: Row(
                 children: [
@@ -919,7 +908,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                       style: OutlinedButton.styleFrom(
                         padding:
                             const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: _kPurple.withValues(alpha: 0.6)),
+                        foregroundColor: const Color(0xFF0F172A),
+                        side: const BorderSide(color: Color(0xFFECEEF0)),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -934,7 +924,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                           ? () => examProvider.nextQuestion(totalQ)
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _kPurple,
+                        backgroundColor: _kPrimary,
                         padding:
                             const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -969,7 +959,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.assignment_turned_in_outlined, color: _kPurple),
+            Icon(Icons.assignment_turned_in_outlined, color: _kPrimary),
             SizedBox(width: 8),
             Text('Submit Exam?', style: TextStyle(fontSize: 18)),
           ],
@@ -1026,7 +1016,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               _submit();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: _kPurple,
+              backgroundColor: _kPrimary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),

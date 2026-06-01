@@ -15,6 +15,7 @@ import 'utils/error_boundary.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student/student_dashboard.dart';
+import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()..tryAutoLogin()),
         ChangeNotifierProvider(create: (_) => ExamProvider()),
       ],
@@ -197,6 +199,8 @@ class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObse
       child: MaterialApp(
         title: 'MathsWithSD',
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: Provider.of<ThemeProvider>(context).themeMode,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return Stack(

@@ -27,118 +27,105 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'Announcements',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w900,
+            fontSize: 22,
+            letterSpacing: -0.5,
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Custom Glass AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Consumer<ExamProvider>(
+          builder: (context, provider, _) {
+            if (provider.announcementsState == LoadState.loading) {
+              return Center(child: CircularProgressIndicator(color: themePrimary));
+            }
+            if (provider.announcementsState == LoadState.error) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Announcements',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        letterSpacing: -0.5,
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: themePrimary.withOpacity(0.04),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: themePrimary.withOpacity(0.08)),
                       ),
+                      child: Icon(Icons.cloud_off_rounded, size: 64, color: secondaryTextColor),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      provider.announcementsError ?? 'Failed to load',
+                      style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => provider.loadAnnouncements(targetClass: widget.studentClass),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themePrimary,
+                        foregroundColor: isDark ? Colors.black : Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Retry'),
                     ),
                   ],
                 ),
-              ),
-              Expanded(
-                child: Consumer<ExamProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.announcementsState == LoadState.loading) {
-                      return const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)));
-                    }
-                    if (provider.announcementsState == LoadState.error) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              ),
-                              child: const Icon(Icons.cloud_off_rounded, size: 64, color: Color(0xFFA8A5B8)),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              provider.announcementsError ?? 'Failed to load',
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                              onPressed: () => provider.loadAnnouncements(targetClass: widget.studentClass),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF8B5CF6),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text('Retry', style: TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    if (provider.announcements.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              ),
-                              child: Icon(Icons.notifications_none_rounded, size: 64, color: Colors.white.withOpacity(0.25)),
-                            ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'No announcements yet.',
-                              style: TextStyle(color: Color(0xFFCCC3D4), fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return RefreshIndicator(
-                      color: const Color(0xFF8B5CF6),
-                      backgroundColor: const Color(0xFF1E1B4B),
-                      onRefresh: () => provider.loadAnnouncements(targetClass: widget.studentClass),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        itemCount: provider.announcements.length,
-                        physics: const BouncingScrollPhysics(),
-                        itemBuilder: (context, i) => _AnnouncementCard(ann: provider.announcements[i]),
+              );
+            }
+            if (provider.announcements.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: themePrimary.withOpacity(0.04),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: themePrimary.withOpacity(0.08)),
                       ),
-                    );
-                  },
+                      child: Icon(Icons.notifications_none_rounded, size: 64, color: secondaryTextColor.withOpacity(0.5)),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'No announcements yet.',
+                      style: TextStyle(color: secondaryTextColor, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
+              );
+            }
+            return RefreshIndicator(
+              color: themePrimary,
+              backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
+              onRefresh: () => provider.loadAnnouncements(targetClass: widget.studentClass),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                itemCount: provider.announcements.length,
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (context, i) => _AnnouncementCard(ann: provider.announcements[i]),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -151,6 +138,11 @@ class _AnnouncementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white60 : Colors.black45;
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
@@ -181,37 +173,37 @@ class _AnnouncementCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                          color: themePrimary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(50),
-                          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25), width: 1.2),
+                          border: Border.all(color: themePrimary.withOpacity(0.15), width: 1.2),
                         ),
                         child: Text(
                           ann.targetClass == 'all' ? 'All Classes' : 'Class ${ann.targetClass}',
-                          style: const TextStyle(
-                            color: Color(0xFFD3BBFF),
+                          style: TextStyle(
+                            color: isDark ? themePrimary : Colors.black,
                             fontWeight: FontWeight.w800,
                             fontSize: 12,
                           ),
                         ),
                       ),
                       const Spacer(),
-                      Icon(Icons.schedule_rounded, size: 14, color: Colors.white.withOpacity(0.4)),
+                      Icon(Icons.schedule_rounded, size: 14, color: secondaryTextColor),
                       const SizedBox(width: 6),
                       Text(
                         ann.formattedDate,
-                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
                     ann.title,
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: -0.3),
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: textColor, letterSpacing: -0.3),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     ann.message,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFFCCC3D4), height: 1.5, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87, height: 1.5, fontWeight: FontWeight.w500),
                     maxLines: 5,
                     overflow: TextOverflow.ellipsis,
                   ),

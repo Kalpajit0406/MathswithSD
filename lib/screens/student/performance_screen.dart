@@ -30,83 +30,70 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
     
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'My Performance',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w900,
+            fontSize: 22,
+            letterSpacing: -0.5,
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Custom Glass AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFD3BBFF), size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'My Performance',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFFD3BBFF)),
-                      onPressed: () {
-                        setState(_loadPerformance);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Performance data refreshed'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: textColor),
+            onPressed: () {
+              setState(_loadPerformance);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Performance data refreshed'),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: themePrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  duration: const Duration(seconds: 2),
                 ),
-              ),
-              Expanded(
-                child: FutureBuilder<Map<String, dynamic>?>(
-                  future: _performanceFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)));
-                    }
-
-                    if (snapshot.hasError || snapshot.data == null) {
-                      return _buildErrorState(() => setState(_loadPerformance));
-                    }
-
-                    final data = snapshot.data!;
-                    return _buildPerformanceContent(data, auth);
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _performanceFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator(color: themePrimary));
+            }
+
+            if (snapshot.hasError || snapshot.data == null) {
+              return _buildErrorState(() => setState(_loadPerformance), textColor, secondaryTextColor, themePrimary, isDark);
+            }
+
+            final data = snapshot.data!;
+            return _buildPerformanceContent(data, auth, textColor, secondaryTextColor, themePrimary, isDark);
+          },
         ),
       ),
     );
   }
 
-  Widget _buildErrorState(VoidCallback onRetry) {
+  Widget _buildErrorState(VoidCallback onRetry, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -114,21 +101,21 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
+              color: themePrimary.withOpacity(0.04),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: themePrimary.withOpacity(0.08)),
             ),
-            child: const Icon(Icons.error_outline_rounded, size: 64, color: Color(0xFFA8A5B8)),
+            child: Icon(Icons.error_outline_rounded, size: 64, color: secondaryTextColor),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Could not load performance data',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Please check your connection and try again',
-            style: TextStyle(color: Color(0xFFCCC3D4), fontSize: 13),
+            style: TextStyle(color: secondaryTextColor, fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -137,8 +124,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-              foregroundColor: Colors.white,
+              backgroundColor: themePrimary,
+              foregroundColor: isDark ? Colors.black : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
@@ -147,7 +134,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildPerformanceContent(Map<String, dynamic> data, AuthProvider auth) {
+  Widget _buildPerformanceContent(Map<String, dynamic> data, AuthProvider auth, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
     final totalAttempts = data['totalAttempts'] ?? 0;
     final completionRate = data['completionRate'] ?? 0.0;
     final accuracyRate = data['accuracyRate'] ?? 0.0;
@@ -170,17 +157,17 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 children: [
                   Text(
                     'Hello, ${auth.user?.firstName ?? "Student"}! 👋',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     "Here's your learning journey so far",
                     style: TextStyle(
-                      color: Color(0xFFCCC3D4),
+                      color: secondaryTextColor,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -200,6 +187,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               completionRate: completionRate,
               accuracyRate: accuracyRate,
               improvementTrend: improvementTrend,
+              textColor: textColor,
+              secondaryTextColor: secondaryTextColor,
             ),
           ),
           const SizedBox(height: 32),
@@ -209,7 +198,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 150),
-              child: _TrendIndicator(trend: improvementTrend),
+              child: _TrendIndicator(trend: improvementTrend, textColor: textColor, secondaryTextColor: secondaryTextColor),
             ),
           const SizedBox(height: 32),
 
@@ -218,18 +207,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 200),
-              child: const Text(
+              child: Text(
                 'Chapter-wise Performance',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: textColor,
                   letterSpacing: -0.5,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            ..._buildChapterPerformance(performanceByChapter),
+            ..._buildChapterPerformance(performanceByChapter, textColor, secondaryTextColor),
             const SizedBox(height: 32),
           ],
 
@@ -238,18 +227,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 250),
-              child: const Text(
+              child: Text(
                 'Recent Attempts',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: textColor,
                   letterSpacing: -0.5,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            ..._buildRecentAttempts(recentAttempts),
+            ..._buildRecentAttempts(recentAttempts, textColor, secondaryTextColor),
           ] else if (totalAttempts == 0)
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
@@ -260,26 +249,26 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
+                        color: themePrimary.withOpacity(0.04),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.assignment_outlined, size: 56, color: Colors.white.withOpacity(0.2)),
+                      child: Icon(Icons.assignment_outlined, size: 56, color: secondaryTextColor.withOpacity(0.4)),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'No attempts yet',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: textColor,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Start your first test to see your performance metrics',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFFCCC3D4),
+                        color: secondaryTextColor,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -292,7 +281,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  List<Widget> _buildChapterPerformance(Map<String, dynamic> chapters) {
+  List<Widget> _buildChapterPerformance(Map<String, dynamic> chapters, Color textColor, Color secondaryTextColor) {
     return chapters.entries.map((entry) {
       final chapterName = entry.key;
       final metrics = entry.value as Map<String, dynamic>? ?? {};
@@ -314,18 +303,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     children: [
                       Text(
                         chapterName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
-                          color: Colors.white,
+                          color: textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$attemptCount attempts',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFCCC3D4),
+                          color: secondaryTextColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -341,7 +330,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     }).toList();
   }
 
-  List<Widget> _buildRecentAttempts(List<dynamic> attempts) {
+  List<Widget> _buildRecentAttempts(List<dynamic> attempts, Color textColor, Color secondaryTextColor) {
     return attempts.take(5).map((attempt) {
       final attemptData = attempt as Map<String, dynamic>;
       final examTitle = attemptData['examTitle'] ?? 'Test';
@@ -365,18 +354,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     children: [
                       Text(
                         examTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
-                          color: Colors.white,
+                          color: textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         date,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFCCC3D4),
+                          color: secondaryTextColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -388,17 +377,17 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   children: [
                     Text(
                       '$percentage%',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
-                        color: Color(0xFFD3BBFF),
+                        color: textColor,
                       ),
                     ),
                     Text(
                       '$score/$maxScore',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFCCC3D4),
+                        color: secondaryTextColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -446,12 +435,16 @@ class _MetricsGrid extends StatelessWidget {
   final double completionRate;
   final double accuracyRate;
   final double improvementTrend;
+  final Color textColor;
+  final Color secondaryTextColor;
 
   const _MetricsGrid({
     required this.totalAttempts,
     required this.completionRate,
     required this.accuracyRate,
     required this.improvementTrend,
+    required this.textColor,
+    required this.secondaryTextColor,
   });
 
   @override
@@ -466,6 +459,8 @@ class _MetricsGrid extends StatelessWidget {
                 value: totalAttempts.toString(),
                 icon: Icons.assignment_rounded,
                 color: const Color(0xFF3B82F6),
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
               ),
             ),
             const SizedBox(width: 16),
@@ -475,6 +470,8 @@ class _MetricsGrid extends StatelessWidget {
                 value: '${completionRate.toStringAsFixed(1)}%',
                 icon: Icons.check_circle_outline_rounded,
                 color: const Color(0xFF10B981),
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
               ),
             ),
           ],
@@ -487,7 +484,9 @@ class _MetricsGrid extends StatelessWidget {
                 title: 'Accuracy Rate',
                 value: '${accuracyRate.toStringAsFixed(1)}%',
                 icon: Icons.trending_up_rounded,
-                color: const Color(0xFF8B5CF6),
+                color: const Color(0xFF0051D5),
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
               ),
             ),
             const SizedBox(width: 16),
@@ -497,6 +496,8 @@ class _MetricsGrid extends StatelessWidget {
                 value: '${improvementTrend > 0 ? '+' : ''}${improvementTrend.toStringAsFixed(1)}%',
                 icon: improvementTrend >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                 color: improvementTrend >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
               ),
             ),
           ],
@@ -511,12 +512,16 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final Color textColor;
+  final Color secondaryTextColor;
 
   const _MetricCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    required this.textColor,
+    required this.secondaryTextColor,
   });
 
   @override
@@ -539,18 +544,18 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 24,
-              color: Colors.white,
+              color: textColor,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFFA8A5B8),
+              color: secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -562,8 +567,10 @@ class _MetricCard extends StatelessWidget {
 
 class _TrendIndicator extends StatelessWidget {
   final double trend;
+  final Color textColor;
+  final Color secondaryTextColor;
 
-  const _TrendIndicator({required this.trend});
+  const _TrendIndicator({required this.trend, required this.textColor, required this.secondaryTextColor});
 
   @override
   Widget build(BuildContext context) {
@@ -607,7 +614,7 @@ class _TrendIndicator extends StatelessWidget {
                       : 'Your accuracy declined by ${(-trend).toStringAsFixed(1)}% - review challenging topics',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.7),
+                    color: isPositive ? trendColor.withOpacity(0.9) : textColor.withOpacity(0.85),
                     fontWeight: FontWeight.w500,
                   ),
                 ),

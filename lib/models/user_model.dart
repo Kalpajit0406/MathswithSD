@@ -9,6 +9,11 @@ class AppUser {
   final bool? verified;
   final bool? isRejected;
   final bool? isBlacklisted;
+  final String? fatherName;
+  final String? motherName;
+  final String? dateOfBirth;
+  final String? language;
+  final Map<String, dynamic>? pendingProfileEdit;
   final String token;
 
   AppUser({
@@ -21,6 +26,11 @@ class AppUser {
     this.verified,
     this.isRejected,
     this.isBlacklisted,
+    this.fatherName,
+    this.motherName,
+    this.dateOfBirth,
+    this.language,
+    this.pendingProfileEdit,
     required this.token,
   });
 
@@ -37,6 +47,11 @@ class AppUser {
       verified: json['verified'],
       isRejected: json['isRejected'] ?? false,
       isBlacklisted: json['isBlacklisted'] ?? false,
+      fatherName: json['fatherName'],
+      motherName: json['motherName'],
+      dateOfBirth: json['dateOfBirth'],
+      language: json['language'],
+      pendingProfileEdit: json['pendingProfileEdit'],
       token: token,
     );
   }

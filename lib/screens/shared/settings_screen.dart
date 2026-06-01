@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/storage_service.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/kiosk_service.dart';
+import '../../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -91,14 +93,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFECEEF0);
+    final containerFillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+
     if (_loading) {
       return Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Settings'),
+          title: Text(
+            'Settings',
+            style: TextStyle(fontWeight: FontWeight.w900, color: textColor, fontSize: 22, letterSpacing: -0.5),
+          ),
           elevation: 0,
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          foregroundColor: textColor,
           actions: [
             IconButton(
               icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
@@ -108,20 +120,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(width: 8),
           ],
         ),
-        body: const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFF0051D5))),
       );
     }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Settings',
-          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 22, letterSpacing: -0.5),
+          style: TextStyle(fontWeight: FontWeight.w900, color: textColor, fontSize: 22, letterSpacing: -0.5),
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: textColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
@@ -138,43 +150,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'API Base URL Configuration',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.3),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.3),
               ),
               const SizedBox(height: 6),
               Text(
                 'Default: ${AppConstants.baseUrl}',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45), fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 12, color: secondaryTextColor, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Manual Override (optional)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFFD3BBFF)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _baseUrlController,
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
                 decoration: InputDecoration(
                   labelText: 'Base URL',
-                  labelStyle: const TextStyle(color: Color(0xFFCCC3D4), fontSize: 13, fontWeight: FontWeight.w500),
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
                   hintText: 'e.g., http://192.168.1.5:5000',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.25)),
-                  prefixIcon: const Icon(Icons.link_rounded, color: Color(0xFFD3BBFF)),
+                  hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
+                  prefixIcon: const Icon(Icons.link_rounded, color: Color(0xFF0051D5)),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.04),
+                  fillColor: containerFillColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+                    borderSide: BorderSide(color: borderColor),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+                    borderSide: BorderSide(color: borderColor),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                    borderSide: const BorderSide(color: Color(0xFF0051D5), width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
@@ -186,7 +198,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: ElevatedButton(
                       onPressed: _saveBaseUrl,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6),
+                        backgroundColor: const Color(0xFF0051D5),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -198,11 +211,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton(
                       onPressed: _clearOverride,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFD3BBFF),
+                        foregroundColor: textColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                        side: BorderSide(color: borderColor),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Colors.white.withOpacity(0.04),
+                        backgroundColor: Colors.transparent,
                       ),
                       child: const Text('Clear Override', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                     ),
@@ -210,25 +223,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              const Text(
+              
+              // Theme selector UI
+              Text(
+                'App Theme Mode',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ThemeOptionCard(
+                      title: 'Light Mode',
+                      icon: Icons.light_mode_rounded,
+                      isActive: themeProvider.themeMode == ThemeMode.light,
+                      onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                      textColor: textColor,
+                      borderColor: borderColor,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _ThemeOptionCard(
+                      title: 'Dark Mode',
+                      icon: Icons.dark_mode_rounded,
+                      isActive: themeProvider.themeMode == ThemeMode.dark,
+                      onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                      textColor: textColor,
+                      borderColor: borderColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              Text(
                 'Current Status',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFFD3BBFF)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
               ),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: containerFillColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  border: Border.all(color: borderColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Using: ${_currentOverride ?? AppConstants.baseUrl}',
-                      style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 13, color: textColor, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -259,6 +306,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeOptionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+  final Color textColor;
+  final Color borderColor;
+
+  const _ThemeOptionCard({
+    required this.title,
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+    required this.textColor,
+    required this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF0051D5).withOpacity(0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive ? const Color(0xFF0051D5) : borderColor,
+            width: isActive ? 1.5 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isActive ? const Color(0xFF0051D5) : (textColor.withOpacity(0.6)),
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: isActive ? const Color(0xFF0051D5) : textColor,
+              ),
+            ),
+          ],
         ),
       ),
     );
