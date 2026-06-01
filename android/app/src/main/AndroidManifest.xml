@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
 
     <application
-        android:label="mathswithsd"
+        android:label="MathswithSD"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">

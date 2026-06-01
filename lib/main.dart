@@ -197,7 +197,7 @@ class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObse
   Widget build(BuildContext context) {
     return ErrorBoundary(
       child: MaterialApp(
-        title: 'MathsWithSD',
+        title: 'MathswithSD',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: Provider.of<ThemeProvider>(context).themeMode,
