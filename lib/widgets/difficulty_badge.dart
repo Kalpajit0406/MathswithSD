@@ -7,11 +7,11 @@ class DifficultyBadge extends StatelessWidget {
   final bool compact; // Compact or expanded display
 
   const DifficultyBadge({
-    Key? key,
+    super.key,
     required this.difficulty,
     this.successRate = 0,
     this.compact = false,
-  }) : super(key: key);
+  });
 
   Color _getDifficultyColor() {
     if (difficulty <= 1.5) return Colors.green;
@@ -39,34 +39,25 @@ class DifficultyBadge extends StatelessWidget {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: _getDifficultyColor().withOpacity(0.2),
+          color: _getDifficultyColor().withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: _getDifficultyColor(),
-            width: 1,
-          ),
+          border: Border.all(color: _getDifficultyColor(), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             ...List.generate(
               _getStarCount(),
-              (index) => Icon(
-                Icons.star,
-                size: 14,
-                color: _getDifficultyColor(),
-              ),
+              (index) =>
+                  Icon(Icons.star, size: 14, color: _getDifficultyColor()),
             ),
             SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                _getDifficultyLabel(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _getDifficultyColor(),
-                ),
-                overflow: TextOverflow.ellipsis,
+            Text(
+              _getDifficultyLabel(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _getDifficultyColor(),
               ),
             ),
           ],
@@ -77,10 +68,10 @@ class DifficultyBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _getDifficultyColor().withOpacity(0.1),
+        color: _getDifficultyColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getDifficultyColor().withOpacity(0.5),
+          color: _getDifficultyColor().withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -89,11 +80,7 @@ class DifficultyBadge extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.trending_up,
-                color: _getDifficultyColor(),
-                size: 20,
-              ),
+              Icon(Icons.trending_up, color: _getDifficultyColor(), size: 20),
               SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,11 +125,7 @@ class DifficultyBadge extends StatelessWidget {
             SizedBox(height: 8),
             Row(
               children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.green,
-                  size: 18,
-                ),
+                Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
                 SizedBox(width: 8),
                 Text(
                   'Success Rate: ${successRate.toStringAsFixed(1)}%',
@@ -167,10 +150,10 @@ class DifficultyIndicator extends StatelessWidget {
   final EdgeInsets padding;
 
   const DifficultyIndicator({
-    Key? key,
+    super.key,
     required this.difficulty,
     this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  }) : super(key: key);
+  });
 
   Color _getColor() {
     if (difficulty <= 1.5) return Colors.green;
@@ -193,7 +176,7 @@ class DifficultyIndicator extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: _getColor().withOpacity(0.2),
+        color: _getColor().withValues(alpha: 0.2),
         shape: BoxShape.circle,
       ),
       child: Text(

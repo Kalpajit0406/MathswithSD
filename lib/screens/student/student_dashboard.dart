@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
-import '../../models/test_model.dart';
 import '../shared/announcements_screen.dart';
 import '../shared/settings_screen.dart';
 import '../../widgets/animations.dart';
@@ -25,7 +24,8 @@ class StudentDashboard extends StatefulWidget {
   State<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard> with SingleTickerProviderStateMixin {
+class _StudentDashboardState extends State<StudentDashboard>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   late AnimationController _animationController;
 
@@ -63,7 +63,10 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
           ),
         );
         if (mounted) {
-          KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: matchedExam));
+          KioskService.checkPinAndNavigate(
+            context,
+            ExamAttemptScreen(exam: matchedExam),
+          );
         }
       }
     });
@@ -78,7 +81,7 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -99,14 +102,14 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
               builder: (context, child) {
                 final progress = _animationController.value;
                 final angle = progress * 2 * math.pi;
-                
+
                 // Sinusoidal drift offsets to simulate fluid flow
                 final dx1 = math.sin(angle) * 45;
                 final dy1 = math.cos(angle) * 45;
-                
+
                 final dx2 = math.cos(angle + math.pi / 2) * 55;
                 final dy2 = math.sin(angle + math.pi / 2) * 55;
-                
+
                 final dx3 = math.sin(angle + math.pi) * 40;
                 final dy3 = math.cos(angle + math.pi) * 40;
 
@@ -120,9 +123,9 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
                         height: 340,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isDark 
-                              ? const Color(0xFF0051D5).withOpacity(0.16) 
-                              : const Color(0xFF0051D5).withOpacity(0.08),
+                          color: isDark
+                              ? const Color(0xFF0051D5).withValues(alpha: 0.16)
+                              : const Color(0xFF0051D5).withValues(alpha: 0.08),
                         ),
                       ),
                     ),
@@ -134,9 +137,9 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
                         height: 360,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isDark 
-                              ? const Color(0xFFF97316).withOpacity(0.12) 
-                              : const Color(0xFFF97316).withOpacity(0.06),
+                          color: isDark
+                              ? const Color(0xFFF97316).withValues(alpha: 0.12)
+                              : const Color(0xFFF97316).withValues(alpha: 0.06),
                         ),
                       ),
                     ),
@@ -149,7 +152,9 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
                           height: 300,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFFD946EF).withOpacity(0.09),
+                            color: const Color(
+                              0xFFD946EF,
+                            ).withValues(alpha: 0.09),
                           ),
                         ),
                       ),
@@ -165,10 +170,7 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
             ),
             // Core Tab Contents
             Positioned.fill(
-              child: IndexedStack(
-                index: _currentIndex,
-                children: _pages,
-              ),
+              child: IndexedStack(index: _currentIndex, children: _pages),
             ),
           ],
         ),
@@ -181,13 +183,13 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark 
-                        ? Colors.black.withOpacity(0.4) 
-                        : Colors.white.withOpacity(0.7),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.4)
+                        : Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: isDark 
-                          ? Colors.white.withOpacity(0.08) 
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
                           : const Color(0x1F000000),
                       width: 1.0,
                     ),
@@ -210,19 +212,30 @@ class _CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const _CustomBottomNavBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const _CustomBottomNavBar({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
     final items = [
-      {'icon': Icons.home_outlined, 'activeIcon': Icons.home_rounded, 'label': 'Home'},
-      {'icon': Icons.person_outline, 'activeIcon': Icons.person_rounded, 'label': 'Profile'},
-      {'icon': Icons.settings_outlined, 'activeIcon': Icons.settings_rounded, 'label': 'Settings'},
+      {
+        'icon': Icons.home_outlined,
+        'activeIcon': Icons.home_rounded,
+        'label': 'Home',
+      },
+      {
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person_rounded,
+        'label': 'Profile',
+      },
+      {
+        'icon': Icons.settings_outlined,
+        'activeIcon': Icons.settings_rounded,
+        'label': 'Settings',
+      },
     ];
 
     return Row(
@@ -230,7 +243,8 @@ class _CustomBottomNavBar extends StatelessWidget {
       children: List.generate(items.length, (index) {
         final item = items[index];
         final isSelected = currentIndex == index;
-        final iconData = (isSelected ? item['activeIcon'] : item['icon']) as IconData;
+        final iconData =
+            (isSelected ? item['activeIcon'] : item['icon']) as IconData;
         final label = item['label'] as String;
 
         return Expanded(
@@ -244,16 +258,21 @@ class _CustomBottomNavBar extends StatelessWidget {
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected 
-                          ? themePrimary.withOpacity(0.12) 
+                      color: isSelected
+                          ? themePrimary.withValues(alpha: 0.12)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
                       iconData,
-                      color: isSelected ? themePrimary : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                      color: isSelected
+                          ? themePrimary
+                          : (isDark ? Colors.white38 : const Color(0xFF75859D)),
                       size: 24,
                     ),
                   ),
@@ -262,8 +281,12 @@ class _CustomBottomNavBar extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-                      color: isSelected ? themePrimary : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                      fontWeight: isSelected
+                          ? FontWeight.w900
+                          : FontWeight.w700,
+                      color: isSelected
+                          ? themePrimary
+                          : (isDark ? Colors.white38 : const Color(0xFF75859D)),
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -388,7 +411,7 @@ class _HomeTabState extends State<_HomeTab> {
     "Live for something bigger than yourself.",
     "Your legacy starts now.",
     "Leave the world better than you found it.",
-    "Die with memories, not dreams."
+    "Die with memories, not dreams.",
   ];
 
   @override
@@ -408,7 +431,8 @@ class _HomeTabState extends State<_HomeTab> {
     final random = math.Random();
     String nextQuote;
     do {
-      nextQuote = _motivationalQuotes[random.nextInt(_motivationalQuotes.length)];
+      nextQuote =
+          _motivationalQuotes[random.nextInt(_motivationalQuotes.length)];
     } while (nextQuote == _currentQuote && _motivationalQuotes.length > 1);
     return nextQuote;
   }
@@ -425,8 +449,12 @@ class _HomeTabState extends State<_HomeTab> {
     final name = auth.user?.firstName ?? 'Student';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
-    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : const Color(0xFF75859D);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -450,7 +478,10 @@ class _HomeTabState extends State<_HomeTab> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+            icon: const Icon(
+              Icons.exit_to_app_rounded,
+              color: Colors.redAccent,
+            ),
             tooltip: 'Exit App',
             onPressed: () => KioskService.showExitDialog(context),
           ),
@@ -498,11 +529,17 @@ class _HomeTabState extends State<_HomeTab> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: themePrimary.withOpacity(0.1),
+                            color: themePrimary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
-                            border: Border.all(color: themePrimary.withOpacity(0.2)),
+                            border: Border.all(
+                              color: themePrimary.withValues(alpha: 0.2),
+                            ),
                           ),
-                          child: const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 28),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.amberAccent,
+                            size: 28,
+                          ),
                         ),
                       ],
                     ),
@@ -514,9 +551,13 @@ class _HomeTabState extends State<_HomeTab> {
                       ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 400),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(opacity: animation, child: child);
-                        },
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
                         child: Text(
                           _currentQuote,
                           key: ValueKey<String>(_currentQuote),
@@ -532,11 +573,17 @@ class _HomeTabState extends State<_HomeTab> {
                     if (auth.user?.classNo != null) ...[
                       const SizedBox(height: 20),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: themePrimary.withOpacity(0.1),
+                          color: themePrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(50),
-                          border: Border.all(color: themePrimary.withOpacity(0.2), width: 1),
+                          border: Border.all(
+                            color: themePrimary.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
                         ),
                         child: Text(
                           'Class ${auth.user!.classNo}${auth.user!.isJoint == true ? ' Joint' : ''}',
@@ -555,17 +602,26 @@ class _HomeTabState extends State<_HomeTab> {
             const SizedBox(height: 32),
 
             FutureBuilder<Map<String, dynamic>?>(
-              future: Provider.of<ExamProvider>(context, listen: false).checkForResumableExam(),
+              future: Provider.of<ExamProvider>(
+                context,
+                listen: false,
+              ).checkForResumableExam(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done && snapshot.hasData && snapshot.data != null) {
+                if (snapshot.connectionState == ConnectionState.done &&
+                    snapshot.hasData &&
+                    snapshot.data != null) {
                   final data = snapshot.data!;
                   final examId = data['examId'];
                   final remaining = data['remainingSeconds'] as int;
                   final m = remaining ~/ 60;
                   final s = remaining % 60;
-                  final timeStr = '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-                  
-                  final provider = Provider.of<ExamProvider>(context, listen: false);
+                  final timeStr =
+                      '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+
+                  final provider = Provider.of<ExamProvider>(
+                    context,
+                    listen: false,
+                  );
                   final matchedExam = provider.scheduledTests.firstWhere(
                     (e) => e.id == examId,
                     orElse: () => Exam(
@@ -585,19 +641,36 @@ class _HomeTabState extends State<_HomeTab> {
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 24),
                       child: GlassCard(
-                        color: const Color(0xFF881337).withOpacity(0.3), // Deep crimson alert glass
-                        border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.25), width: 1.2),
+                        color: const Color(
+                          0xFF881337,
+                        ).withValues(alpha: 0.3), // Deep crimson alert glass
+                        border: Border.all(
+                          color: const Color(
+                            0xFFF43F5E,
+                          ).withValues(alpha: 0.25),
+                          width: 1.2,
+                        ),
                         padding: const EdgeInsets.all(20),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF43F5E).withOpacity(0.15),
+                                color: const Color(
+                                  0xFFF43F5E,
+                                ).withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.3)),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFF43F5E,
+                                  ).withValues(alpha: 0.3),
+                                ),
                               ),
-                              child: const Icon(Icons.alarm_on_rounded, color: Color(0xFFF43F5E), size: 28),
+                              child: const Icon(
+                                Icons.alarm_on_rounded,
+                                color: Color(0xFFF43F5E),
+                                size: 28,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -625,19 +698,28 @@ class _HomeTabState extends State<_HomeTab> {
                               ),
                             ),
                             ElevatedButton(
-                              onPressed: () => KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: matchedExam)),
+                              onPressed: () => KioskService.checkPinAndNavigate(
+                                context,
+                                ExamAttemptScreen(exam: matchedExam),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF881337),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                                 elevation: 0,
                               ),
                               child: const Text(
                                 'Resume',
-                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
@@ -698,7 +780,10 @@ class _HomeTabState extends State<_HomeTab> {
                     child: BounceOnTap(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ScheduledExamsScreen(isStartTest: false)),
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const ScheduledExamsScreen(isStartTest: false),
+                        ),
                       ),
                       child: _ActionCard(
                         title: 'Exams',
@@ -723,7 +808,10 @@ class _HomeTabState extends State<_HomeTab> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ScheduledExamsScreen(isStartTest: true)),
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const ScheduledExamsScreen(isStartTest: true),
+                          ),
                         );
                       },
                       child: const _ActionCard(
@@ -744,7 +832,9 @@ class _HomeTabState extends State<_HomeTab> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PerformanceScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const PerformanceScreen(),
+                          ),
                         );
                       },
                       child: const _ActionCard(
@@ -782,7 +872,9 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : const Color(0xFF75859D);
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
@@ -793,9 +885,12 @@ class _ActionCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withOpacity(0.25), width: 1.2),
+              border: Border.all(
+                color: color.withValues(alpha: 0.25),
+                width: 1.2,
+              ),
             ),
             child: Icon(icon, color: color, size: 24),
           ),
@@ -845,7 +940,12 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
         if (mounted) {
           setState(() {
             _localCompletedExamIds = offlineExams
-                .where((e) => e.isCompleted || e.status == 'completed' || e.status == 'synced')
+                .where(
+                  (e) =>
+                      e.isCompleted ||
+                      e.status == 'completed' ||
+                      e.status == 'synced',
+                )
                 .map((e) => e.examId)
                 .toSet();
           });
@@ -860,8 +960,12 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : const Color(0xFF75859D);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -873,7 +977,11 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: textColor,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 8),
@@ -893,25 +1001,39 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
               child: Consumer<ExamProvider>(
                 builder: (context, provider, _) {
                   if (provider.testsState == LoadState.loading) {
-                    return Center(child: CircularProgressIndicator(color: themePrimary));
+                    return Center(
+                      child: CircularProgressIndicator(color: themePrimary),
+                    );
                   }
 
                   final now = DateTime.now();
                   final filteredTests = provider.scheduledTests.where((test) {
                     final testTime = test.getExamDateTime();
-                    final isCompleted = provider.completedExamIds.contains(test.id) ||
+                    final isCompleted =
+                        provider.completedExamIds.contains(test.id) ||
                         _localCompletedExamIds.contains(test.id);
-                        
+
                     if (testTime == null) return !widget.isStartTest;
 
                     final diff = testTime.difference(now);
                     final isUpcoming = diff.inSeconds > 0;
-                    final isOngoing = diff.inMinutes <= 0 && now.isBefore(testTime.add(Duration(minutes: test.duration)));
-                    final isMissed = !isCompleted && diff.inMinutes < 0 && now.isAfter(testTime.add(Duration(minutes: test.duration)));
+                    final isOngoing =
+                        diff.inMinutes <= 0 &&
+                        now.isBefore(
+                          testTime.add(Duration(minutes: test.duration)),
+                        );
+                    final isMissed =
+                        !isCompleted &&
+                        diff.inMinutes < 0 &&
+                        now.isAfter(
+                          testTime.add(Duration(minutes: test.duration)),
+                        );
 
                     if (widget.isStartTest) {
-                      final isUpcomingWithin1Hour = diff.inMinutes > 0 && diff.inMinutes <= 60;
-                      return !isCompleted && (isUpcomingWithin1Hour || isOngoing);
+                      final isUpcomingWithin1Hour =
+                          diff.inMinutes > 0 && diff.inMinutes <= 60;
+                      return !isCompleted &&
+                          (isUpcomingWithin1Hour || isOngoing);
                     } else {
                       return isUpcoming || isCompleted || isMissed;
                     }
@@ -927,12 +1049,24 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: (isDark ? Colors.white : const Color(0xFF0F172A)).withOpacity(0.04),
+                                color:
+                                    (isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A))
+                                        .withValues(alpha: 0.04),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: (isDark ? Colors.white : const Color(0xFF0F172A)).withOpacity(0.08)),
+                                border: Border.all(
+                                  color:
+                                      (isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A))
+                                          .withValues(alpha: 0.08),
+                                ),
                               ),
                               child: Icon(
-                                widget.isStartTest ? Icons.play_disabled_rounded : Icons.event_busy_rounded,
+                                widget.isStartTest
+                                    ? Icons.play_disabled_rounded
+                                    : Icons.event_busy_rounded,
                                 size: 64,
                                 color: secondaryTextColor,
                               ),
@@ -942,7 +1076,11 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                               widget.isStartTest
                                   ? 'No tests startable right now.'
                                   : 'No exams scheduled.',
-                              style: TextStyle(color: secondaryTextColor, fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -951,15 +1089,19 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     itemCount: filteredTests.length,
                     physics: const BouncingScrollPhysics(),
                     itemBuilder: (context, i) {
                       final test = filteredTests[i];
                       final testTime = test.getExamDateTime();
-                      final isCompleted = provider.completedExamIds.contains(test.id) ||
+                      final isCompleted =
+                          provider.completedExamIds.contains(test.id) ||
                           _localCompletedExamIds.contains(test.id);
-                      
+
                       bool isUpcoming = false;
                       bool isOngoing = false;
                       bool isMissed = false;
@@ -968,9 +1110,11 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                       if (testTime != null) {
                         final diff = testTime.difference(now);
                         if (diff.inSeconds > 0) {
-                           isUpcoming = true;
-                           timeToStart = diff;
-                        } else if (now.isBefore(testTime.add(Duration(minutes: test.duration)))) {
+                          isUpcoming = true;
+                          timeToStart = diff;
+                        } else if (now.isBefore(
+                          testTime.add(Duration(minutes: test.duration)),
+                        )) {
                           isOngoing = true;
                         } else {
                           isMissed = !isCompleted;
@@ -1022,8 +1166,12 @@ class _ExamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : const Color(0xFF75859D);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1036,11 +1184,18 @@ class _ExamCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: themePrimary.withOpacity(0.08),
+                color: themePrimary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: themePrimary.withOpacity(0.2), width: 1.2),
+                border: Border.all(
+                  color: themePrimary.withValues(alpha: 0.2),
+                  width: 1.2,
+                ),
               ),
-              child: Icon(Icons.assignment_rounded, color: themePrimary, size: 28),
+              child: Icon(
+                Icons.assignment_rounded,
+                color: themePrimary,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1067,13 +1222,18 @@ class _ExamCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_rounded, size: 12, color: secondaryTextColor),
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 12,
+                        color: secondaryTextColor,
+                      ),
                       const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          '${test.date} @ ${test.time}',
-                          style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        '${test.date} @ ${test.time}',
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -1082,56 +1242,74 @@ class _ExamCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(
-                        child: Text(
-                          'Duration: ${test.duration} Mins',
-                          style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        'Duration: ${test.duration} Mins',
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 8),
                       if (!isCompleted && !isMissed)
-                        Flexible(
-                          child: TextButton.icon(
-                            onPressed: () async {
-                              try {
-                                final offlineExam = OfflineExam(
-                                  examId: test.id,
-                                  title: test.title,
-                                  duration: test.duration,
-                                  questions: test.questions.map((q) => q.toJson()).toList(),
-                                  startedAt: DateTime.now(),
-                                  isCompleted: false,
-                                  status: 'downloaded',
+                        TextButton.icon(
+                          onPressed: () async {
+                            try {
+                              final offlineExam = OfflineExam(
+                                examId: test.id,
+                                title: test.title,
+                                duration: test.duration,
+                                questions: test.questions
+                                    .map((q) => q.toJson())
+                                    .toList(),
+                                startedAt: DateTime.now(),
+                                isCompleted: false,
+                                status: 'downloaded',
+                              );
+                              await OfflineExamService().saveExamOffline(
+                                offlineExam,
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '"${test.title}" downloaded for offline use.',
+                                    ),
+                                    backgroundColor: const Color(0xFF8B5CF6),
+                                  ),
                                 );
-                                await OfflineExamService().saveExamOffline(offlineExam);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('"${test.title}" downloaded for offline use.'),
-                                      backgroundColor: const Color(0xFF8B5CF6),
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to download: ${e.toString()}'),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
                               }
-                            },
-                            icon: const Icon(Icons.download_for_offline_rounded, size: 16),
-                            label: const Text('Download Offline', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                            style: TextButton.styleFrom(
-                              foregroundColor: themePrimary,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Failed to download: ${e.toString()}',
+                                    ),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.download_for_offline_rounded,
+                            size: 16,
+                          ),
+                          label: const Text(
+                            'Download Offline',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: themePrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
                     ],
@@ -1143,21 +1321,42 @@ class _ExamCard extends StatelessWidget {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.12),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Text(
                               '${test.questions.length} Questions',
-                              style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w800, fontSize: 11),
+                              style: const TextStyle(
+                                color: Color(0xFF10B981),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           DifficultyIndicator(
-                            difficulty: Provider.of<ExamProvider>(context, listen: false).examDifficulties[test.id] ?? 3.0,
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            difficulty:
+                                Provider.of<ExamProvider>(
+                                  context,
+                                  listen: false,
+                                ).examDifficulties[test.id] ??
+                                3.0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                           ),
                         ],
                       ),
@@ -1193,18 +1392,26 @@ class _ExamCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.25), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 10),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w800,
+          fontSize: 10,
+        ),
       ),
     );
   }
 
-  Widget _buildActionButton(BuildContext context, bool isDark, Color themePrimary) {
+  Widget _buildActionButton(
+    BuildContext context,
+    bool isDark,
+    Color themePrimary,
+  ) {
     if (isCompleted || isMissed) {
       return const SizedBox.shrink();
     }
@@ -1215,7 +1422,8 @@ class _ExamCard extends StatelessWidget {
     if (isUpcoming && timeToStart != null) {
       enabled = false;
       if (timeToStart!.inHours > 0) {
-        buttonText = 'Starts in ${timeToStart!.inHours}h ${timeToStart!.inMinutes % 60}m';
+        buttonText =
+            'Starts in ${timeToStart!.inHours}h ${timeToStart!.inMinutes % 60}m';
       } else {
         buttonText = 'Starts in ${timeToStart!.inMinutes}m';
       }
@@ -1223,12 +1431,17 @@ class _ExamCard extends StatelessWidget {
 
     return ElevatedButton(
       onPressed: enabled
-          ? () => KioskService.checkPinAndNavigate(context, ExamAttemptScreen(exam: test))
+          ? () => KioskService.checkPinAndNavigate(
+              context,
+              ExamAttemptScreen(exam: test),
+            )
           : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: themePrimary,
         foregroundColor: isDark ? Colors.black : Colors.white,
-        disabledBackgroundColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
+        disabledBackgroundColor: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.04),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         minimumSize: const Size(0, 32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1236,9 +1449,11 @@ class _ExamCard extends StatelessWidget {
       child: Text(
         buttonText,
         style: TextStyle(
-          color: enabled 
-              ? (isDark ? Colors.black : Colors.white) 
-              : (isDark ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.25)),
+          color: enabled
+              ? (isDark ? Colors.black : Colors.white)
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.25)),
           fontSize: 11,
           fontWeight: FontWeight.w800,
         ),
