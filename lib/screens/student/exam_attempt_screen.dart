@@ -15,7 +15,6 @@ import '../../services/exam_security_service.dart';
 // Colour constants (matches app theme)
 // ─────────────────────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF0051D5);
-const _kPrimaryLight = Color(0xFFD3E4FF);
 const _kSelectedBg = Color(0xFFE6EFFF);
 const _kAmber = Color(0xFFFFB300);
 
@@ -63,14 +62,16 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
 
       final isOffline = !ConnectivityManager().isOnline;
       if (isOffline) {
-        final offlineExam =
-            await OfflineExamService().getOfflineExam(widget.exam.id);
+        final offlineExam = await OfflineExamService().getOfflineExam(
+          widget.exam.id,
+        );
         if (offlineExam != null) {
           if (offlineExam.isCompleted) {
             throw Exception('This exam has already been completed offline.');
           }
-          final elapsed =
-              DateTime.now().difference(offlineExam.startedAt).inSeconds;
+          final elapsed = DateTime.now()
+              .difference(offlineExam.startedAt)
+              .inSeconds;
           final remaining = (offlineExam.duration * 60) - elapsed;
           if (remaining <= 0) {
             await OfflineExamService().completeOfflineExam(widget.exam.id);
@@ -89,7 +90,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           );
           await OfflineExamService().saveExamOffline(newOfflineExam);
           await provider.startExamOffline(
-              widget.exam.id, widget.exam.duration * 60);
+            widget.exam.id,
+            widget.exam.duration * 60,
+          );
         }
       } else {
         final cached = await provider.checkForResumableExam();
@@ -109,7 +112,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  '✅ Previous session recovered — your answers have been restored.'),
+                '✅ Previous session recovered — your answers have been restored.',
+              ),
               backgroundColor: Color(0xFF2E7D32),
               duration: Duration(seconds: 4),
             ),
@@ -218,10 +222,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              event.message,
-              style: const TextStyle(fontSize: 15),
-            ),
+            Text(event.message, style: const TextStyle(fontSize: 15)),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -252,8 +253,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color:
-                            remaining <= 1 ? Colors.red : Colors.orange.shade800,
+                        color: remaining <= 1
+                            ? Colors.red
+                            : Colors.orange.shade800,
                       ),
                     ),
                   ),
@@ -266,14 +268,16 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  remaining <= 1 ? Colors.red : _kPrimary,
+              backgroundColor: remaining <= 1 ? Colors.red : _kPrimary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             icon: const Icon(Icons.check, color: Colors.white, size: 16),
-            label: const Text('I Understand',
-                style: TextStyle(color: Colors.white)),
+            label: const Text(
+              'I Understand',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -285,11 +289,13 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
   Future<void> _autoSubmitExam(String reason) async {
     if (!mounted || _isSubmitted) return;
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('🔴 $reason'),
-        backgroundColor: Colors.red.shade800,
-        duration: const Duration(seconds: 5),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔴 $reason'),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
     await Future.delayed(const Duration(milliseconds: 800));
     await _submit(autoSubmitReason: reason);
@@ -320,7 +326,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
       finalAnswers.add({'questionId': q.id, 'answer': userAns});
     }
 
-    final isOffline = !ConnectivityManager().isOnline ||
+    final isOffline =
+        !ConnectivityManager().isOnline ||
         (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
 
     try {
@@ -343,11 +350,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             builder: (_) => ResultScreen(
               score: score,
               totalQuestions: widget.exam.questions.length,
-              timeTaken: (widget.exam.duration * 60) -
-                  examProvider.remainingSeconds,
+              timeTaken:
+                  (widget.exam.duration * 60) - examProvider.remainingSeconds,
               questions: widget.exam.questions,
               userAnswers: examProvider.userAnswers,
               isOffline: isOffline,
+              exam: widget.exam,
             ),
           ),
         );
@@ -357,13 +365,15 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
       // Re-engage security since submit failed
       await _security.startSecureExam(
         examId: widget.exam.id,
-        answersProvider: () => Map<String, String>.from(examProvider.userAnswers),
+        answersProvider: () =>
+            Map<String, String>.from(examProvider.userAnswers),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Failed to submit: $e'),
-              backgroundColor: Colors.red),
+            content: Text('Failed to submit: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -398,8 +408,11 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 ),
               ),
               const SizedBox(height: 28),
-              const Icon(Icons.shield_outlined,
-                  color: Color(0xFF8B5CF6), size: 36),
+              const Icon(
+                Icons.shield_outlined,
+                color: Color(0xFF8B5CF6),
+                size: 36,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Securing Examination Environment',
@@ -414,7 +427,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               Text(
                 'Setting up secure mode — please wait',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -429,8 +444,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text('Initialization Error',
-              style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Initialization Error',
+            style: TextStyle(color: Colors.white),
+          ),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: Padding(
@@ -446,21 +463,29 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                     shape: BoxShape.circle,
                     color: Colors.red.withValues(alpha: 0.15),
                   ),
-                  child: const Icon(Icons.error_outline_rounded,
-                      size: 48, color: Colors.redAccent),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: Colors.redAccent,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Failed to Initialize Exam',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
+                const Text(
+                  'Failed to Initialize Exam',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Text(
                   _initError!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton.icon(
@@ -468,13 +493,18 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _kPrimary,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 14),
+                      horizontal: 28,
+                      vertical: 14,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  label: const Text('Go Back',
-                      style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    'Go Back',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -493,18 +523,25 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const CircularProgressIndicator(
-                  color: Color(0xFF8B5CF6), strokeWidth: 3),
+                color: Color(0xFF8B5CF6),
+                strokeWidth: 3,
+              ),
               const SizedBox(height: 24),
-              const Text('Submitting your answers securely...',
-                  style: TextStyle(
-                      color: Color(0xFFEDE9FE),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16)),
+              const Text(
+                'Submitting your answers securely...',
+                style: TextStyle(
+                  color: Color(0xFFEDE9FE),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 '${_security.violationLog.length} violation(s) logged',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -549,9 +586,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               Text(
                 'Q ${currentQIndex + 1}/$totalQ',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700),
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -559,8 +597,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // Timer
             Container(
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: examProvider.remainingSeconds < 60
                     ? Colors.red.shade700
@@ -592,9 +629,13 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // Submit button
             TextButton(
               onPressed: () => _showSubmitConfirmDialog(),
-              child: const Text('FINISH',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'FINISH',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -603,9 +644,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           children: [
             // ── Violation Banner ──────────────────────────────────────────
             AnimatedSlide(
-              offset: _showViolationBanner
-                  ? Offset.zero
-                  : const Offset(0, -1),
+              offset: _showViolationBanner ? Offset.zero : const Offset(0, -1),
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
               child: AnimatedOpacity(
@@ -615,19 +654,25 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                   width: double.infinity,
                   color: Colors.deepOrange.shade700,
                   padding: const EdgeInsets.symmetric(
-                      vertical: 8, horizontal: 16),
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_rounded,
-                          color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.warning_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _violationBannerMessage,
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -641,8 +686,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               Container(
                 width: double.infinity,
                 color: Colors.orange.shade800,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 6,
+                  horizontal: 16,
+                ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -652,10 +699,11 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                       child: Text(
                         'OFFLINE MODE — Attempt saved locally',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5),
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -670,41 +718,94 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 10),
+                  horizontal: 8,
+                  vertical: 10,
+                ),
                 itemCount: totalQ,
                 itemBuilder: (context, i) {
-                  final isAnswered = examProvider.userAnswers
-                      .containsKey(widget.exam.questions[i].id);
+                  final qId = widget.exam.questions[i].id;
+                  final isAnswered = examProvider.userAnswers.containsKey(qId);
+                  final isVisited = examProvider.visitedQuestionIds.contains(
+                    qId,
+                  );
+                  final isMarkedForReview = examProvider.markedForReview
+                      .contains(qId);
                   final isCurrent = i == currentQIndex;
+
+                  Color bgColor;
+                  Color textColor = Colors.white;
+                  bool showTick = false;
+
+                  if (isMarkedForReview) {
+                    bgColor = const Color(0xFF8B5CF6); // Purple
+                    if (isAnswered) {
+                      showTick = true;
+                    }
+                  } else if (isAnswered) {
+                    bgColor = const Color(0xFF10B981); // Green
+                  } else if (isVisited) {
+                    bgColor = Colors.red.shade600; // Red
+                  } else {
+                    bgColor = const Color(0xFFECEEF0); // Gray/White
+                    textColor = const Color(0xFF0F172A);
+                  }
+
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final currentBorderColor = isDark
+                      ? const Color(0xFF5D9BFF)
+                      : const Color(0xFF0051D5);
+
                   return GestureDetector(
                     onTap: () => examProvider.jumpToQuestion(i),
-                    child: Container(
-                      width: 40,
-                      margin:
-                          const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: isCurrent
-                            ? _kPrimary
-                            : isAnswered
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFECEEF0),
-                        shape: BoxShape.circle,
-                        border: isCurrent
-                            ? Border.all(
-                                color: _kPrimaryLight, width: 2)
-                            : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${i + 1}',
-                        style: TextStyle(
-                          color: (isCurrent || isAnswered)
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            shape: BoxShape.circle,
+                            border: isCurrent
+                                ? Border.all(
+                                    color: currentBorderColor,
+                                    width: 2.5,
+                                  )
+                                : Border.all(
+                                    color: Colors.transparent,
+                                    width: 2.5,
+                                  ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '${i + 1}',
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (showTick)
+                          Positioned(
+                            right: 0,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 8,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   );
                 },
@@ -714,9 +815,64 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // ── Progress Bar ──────────────────────────────────────────────
             LinearProgressIndicator(
               value: totalQ > 0 ? answeredCount / totalQ : 0,
-              backgroundColor: Colors.white.withOpacity(0.08),
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
               color: const Color(0xFF10B981),
               minHeight: 3,
+            ),
+
+            // ── Legend Row ──────────────────────────────────────────────
+            Container(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : const Color(0xFFF8FAFC),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _buildLegendItem(
+                      context,
+                      'Not Visited',
+                      const Color(0xFFECEEF0),
+                      const Color(0xFF0F172A),
+                      hasTick: false,
+                    ),
+                    const SizedBox(width: 14),
+                    _buildLegendItem(
+                      context,
+                      'Visited',
+                      Colors.red.shade600,
+                      Colors.white,
+                      hasTick: false,
+                    ),
+                    const SizedBox(width: 14),
+                    _buildLegendItem(
+                      context,
+                      'Answered',
+                      const Color(0xFF10B981),
+                      Colors.white,
+                      hasTick: false,
+                    ),
+                    const SizedBox(width: 14),
+                    _buildLegendItem(
+                      context,
+                      'Review (Unanswered)',
+                      const Color(0xFF8B5CF6),
+                      Colors.white,
+                      hasTick: false,
+                    ),
+                    const SizedBox(width: 14),
+                    _buildLegendItem(
+                      context,
+                      'Review (Answered)',
+                      const Color(0xFF8B5CF6),
+                      Colors.white,
+                      hasTick: true,
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             // ── Question Content ──────────────────────────────────────────
@@ -727,56 +883,95 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Question card
-                    GlassCard(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                    Builder(
+                      builder: (context) {
+                        final isMarkedForReview = examProvider.markedForReview
+                            .contains(currentQ.id);
+                        return GlassCard(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: const BoxDecoration(
-                                  color: _kPrimary,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '${currentQIndex + 1}',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12),
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: const BoxDecoration(
+                                          color: _kPrimary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '${currentQIndex + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Text(
+                                        'Question',
+                                        style: TextStyle(
+                                          color: _kPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      isMarkedForReview
+                                          ? Icons.bookmark
+                                          : Icons.bookmark_border,
+                                      color: isMarkedForReview
+                                          ? const Color(0xFF8B5CF6)
+                                          : Colors.grey.shade500,
+                                      size: 24,
+                                    ),
+                                    tooltip: isMarkedForReview
+                                        ? 'Remove Bookmark'
+                                        : 'Mark for Review',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => examProvider
+                                        .toggleMarkForReview(currentQ.id),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              const Text('Question',
-                                  style: TextStyle(
-                                      color: _kPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13)),
+                              const SizedBox(height: 14),
+                              LaTeXWidget(
+                                text: currentQ.questionText,
+                                color: const Color(0xFF0F172A),
+                              ),
+                              if (currentQ.diagram != null &&
+                                  currentQ.diagram!.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    currentQ.diagram!.startsWith('http')
+                                        ? currentQ.diagram!
+                                        : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${currentQ.diagram}',
+                                    height: 160,
+                                    width: double.infinity,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, _, _) =>
+                                        const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          LaTeXWidget(text: currentQ.questionText, color: const Color(0xFF0F172A)),
-                          if (currentQ.diagram != null && currentQ.diagram!.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                currentQ.diagram!.startsWith('http')
-                                    ? currentQ.diagram!
-                                    : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${currentQ.diagram}',
-                                height: 160,
-                                width: double.infinity,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -803,9 +998,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: isSelected
-                                    ? _kSelectedBg
-                                    : Colors.white,
+                                color: isSelected ? _kSelectedBg : Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isSelected
@@ -816,11 +1009,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: _kPrimary
-                                              .withValues(alpha: 0.15),
+                                          color: _kPrimary.withValues(
+                                            alpha: 0.15,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 2),
-                                        )
+                                        ),
                                       ]
                                     : [],
                               ),
@@ -849,8 +1043,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
-                                      child: InlineMathText(
-                                          text: opt, fontSize: 15, color: const Color(0xFF0F172A))),
+                                    child: InlineMathText(
+                                      text: opt,
+                                      fontSize: 15,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -865,9 +1063,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                         child: Text(
                           'No answer selected',
                           style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 12,
-                              fontStyle: FontStyle.italic),
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
                       ),
                   ],
@@ -878,8 +1077,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             // ── Stats Bar ─────────────────────────────────────────────────
             Container(
               color: const Color(0xFFF8FAFC),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -887,7 +1085,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                     child: Text(
                       '$answeredCount/$totalQ answered',
                       style: const TextStyle(
-                          color: Color(0xFF75859D), fontSize: 12),
+                        color: Color(0xFF75859D),
+                        fontSize: 12,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -897,16 +1097,20 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.warning_amber,
-                              size: 14, color: Colors.orange.shade700),
+                          Icon(
+                            Icons.warning_amber,
+                            size: 14,
+                            color: Colors.orange.shade700,
+                          ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
                               style: TextStyle(
-                                  color: Colors.orange.shade700,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600),
+                                color: Colors.orange.shade700,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -923,10 +1127,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  top: BorderSide(
-                    color: const Color(0xFFECEEF0),
-                    width: 1,
-                  ),
+                  top: BorderSide(color: const Color(0xFFECEEF0), width: 1),
                 ),
               ),
               child: Row(
@@ -937,12 +1138,12 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                           ? () => examProvider.previousQuestion()
                           : null,
                       style: OutlinedButton.styleFrom(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: const Color(0xFF0F172A),
                         side: const BorderSide(color: Color(0xFFECEEF0)),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       icon: const Icon(Icons.chevron_left, size: 20),
                       label: const Text('PREV'),
@@ -956,15 +1157,20 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _kPrimary,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      icon: const Icon(Icons.chevron_right,
-                          color: Colors.white, size: 20),
-                      label: const Text('NEXT',
-                          style: TextStyle(color: Colors.white)),
+                      icon: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        'NEXT',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -1014,14 +1220,19 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.orange.shade700, size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '$unanswered question(s) are unanswered and will be marked incorrect.',
                         style: TextStyle(
-                            color: Colors.orange.shade800, fontSize: 13),
+                          color: Colors.orange.shade800,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -1029,11 +1240,14 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               ),
             ],
             const SizedBox(height: 8),
-            const Text('This action cannot be undone.',
-                style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic)),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -1049,13 +1263,67 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: _kPrimary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             icon: const Icon(Icons.send, color: Colors.white, size: 16),
             label: const Text('Submit', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegendItem(
+    BuildContext context,
+    String label,
+    Color bgColor,
+    Color textColor, {
+    required bool hasTick,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+                border: bgColor == const Color(0xFFECEEF0)
+                    ? Border.all(color: Colors.grey.shade400, width: 0.5)
+                    : null,
+              ),
+            ),
+            if (hasTick)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  padding: const EdgeInsets.all(0.5),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 6),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : const Color(0xFF475569),
+          ),
+        ),
+      ],
     );
   }
 }

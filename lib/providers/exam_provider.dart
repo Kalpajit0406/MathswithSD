@@ -29,6 +29,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   bool _isDisposed = false;
   Future<void> _pendingAttemptSave = Future.value();
+  Set<String> _visitedQuestionIds = {};
+  Set<String> _markedForReview = {};
 
   ExamProvider() {
     _initConnectivityListener();
@@ -71,6 +73,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   int get remainingSeconds => _remainingSeconds;
   String? get currentAttemptId => _currentAttemptId;
   String? get currentExamId => _currentExamId;
+  Set<String> get visitedQuestionIds => _visitedQuestionIds;
+  Set<String> get markedForReview => _markedForReview;
 
   List<Announcement> get announcements => _announcements;
   LoadState get announcementsState => _announcementsState;
@@ -92,6 +96,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       await prefs.setString('active_answers', jsonEncode(_userAnswers));
       await prefs.setInt('active_last_tick', DateTime.now().millisecondsSinceEpoch);
       await prefs.setInt('active_remaining_seconds', _remainingSeconds);
+      await prefs.setStringList('active_visited_ids', _visitedQuestionIds.toList());
+      await prefs.setStringList('active_marked_review_ids', _markedForReview.toList());
     } catch (e) {
       debugPrint('Error caching exam attempt locally: $e');
     }
@@ -111,6 +117,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       await prefs.remove('active_answers');
       await prefs.remove('active_last_tick');
       await prefs.remove('active_remaining_seconds');
+      await prefs.remove('active_visited_ids');
+      await prefs.remove('active_marked_review_ids');
     } catch (e) {
       debugPrint('Error clearing cached exam attempt: $e');
     }
@@ -126,6 +134,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       final answersRaw = prefs.getString('active_answers') ?? '{}';
       final lastTick = prefs.getInt('active_last_tick') ?? DateTime.now().millisecondsSinceEpoch;
       final cachedRemaining = prefs.getInt('active_remaining_seconds') ?? 0;
+      final visitedRaw = prefs.getStringList('active_visited_ids') ?? [];
+      final markedRaw = prefs.getStringList('active_marked_review_ids') ?? [];
       
       final elapsedSeconds = (DateTime.now().millisecondsSinceEpoch - lastTick) ~/ 1000;
       final calculatedRemaining = cachedRemaining - elapsedSeconds;
@@ -158,6 +168,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         'examId': examId,
         'answers': Map<String, String>.from(jsonDecode(answersRaw)),
         'remainingSeconds': calculatedRemaining,
+        'visited': visitedRaw,
+        'marked': markedRaw,
       };
     } catch (e) {
       debugPrint('Error checking for resumable exam: $e');
@@ -178,7 +190,10 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _userAnswers = cachedData['answers'];
       _remainingSeconds = remaining;
       _currentQuestionIndex = 0;
+      _visitedQuestionIds = Set<String>.from(cachedData['visited'] ?? []);
+      _markedForReview = Set<String>.from(cachedData['marked'] ?? []);
       _startTimer();
+      _markCurrentQuestionVisited();
       if (!_isDisposed) notifyListeners();
       return true;
     } catch (e) {
@@ -239,10 +254,17 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     _currentQuestionIndex = 0;
     _userAnswers = {};
     _currentExamId = examId;
+    _visitedQuestionIds = {};
+    _markedForReview = {};
     
     // Find exam to set duration
     final exam = _scheduledTests.firstWhere((e) => e.id == examId);
     _remainingSeconds = exam.duration * 60;
+    
+    // Auto-mark first question as visited
+    if (exam.questions.isNotEmpty) {
+      _visitedQuestionIds.add(exam.questions[0].id);
+    }
     
     try {
       final attemptData = await _apiService.startAttemptWithRetry(examId);
@@ -263,6 +285,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _currentExamId = null;
       _remainingSeconds = 0;
       _userAnswers = {};
+      _visitedQuestionIds = {};
+      _markedForReview = {};
       await _clearAttemptFromPrefs();
       rethrow;
     }
@@ -293,6 +317,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     _currentExamId = examId;
     _currentAttemptId = 'offline_$examId';
     _remainingSeconds = remainingSecs;
+    _visitedQuestionIds = {};
+    _markedForReview = {};
     
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -300,8 +326,18 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       if (answersRaw != null) {
         _userAnswers = Map<String, String>.from(jsonDecode(answersRaw));
       }
+      final visitedRaw = prefs.getStringList('offline_visited_$examId') ?? [];
+      _visitedQuestionIds = Set<String>.from(visitedRaw);
+      final markedRaw = prefs.getStringList('offline_marked_$examId') ?? [];
+      _markedForReview = Set<String>.from(markedRaw);
     } catch (e) {
       debugPrint('Error loading cached offline answers: $e');
+    }
+    
+    // Auto-mark first question as visited if empty
+    final exam = _scheduledTests.firstWhere((e) => e.id == examId);
+    if (_visitedQuestionIds.isEmpty && exam.questions.isNotEmpty) {
+      _visitedQuestionIds.add(exam.questions[0].id);
     }
     
     await _saveAttemptToPrefs();
@@ -334,6 +370,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void nextQuestion(int totalQuestions) {
     if (_currentQuestionIndex < totalQuestions - 1) {
       _currentQuestionIndex++;
+      _markCurrentQuestionVisited();
       if (!_isDisposed) notifyListeners();
     }
   }
@@ -341,6 +378,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void previousQuestion() {
     if (_currentQuestionIndex > 0) {
       _currentQuestionIndex--;
+      _markCurrentQuestionVisited();
       if (!_isDisposed) notifyListeners();
     }
   }
@@ -348,7 +386,52 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   void jumpToQuestion(int index) {
     if (index >= 0 && index != _currentQuestionIndex) {
       _currentQuestionIndex = index;
+      _markCurrentQuestionVisited();
       if (!_isDisposed) notifyListeners();
+    }
+  }
+
+  void markAsVisited(String questionId) {
+    if (!_visitedQuestionIds.contains(questionId)) {
+      _visitedQuestionIds.add(questionId);
+      _scheduleAttemptSave();
+      
+      if (_currentAttemptId != null && _currentAttemptId!.startsWith('offline_')) {
+        SharedPreferences.getInstance().then((prefs) {
+          prefs.setStringList('offline_visited_$_currentExamId', _visitedQuestionIds.toList());
+        });
+      }
+      
+      if (!_isDisposed) notifyListeners();
+    }
+  }
+
+  void toggleMarkForReview(String questionId) {
+    if (_markedForReview.contains(questionId)) {
+      _markedForReview.remove(questionId);
+    } else {
+      _markedForReview.add(questionId);
+    }
+    _scheduleAttemptSave();
+    
+    if (_currentAttemptId != null && _currentAttemptId!.startsWith('offline_')) {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setStringList('offline_marked_$_currentExamId', _markedForReview.toList());
+      });
+    }
+    
+    if (!_isDisposed) notifyListeners();
+  }
+
+  void _markCurrentQuestionVisited() {
+    if (_currentExamId == null) return;
+    try {
+      final exam = _scheduledTests.firstWhere((e) => e.id == _currentExamId);
+      if (_currentQuestionIndex >= 0 && _currentQuestionIndex < exam.questions.length) {
+        markAsVisited(exam.questions[_currentQuestionIndex].id);
+      }
+    } catch (e) {
+      debugPrint('Error marking current question visited: $e');
     }
   }
 

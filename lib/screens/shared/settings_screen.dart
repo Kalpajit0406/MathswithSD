@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/storage_service.dart';
-import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/kiosk_service.dart';
@@ -36,9 +35,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading settings: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading settings: $e')));
     }
   }
 
@@ -60,9 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving base URL: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving base URL: $e')));
     }
   }
 
@@ -79,9 +78,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error clearing override: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error clearing override: $e')));
     }
   }
 
@@ -97,8 +96,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFECEEF0);
-    final containerFillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final borderColor = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFECEEF0);
+    final containerFillColor = isDark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFF8FAFC);
 
     if (_loading) {
       return Scaffold(
@@ -106,21 +109,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         appBar: AppBar(
           title: Text(
             'Settings',
-            style: TextStyle(fontWeight: FontWeight.w900, color: textColor, fontSize: 22, letterSpacing: -0.5),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: textColor,
+              fontSize: 22,
+              letterSpacing: -0.5,
+            ),
           ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: textColor,
           actions: [
             IconButton(
-              icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+              icon: const Icon(
+                Icons.exit_to_app_rounded,
+                color: Colors.redAccent,
+              ),
               tooltip: 'Exit App',
               onPressed: () => KioskService.showExitDialog(context),
             ),
             const SizedBox(width: 8),
           ],
         ),
-        body: const Center(child: CircularProgressIndicator(color: Color(0xFF0051D5))),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF0051D5)),
+        ),
       );
     }
 
@@ -129,14 +142,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         title: Text(
           'Settings',
-          style: TextStyle(fontWeight: FontWeight.w900, color: textColor, fontSize: 22, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: textColor,
+            fontSize: 22,
+            letterSpacing: -0.5,
+          ),
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: textColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
+            icon: const Icon(
+              Icons.exit_to_app_rounded,
+              color: Colors.redAccent,
+            ),
             tooltip: 'Exit App',
             onPressed: () => KioskService.showExitDialog(context),
           ),
@@ -152,28 +173,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 'API Base URL Configuration',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.3),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: textColor,
+                  letterSpacing: -0.3,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Default: ${AppConstants.baseUrl}',
-                style: TextStyle(fontSize: 12, color: secondaryTextColor, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: secondaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
                 'Manual Override (optional)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _baseUrlController,
-                style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Base URL',
-                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
+                  labelStyle: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                   hintText: 'e.g., http://192.168.1.5:5000',
-                  hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
-                  prefixIcon: const Icon(Icons.link_rounded, color: Color(0xFF0051D5)),
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white30 : Colors.black38,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.link_rounded,
+                    color: Color(0xFF0051D5),
+                  ),
                   filled: true,
                   fillColor: containerFillColor,
                   border: OutlineInputBorder(
@@ -186,9 +233,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFF0051D5), width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF0051D5),
+                      width: 1.5,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -201,9 +254,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: const Color(0xFF0051D5),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Save Override', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      child: const Text(
+                        'Save Override',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -214,20 +275,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         foregroundColor: textColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: borderColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         backgroundColor: Colors.transparent,
                       ),
-                      child: const Text('Clear Override', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      child: const Text(
+                        'Clear Override',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 32),
-              
+
               // Theme selector UI
               Text(
                 'App Theme Mode',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -259,7 +332,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Text(
                 'Current Status',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
               ),
               const SizedBox(height: 8),
               Container(
@@ -275,7 +352,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       'Using: ${_currentOverride ?? AppConstants.baseUrl}',
-                      style: TextStyle(fontSize: 13, color: textColor, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -285,7 +366,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           height: 8,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _currentOverride == null ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            color: _currentOverride == null
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -296,7 +379,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: _currentOverride == null ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            color: _currentOverride == null
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
                           ),
                         ),
                       ],
@@ -336,7 +421,9 @@ class _ThemeOptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF0051D5).withValues(alpha: 0.08) : Colors.transparent,
+          color: isActive
+              ? const Color(0xFF0051D5).withValues(alpha: 0.08)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive ? const Color(0xFF0051D5) : borderColor,
@@ -347,7 +434,9 @@ class _ThemeOptionCard extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isActive ? const Color(0xFF0051D5) : (textColor.withValues(alpha: 0.6)),
+              color: isActive
+                  ? const Color(0xFF0051D5)
+                  : (textColor.withValues(alpha: 0.6)),
               size: 28,
             ),
             const SizedBox(height: 8),

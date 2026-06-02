@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
@@ -12,6 +13,7 @@ class ResultScreen extends StatelessWidget {
   final List<Question> questions;
   final Map<String, String> userAnswers;
   final bool isOffline;
+  final Exam? exam;
 
   const ResultScreen({
     super.key,
@@ -21,6 +23,7 @@ class ResultScreen extends StatelessWidget {
     required this.questions,
     required this.userAnswers,
     this.isOffline = false,
+    this.exam,
   });
 
   @override
@@ -31,6 +34,14 @@ class ResultScreen extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
     final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+
+    final startDateTime = exam?.getExamDateTime();
+    final endDateTime = startDateTime?.add(Duration(minutes: exam?.duration ?? 0));
+    final bool isBeforeEnd = endDateTime != null && DateTime.now().isBefore(endDateTime);
+
+    if (isBeforeEnd) {
+      return _buildLockedResultView(context, endDateTime, textColor, secondaryTextColor, themePrimary, isDark);
+    }
 
     return DefaultTabController(
       length: 2,
@@ -61,6 +72,128 @@ class ResultScreen extends StatelessWidget {
         ),
         bottomNavigationBar: _buildBottomBar(context, themePrimary, isDark),
       ),
+    );
+  }
+
+  Widget _buildLockedResultView(BuildContext context, DateTime endDateTime, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+    final formattedEndTime = DateFormat('hh:mm a').format(endDateTime);
+    final formattedEndDate = DateFormat('dd MMM yyyy').format(endDateTime);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor,
+        title: Text('Submission Status', style: TextStyle(color: textColor, fontWeight: FontWeight.w900)),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                size: 80,
+                color: Color(0xFF10B981),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Exam Submitted Successfully!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your responses have been saved. To maintain exam integrity, your score and correct answers will be released once the exam ends.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: secondaryTextColor,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            GlassCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exam?.title ?? 'Assessment',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  _buildDetailRow('Duration', '${exam?.duration ?? 0} minutes', textColor, secondaryTextColor),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Date', exam?.date ?? '', textColor, secondaryTextColor),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Start Time', exam?.time ?? '', textColor, secondaryTextColor),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Results Available', '$formattedEndDate @ $formattedEndTime', textColor, themePrimary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: themePrimary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: themePrimary.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: themePrimary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'You can safely leave this page. Your results will automatically appear in your performance section after $formattedEndTime.',
+                      style: TextStyle(color: themePrimary, fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomBar(context, themePrimary, isDark),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, Color labelColor, Color valueColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: labelColor),
+        ),
+        Text(
+          value,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: valueColor),
+        ),
+      ],
     );
   }
 

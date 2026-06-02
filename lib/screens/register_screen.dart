@@ -367,10 +367,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   icon: Icons.phone_android_rounded,
                                   keyboardType: TextInputType.phone,
                                   validator: (val) {
-                                    if (val == null || val.isEmpty)
+                                    if (val == null || val.isEmpty) {
                                       return 'Required';
-                                    if (val.length != 10)
+                                    }
+                                    if (val.length != 10) {
                                       return 'Must be 10 digits';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -381,10 +383,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   icon: Icons.phone_in_talk_rounded,
                                   keyboardType: TextInputType.phone,
                                   validator: (val) {
-                                    if (val == null || val.isEmpty)
+                                    if (val == null || val.isEmpty) {
                                       return 'Required';
-                                    if (val.length != 10)
+                                    }
+                                    if (val.length != 10) {
                                       return 'Must be 10 digits';
+                                    }
                                     return null;
                                   },
                                 ),

@@ -1,9 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/exam_provider.dart';
-import '../../utils/constants.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/glass_card.dart';
 
@@ -24,7 +22,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   void _loadPerformance() {
-    _performanceFuture = Provider.of<ExamProvider>(context, listen: false).fetchStudentPerformance();
+    _performanceFuture = Provider.of<ExamProvider>(
+      context,
+      listen: false,
+    ).fetchStudentPerformance();
   }
 
   @override
@@ -33,8 +34,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
-    
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -51,7 +54,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: textColor,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: textColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -64,7 +71,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   content: const Text('Performance data refreshed'),
                   behavior: SnackBarBehavior.floating,
                   backgroundColor: themePrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -78,22 +87,43 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           future: _performanceFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator(color: themePrimary));
+              return Center(
+                child: CircularProgressIndicator(color: themePrimary),
+              );
             }
 
             if (snapshot.hasError || snapshot.data == null) {
-              return _buildErrorState(() => setState(_loadPerformance), textColor, secondaryTextColor, themePrimary, isDark);
+              return _buildErrorState(
+                () => setState(_loadPerformance),
+                textColor,
+                secondaryTextColor,
+                themePrimary,
+                isDark,
+              );
             }
 
             final data = snapshot.data!;
-            return _buildPerformanceContent(data, auth, textColor, secondaryTextColor, themePrimary, isDark);
+            return _buildPerformanceContent(
+              data,
+              auth,
+              textColor,
+              secondaryTextColor,
+              themePrimary,
+              isDark,
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildErrorState(VoidCallback onRetry, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+  Widget _buildErrorState(
+    VoidCallback onRetry,
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -105,12 +135,20 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: themePrimary.withValues(alpha: 0.08)),
             ),
-            child: Icon(Icons.error_outline_rounded, size: 64, color: secondaryTextColor),
+            child: Icon(
+              Icons.error_outline_rounded,
+              size: 64,
+              color: secondaryTextColor,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
             'Could not load performance data',
-            style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -126,7 +164,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: themePrimary,
               foregroundColor: isDark ? Colors.black : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -134,7 +174,14 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildPerformanceContent(Map<String, dynamic> data, AuthProvider auth, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+  Widget _buildPerformanceContent(
+    Map<String, dynamic> data,
+    AuthProvider auth,
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     final totalAttempts = data['totalAttempts'] ?? 0;
     final completionRate = data['completionRate'] ?? 0.0;
     final accuracyRate = data['accuracyRate'] ?? 0.0;
@@ -198,7 +245,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 150),
-              child: _TrendIndicator(trend: improvementTrend, textColor: textColor, secondaryTextColor: secondaryTextColor),
+              child: _TrendIndicator(
+                trend: improvementTrend,
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
             ),
           const SizedBox(height: 32),
 
@@ -218,7 +269,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ..._buildChapterPerformance(performanceByChapter, textColor, secondaryTextColor),
+            ..._buildChapterPerformance(
+              performanceByChapter,
+              textColor,
+              secondaryTextColor,
+            ),
             const SizedBox(height: 32),
           ],
 
@@ -238,7 +293,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ..._buildRecentAttempts(recentAttempts, textColor, secondaryTextColor),
+            ..._buildRecentAttempts(
+              recentAttempts,
+              textColor,
+              secondaryTextColor,
+            ),
           ] else if (totalAttempts == 0)
             FadeInSlide(
               duration: const Duration(milliseconds: 700),
@@ -252,7 +311,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                         color: themePrimary.withValues(alpha: 0.04),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.assignment_outlined, size: 56, color: secondaryTextColor.withValues(alpha: 0.4)),
+                      child: Icon(
+                        Icons.assignment_outlined,
+                        size: 56,
+                        color: secondaryTextColor.withValues(alpha: 0.4),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -266,10 +329,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Start your first test to see your performance metrics',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: secondaryTextColor,
-                      ),
+                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -281,7 +341,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  List<Widget> _buildChapterPerformance(Map<String, dynamic> chapters, Color textColor, Color secondaryTextColor) {
+  List<Widget> _buildChapterPerformance(
+    Map<String, dynamic> chapters,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
     return chapters.entries.map((entry) {
       final chapterName = entry.key;
       final metrics = entry.value as Map<String, dynamic>? ?? {};
@@ -330,13 +394,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     }).toList();
   }
 
-  List<Widget> _buildRecentAttempts(List<dynamic> attempts, Color textColor, Color secondaryTextColor) {
+  List<Widget> _buildRecentAttempts(
+    List<dynamic> attempts,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
     return attempts.take(5).map((attempt) {
       final attemptData = attempt as Map<String, dynamic>;
       final examTitle = attemptData['examTitle'] ?? 'Test';
       final score = attemptData['score'] ?? 0;
       final maxScore = attemptData['maxScore'] ?? 100;
-      final percentage = maxScore > 0 ? (score / maxScore * 100).toStringAsFixed(1) : '0.0';
+      final percentage = maxScore > 0
+          ? (score / maxScore * 100).toStringAsFixed(1)
+          : '0.0';
       final date = attemptData['date'] ?? '';
 
       return FadeInSlide(
@@ -493,9 +563,14 @@ class _MetricsGrid extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 title: 'Improvement',
-                value: '${improvementTrend > 0 ? '+' : ''}${improvementTrend.toStringAsFixed(1)}%',
-                icon: improvementTrend >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                color: improvementTrend >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                value:
+                    '${improvementTrend > 0 ? '+' : ''}${improvementTrend.toStringAsFixed(1)}%',
+                icon: improvementTrend >= 0
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                color: improvementTrend >= 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFEF4444),
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
               ),
@@ -537,7 +612,10 @@ class _MetricCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: 0.2), width: 1.2),
+              border: Border.all(
+                color: color.withValues(alpha: 0.2),
+                width: 1.2,
+              ),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -570,13 +648,21 @@ class _TrendIndicator extends StatelessWidget {
   final Color textColor;
   final Color secondaryTextColor;
 
-  const _TrendIndicator({required this.trend, required this.textColor, required this.secondaryTextColor});
+  const _TrendIndicator({
+    required this.trend,
+    required this.textColor,
+    required this.secondaryTextColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isPositive = trend >= 0;
-    final trendColor = isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    final trendIcon = isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded;
+    final trendColor = isPositive
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
+    final trendIcon = isPositive
+        ? Icons.trending_up_rounded
+        : Icons.trending_down_rounded;
 
     return GlassCard(
       color: trendColor.withValues(alpha: 0.08),
@@ -590,7 +676,10 @@ class _TrendIndicator extends StatelessWidget {
             decoration: BoxDecoration(
               color: trendColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: trendColor.withValues(alpha: 0.2), width: 1.2),
+              border: Border.all(
+                color: trendColor.withValues(alpha: 0.2),
+                width: 1.2,
+              ),
             ),
             child: Icon(trendIcon, color: trendColor, size: 28),
           ),
@@ -614,7 +703,9 @@ class _TrendIndicator extends StatelessWidget {
                       : 'Your accuracy declined by ${(-trend).toStringAsFixed(1)}% - review challenging topics',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isPositive ? trendColor.withValues(alpha: 0.9) : textColor.withValues(alpha: 0.85),
+                    color: isPositive
+                        ? trendColor.withValues(alpha: 0.9)
+                        : textColor.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                   ),
                 ),

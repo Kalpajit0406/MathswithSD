@@ -105,6 +105,7 @@ class Question {
   final String questionText;
   final List<String>? options;
   final String? correctAnswer;
+  final String? diagram;
 
   Question({
     required this.id,
@@ -112,6 +113,7 @@ class Question {
     required this.questionText,
     this.options,
     this.correctAnswer,
+    this.diagram,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
@@ -121,6 +123,7 @@ class Question {
       questionText: json['questionText'] ?? '',
       options: json['options'] != null ? List<String>.from(json['options']) : null,
       correctAnswer: json['correctAnswer'],
+      diagram: json['diagram'],
     );
   }
 
@@ -131,6 +134,7 @@ class Question {
       'questionText': questionText,
       'options': options,
       'correctAnswer': correctAnswer,
+      'diagram': diagram,
     };
   }
 }

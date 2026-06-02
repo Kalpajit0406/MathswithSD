@@ -248,7 +248,53 @@ const StudentResult: React.FC = () => {
   // RENDER COMPONENT
   return (
     <div className="p-6 flex flex-col items-center gap-6">
-      {!showDetails ? (
+      {!isTestEnded ? (
+        /* LOCKED SUMMARY CARD */
+        <div className="bg-white shadow-xl rounded-xl w-full max-w-md p-8 flex flex-col items-center text-center space-y-6">
+          <div className="bg-green-100 p-4 rounded-full text-green-600">
+            <CheckCircle className="w-12 h-12" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Exam Submitted Successfully!
+            </h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Your responses have been saved. To ensure exam integrity, your score, results, and correct solutions will be available after the exam ends.
+            </p>
+          </div>
+          
+          <div className="w-full border-t border-b border-gray-100 py-4 space-y-3 text-sm text-left">
+            <div className="flex justify-between">
+              <span className="text-gray-500 font-medium">Exam:</span>
+              <span className="text-gray-800 font-semibold">{testConfig?.title || "Class Test"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500 font-medium">Start Time:</span>
+              <span className="text-gray-800 font-semibold">{testConfig?.time || "N/A"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500 font-medium">Release Time:</span>
+              <span className="text-gray-800 font-semibold text-blue-600">
+                {testEndTime ? testEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+              </span>
+            </div>
+          </div>
+
+          <div className="w-full bg-orange-50 border border-orange-100 rounded-lg p-4 space-y-1">
+            <p className="text-xs text-orange-700 font-medium flex items-center justify-center gap-1.5">
+              <Timer className="w-4 h-4 animate-pulse" />
+              Time until results are available:
+            </p>
+            <p className="text-lg font-bold text-orange-600">
+              {timeUntilEnd}
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            You can close this tab now. The results will be automatically visible when you return after the exam time has ended.
+          </p>
+        </div>
+      ) : !showDetails ? (
         /* SUMMARY CARD */
         <div className="bg-white shadow-xl rounded-xl w-full max-w-md p-6 space-y-4">
           <h2 className="text-2xl font-semibold text-center text-gray-800">
