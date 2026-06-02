@@ -1,9 +1,0 @@
----
-// import ScanComponent from "../../components/teacher/Scan"
-import ScanComponent from "../../components/teacher/ScanPage"
-import TeacherLayout from "../../layouts/TeacherLayout.astro"
-const chapters = Astro.locals.chapters
----
-<TeacherLayout>
-    <ScanComponent chapters={chapters} client:load />
-</TeacherLayout>

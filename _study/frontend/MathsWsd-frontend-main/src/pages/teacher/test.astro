@@ -1,9 +1,0 @@
----
-import TeacherLayout from "../../layouts/TeacherLayout.astro";
-import TestPage from "../../components/teacher/TestPage"
-const chapters = Astro.locals.chapters
----
-
-<TeacherLayout>
-    <TestPage chapters={chapters} client:load />
-</TeacherLayout>
