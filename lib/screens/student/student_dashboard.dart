@@ -14,8 +14,10 @@ import '../../widgets/glass_card.dart';
 import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
+import 'package:intl/intl.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/kiosk_service.dart';
+import '../../services/api_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -466,7 +468,7 @@ class _HomeTabState extends State<_HomeTab> {
             Icon(Icons.school_rounded, color: themePrimary, size: 28),
             const SizedBox(width: 10),
             Text(
-              'MathsWithSD',
+              'MathswithSD',
               style: TextStyle(
                 color: textColor,
                 fontWeight: FontWeight.w900,
@@ -572,27 +574,40 @@ class _HomeTabState extends State<_HomeTab> {
                     ),
                     if (auth.user?.classNo != null) ...[
                       const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: themePrimary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(50),
-                          border: Border.all(
-                            color: themePrimary.withValues(alpha: 0.2),
-                            width: 1,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: themePrimary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                color: themePrimary.withValues(alpha: 0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              'Class ${auth.user!.classNo}${auth.user!.isJoint == true ? ' Joint' : ''}',
+                              style: TextStyle(
+                                color: themePrimary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          'Class ${auth.user!.classNo}${auth.user!.isJoint == true ? ' Joint' : ''}',
-                          style: TextStyle(
-                            color: themePrimary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
+                          const _LiveClockWidget(),
+                        ],
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerRight,
+                        child: _LiveClockWidget(),
                       ),
                     ],
                   ],
@@ -852,6 +867,121 @@ class _HomeTabState extends State<_HomeTab> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LiveClockWidget extends StatefulWidget {
+  const _LiveClockWidget();
+
+  @override
+  State<_LiveClockWidget> createState() => _LiveClockWidgetState();
+}
+
+class _LiveClockWidgetState extends State<_LiveClockWidget> {
+  late Timer _timer;
+  late DateTime _now;
+  Duration _timeOffset = Duration.zero;
+  bool _isSynced = false;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _syncTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _now = DateTime.now().add(_timeOffset);
+        });
+      }
+    });
+  }
+
+  Future<void> _syncTime() async {
+    try {
+      final serverTime = await _apiService.getServerTime();
+      if (mounted) {
+        setState(() {
+          _timeOffset = serverTime.difference(DateTime.now());
+          _isSynced = true;
+          _now = DateTime.now().add(_timeOffset);
+        });
+      }
+    } catch (e) {
+      debugPrint('[LiveClock] Failed to sync time with server: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
+    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    
+    final timeStr = DateFormat('hh:mm:ss a').format(_now);
+    final dateStr = DateFormat('EEE, MMM d, yyyy').format(_now);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isSynced ? const Color(0xFF10B981) : Colors.amber,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isSynced ? const Color(0xFF10B981) : Colors.amber)
+                        .withValues(alpha: 0.5),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.schedule_rounded,
+              color: themePrimary,
+              size: 14,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              timeStr,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _isSynced ? dateStr : '$dateStr (Local)',
+          style: TextStyle(
+            color: secondaryTextColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

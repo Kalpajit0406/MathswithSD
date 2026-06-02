@@ -212,7 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Column(
                   children: [
-                    _profileItem(Icons.person_outline_rounded, 'Full Name', user?.fullName ?? 'N/A', textColor, secondaryTextColor, borderColor, themePrimary),
+                    _profileItem(Icons.person_outline_rounded, 'Full Name', user?.fullName ?? 'N/A', textColor, secondaryTextColor, borderColor, themePrimary, isLocked: true),
                     _divider(borderColor),
                     _profileItem(Icons.phone_outlined, 'Phone Number', user?.phone ?? 'N/A', textColor, secondaryTextColor, borderColor, themePrimary, isLocked: true),
                     _divider(borderColor),

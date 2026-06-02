@@ -508,9 +508,9 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   }
 
   /// Fetch student's performance analytics data
-  Future<Map<String, dynamic>?> fetchStudentPerformance() async {
+  Future<Map<String, dynamic>?> fetchStudentPerformance({String timeframe = 'week'}) async {
     try {
-      return await _apiService.getPerformance();
+      return await _apiService.getPerformance(timeframe: timeframe);
     } catch (e) {
       debugPrint('Error fetching student performance: $e');
       rethrow;

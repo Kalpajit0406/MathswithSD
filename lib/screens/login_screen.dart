@@ -214,10 +214,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                     icon: Icons.phone_android_rounded,
                                   ),
                                   validator: (val) {
-                                    if (val == null || val.isEmpty)
+                                    if (val == null || val.isEmpty) {
                                       return 'Phone number is required';
-                                    if (val.length < 10)
+                                    }
+                                    if (val.length < 10) {
                                       return 'Enter a valid 10-digit number';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -251,8 +253,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   validator: (val) {
-                                    if (val == null || val.isEmpty)
+                                    if (val == null || val.isEmpty) {
                                       return 'Password is required';
+                                    }
                                     return null;
                                   },
                                 ),

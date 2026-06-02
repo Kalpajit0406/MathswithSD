@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exam_provider.dart';
@@ -355,7 +354,6 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
               questions: widget.exam.questions,
               userAnswers: examProvider.userAnswers,
               isOffline: isOffline,
-              exam: widget.exam,
             ),
           ),
         );

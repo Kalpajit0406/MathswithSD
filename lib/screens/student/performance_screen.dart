@@ -14,6 +14,7 @@ class PerformanceScreen extends StatefulWidget {
 
 class _PerformanceScreenState extends State<PerformanceScreen> {
   late Future<Map<String, dynamic>?> _performanceFuture;
+  String _selectedTimeframe = 'week';
 
   @override
   void initState() {
@@ -25,7 +26,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     _performanceFuture = Provider.of<ExamProvider>(
       context,
       listen: false,
-    ).fetchStudentPerformance();
+    ).fetchStudentPerformance(timeframe: _selectedTimeframe);
   }
 
   @override
@@ -223,7 +224,25 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          FadeInSlide(
+            duration: const Duration(milliseconds: 700),
+            delay: const Duration(milliseconds: 50),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildTimeframeChip('today', "Today", themePrimary, textColor, isDark),
+                  const SizedBox(width: 8),
+                  _buildTimeframeChip('week', "Past Week", themePrimary, textColor, isDark),
+                  const SizedBox(width: 8),
+                  _buildTimeframeChip('month', "Past Month", themePrimary, textColor, isDark),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
 
           // Key metrics grid
           FadeInSlide(
@@ -496,6 +515,48 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           color: badgeColor,
         ),
       ),
+    );
+  }
+
+  Widget _buildTimeframeChip(
+    String timeframe,
+    String label,
+    Color themePrimary,
+    Color textColor,
+    bool isDark,
+  ) {
+    final isSelected = _selectedTimeframe == timeframe;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? (isDark ? Colors.black : Colors.white) : textColor.withValues(alpha: 0.8),
+          fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedTimeframe = timeframe;
+            _loadPerformance();
+          });
+        }
+      },
+      selectedColor: themePrimary,
+      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected
+              ? themePrimary
+              : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08)),
+        ),
+      ),
+      showCheckmark: false,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     );
   }
 }

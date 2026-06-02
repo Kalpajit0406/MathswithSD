@@ -22,9 +22,12 @@ class ApiService {
   final String _staticBaseUrl = AppConstants.baseUrl;
   String? _resolvedBaseUrl;
 
+  String get baseUrl => _resolvedBaseUrl ?? _staticBaseUrl;
+
   Future<String> _getBaseUrl() async {
-    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty)
+    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty) {
       return _resolvedBaseUrl!;
+    }
     // Check for a manual override stored in secure storage
     try {
       final override = await AuthStorageService.getBaseUrlOverride();
@@ -390,12 +393,14 @@ class ApiService {
 
   // ─── Analytics ───────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> getPerformance() async {
+  Future<Map<String, dynamic>> getPerformance({
+    String timeframe = 'week',
+  }) async {
+    final uri = (await _uri(
+      '/api/v1/analytics/my-performance',
+    )).replace(queryParameters: {'timeframe': timeframe});
     final response = await http
-        .get(
-          await _uri('/api/v1/analytics/my-performance'),
-          headers: await _headers(),
-        )
+        .get(uri, headers: await _headers())
         .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
@@ -640,5 +645,17 @@ class ApiService {
       }
     }
     return []; // Return empty list on failure rather than crashing
+  }
+
+  Future<DateTime> getServerTime() async {
+    final response = await http
+        .get(
+          await _uri('/api/v1/time'),
+          headers: await _headers(includeAuth: false),
+        )
+        .timeout(const Duration(seconds: 10));
+    final data = _processResponse(response);
+    final int timeStamp = data['timeStamp'] as int;
+    return DateTime.fromMillisecondsSinceEpoch(timeStamp);
   }
 }
