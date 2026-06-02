@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import '../../providers/exam_provider.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
 import '../../widgets/glass_card.dart';
@@ -13,7 +10,6 @@ class ResultScreen extends StatelessWidget {
   final List<Question> questions;
   final Map<String, String> userAnswers;
   final bool isOffline;
-  final Exam? exam;
 
   const ResultScreen({
     super.key,
@@ -23,25 +19,20 @@ class ResultScreen extends StatelessWidget {
     required this.questions,
     required this.userAnswers,
     this.isOffline = false,
-    this.exam,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+    final double percentage = totalQuestions > 0
+        ? (score / totalQuestions) * 100
+        : 0;
     final bool passed = percentage >= 40;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
-
-    final startDateTime = exam?.getExamDateTime();
-    final endDateTime = startDateTime?.add(Duration(minutes: exam?.duration ?? 0));
-    final bool isBeforeEnd = endDateTime != null && DateTime.now().isBefore(endDateTime);
-
-    if (isBeforeEnd) {
-      return _buildLockedResultView(context, endDateTime, textColor, secondaryTextColor, themePrimary, isDark);
-    }
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
 
     return DefaultTabController(
       length: 2,
@@ -50,7 +41,10 @@ class ResultScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           foregroundColor: textColor,
-          title: Text('Assessment Result', style: TextStyle(color: textColor, fontWeight: FontWeight.w900)),
+          title: Text(
+            'Assessment Result',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
+          ),
           elevation: 0,
           automaticallyImplyLeading: false,
           bottom: TabBar(
@@ -67,7 +61,12 @@ class ResultScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _buildSummary(context, percentage, passed),
-            _buildReviewList(textColor, secondaryTextColor, themePrimary, isDark),
+            _buildReviewList(
+              textColor,
+              secondaryTextColor,
+              themePrimary,
+              isDark,
+            ),
           ],
         ),
         bottomNavigationBar: _buildBottomBar(context, themePrimary, isDark),
@@ -75,133 +74,13 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLockedResultView(BuildContext context, DateTime endDateTime, Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
-    final formattedEndTime = DateFormat('hh:mm a').format(endDateTime);
-    final formattedEndDate = DateFormat('dd MMM yyyy').format(endDateTime);
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: textColor,
-        title: Text('Submission Status', style: TextStyle(color: textColor, fontWeight: FontWeight.w900)),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle_outline,
-                size: 80,
-                color: Color(0xFF10B981),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Exam Submitted Successfully!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Your responses have been saved. To maintain exam integrity, your score and correct answers will be released once the exam ends.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: secondaryTextColor,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            GlassCard(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exam?.title ?? 'Assessment',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  _buildDetailRow('Duration', '${exam?.duration ?? 0} minutes', textColor, secondaryTextColor),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Date', exam?.date ?? '', textColor, secondaryTextColor),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Start Time', exam?.time ?? '', textColor, secondaryTextColor),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Results Available', '$formattedEndDate @ $formattedEndTime', textColor, themePrimary),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: themePrimary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: themePrimary.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, color: themePrimary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'You can safely leave this page. Your results will automatically appear in your performance section after $formattedEndTime.',
-                      style: TextStyle(color: themePrimary, fontWeight: FontWeight.w600, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomBar(context, themePrimary, isDark),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, Color labelColor, Color valueColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: labelColor),
-        ),
-        Text(
-          value,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: valueColor),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSummary(BuildContext context, double percentage, bool passed) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -214,7 +93,9 @@ class ResultScreen extends StatelessWidget {
                 Icon(
                   passed ? Icons.emoji_events : Icons.sentiment_dissatisfied,
                   size: 80,
-                  color: passed ? const Color(0xFFFFC107) : const Color(0xFFE53935),
+                  color: passed
+                      ? const Color(0xFFFFC107)
+                      : const Color(0xFFE53935),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -222,36 +103,32 @@ class ResultScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: passed ? const Color(0xFF10B981) : const Color(0xFFE53935),
+                    color: passed
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFE53935),
                   ),
                 ),
                 const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Expanded(
-                      child: _StatColumn(
-                        label: 'Score',
-                        value: '$score / $totalQuestions',
-                        textColor: textColor,
-                        secondaryTextColor: secondaryTextColor,
-                      ),
+                    _StatColumn(
+                      label: 'Score',
+                      value: '$score / $totalQuestions',
+                      textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
                     ),
-                    Expanded(
-                      child: _StatColumn(
-                        label: 'Accuracy',
-                        value: '${percentage.toStringAsFixed(1)}%',
-                        textColor: textColor,
-                        secondaryTextColor: secondaryTextColor,
-                      ),
+                    _StatColumn(
+                      label: 'Accuracy',
+                      value: '${percentage.toStringAsFixed(1)}%',
+                      textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
                     ),
-                    Expanded(
-                      child: _StatColumn(
-                        label: 'Time',
-                        value: '${(timeTaken / 60).floor()}m ${timeTaken % 60}s',
-                        textColor: textColor,
-                        secondaryTextColor: secondaryTextColor,
-                      ),
+                    _StatColumn(
+                      label: 'Time',
+                      value: '${(timeTaken / 60).floor()}m ${timeTaken % 60}s',
+                      textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
                     ),
                   ],
                 ),
@@ -263,18 +140,26 @@ class ResultScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: themePrimary.withOpacity(0.08),
+                color: themePrimary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: themePrimary.withOpacity(0.2)),
+                border: Border.all(color: themePrimary.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.offline_pin_rounded, color: themePrimary, size: 24),
+                  Icon(
+                    Icons.offline_pin_rounded,
+                    color: themePrimary,
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Exam completed offline! Your answers are saved locally and will automatically sync when you reconnect.',
-                      style: TextStyle(color: themePrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(
+                        color: themePrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -292,9 +177,15 @@ class ResultScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF080C14) : const Color(0xFFECEEF0).withOpacity(0.5),
+        color: isDark
+            ? const Color(0xFF080C14)
+            : const Color(0xFFECEEF0).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFECEEF0)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFECEEF0),
+        ),
       ),
       child: Row(
         children: [
@@ -311,7 +202,12 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewList(Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+  Widget _buildReviewList(
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: questions.length,
@@ -334,55 +230,71 @@ class ResultScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: themePrimary.withOpacity(0.08),
-                        child: Text('${index + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: themePrimary)),
+                        backgroundColor: themePrimary.withValues(alpha: 0.08),
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: themePrimary,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        isUnanswered ? 'UNANSWERED' : (isCorrect ? 'CORRECT' : 'INCORRECT'),
+                        isUnanswered
+                            ? 'UNANSWERED'
+                            : (isCorrect ? 'CORRECT' : 'INCORRECT'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
-                          color: isUnanswered ? Colors.orange : (isCorrect ? Colors.green : Colors.red),
+                          color: isUnanswered
+                              ? Colors.orange
+                              : (isCorrect ? Colors.green : Colors.red),
                         ),
                       ),
                       const Spacer(),
                       Icon(
-                        isUnanswered ? Icons.help_outline : (isCorrect ? Icons.check_circle : Icons.cancel),
-                        color: isUnanswered ? Colors.orange : (isCorrect ? Colors.green : Colors.red),
+                        isUnanswered
+                            ? Icons.help_outline
+                            : (isCorrect ? Icons.check_circle : Icons.cancel),
+                        color: isUnanswered
+                            ? Colors.orange
+                            : (isCorrect ? Colors.green : Colors.red),
                         size: 20,
                       ),
                     ],
                   ),
                 ),
-                Divider(height: 1, color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFECEEF0)),
+                Divider(
+                  height: 1,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFECEEF0),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       LaTeXWidget(text: q.questionText, color: textColor),
-                      if (q.diagram != null && q.diagram!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            q.diagram!.startsWith('http')
-                                ? q.diagram!
-                                : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${q.diagram}',
-                            height: 140,
-                            width: double.infinity,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 16),
-                      _ReviewOption(label: 'Your Answer', value: userAns ?? 'Not Answered', isCorrect: isCorrect, color: isCorrect ? Colors.green : Colors.red, textColor: textColor),
+                      _ReviewOption(
+                        label: 'Your Answer',
+                        value: userAns ?? 'Not Answered',
+                        isCorrect: isCorrect,
+                        color: isCorrect ? Colors.green : Colors.red,
+                        textColor: textColor,
+                      ),
+                      if (!isCorrect) const SizedBox(height: 8),
                       if (!isCorrect)
-                        const SizedBox(height: 8),
-                      if (!isCorrect)
-                        _ReviewOption(label: 'Correct Answer', value: q.correctAnswer ?? 'N/A', isCorrect: true, color: Colors.green, textColor: textColor),
+                        _ReviewOption(
+                          label: 'Correct Answer',
+                          value: q.correctAnswer ?? 'N/A',
+                          isCorrect: true,
+                          color: Colors.green,
+                          textColor: textColor,
+                        ),
                     ],
                   ),
                 ),
@@ -394,28 +306,45 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, Color themePrimary, bool isDark) {
+  Widget _buildBottomBar(
+    BuildContext context,
+    Color themePrimary,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF020205) : Colors.white,
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFECEEF0),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFFECEEF0),
             width: 1,
           ),
         ),
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/student', (_) => false),
+        onPressed: () => Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/student', (_) => false),
         style: ElevatedButton.styleFrom(
           backgroundColor: themePrimary,
           foregroundColor: isDark ? Colors.black : Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 0,
         ),
-        child: Text('Back to Home', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: Text(
+          'Back to Home',
+          style: TextStyle(
+            color: isDark ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
@@ -428,7 +357,13 @@ class _ReviewOption extends StatelessWidget {
   final Color color;
   final Color textColor;
 
-  const _ReviewOption({required this.label, required this.value, required this.isCorrect, required this.color, required this.textColor});
+  const _ReviewOption({
+    required this.label,
+    required this.value,
+    required this.isCorrect,
+    required this.color,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -436,14 +371,21 @@ class _ReviewOption extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 4),
           InlineMathText(text: value, fontSize: 14, color: textColor),
         ],
@@ -458,7 +400,12 @@ class _StatColumn extends StatelessWidget {
   final Color textColor;
   final Color secondaryTextColor;
 
-  const _StatColumn({required this.label, required this.value, required this.textColor, required this.secondaryTextColor});
+  const _StatColumn({
+    required this.label,
+    required this.value,
+    required this.textColor,
+    required this.secondaryTextColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -466,12 +413,20 @@ class _StatColumn extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: textColor,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: secondaryTextColor),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondaryTextColor,
+          ),
         ),
       ],
     );

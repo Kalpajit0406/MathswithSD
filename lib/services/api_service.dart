@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../models/user_model.dart';
 import '../models/test_model.dart';
 import '../models/exam_model.dart' as exam;
 import '../utils/constants.dart';
@@ -23,10 +22,9 @@ class ApiService {
   final String _staticBaseUrl = AppConstants.baseUrl;
   String? _resolvedBaseUrl;
 
-  String get baseUrl => _resolvedBaseUrl ?? _staticBaseUrl;
-
   Future<String> _getBaseUrl() async {
-    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty) return _resolvedBaseUrl!;
+    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty)
+      return _resolvedBaseUrl!;
     // Check for a manual override stored in secure storage
     try {
       final override = await AuthStorageService.getBaseUrlOverride();
@@ -37,7 +35,9 @@ class ApiService {
           debugPrint('[ApiService] Using stored base URL override: $override');
           return override;
         }
-        debugPrint('[ApiService] Stored base URL override is unreachable, rediscovering: $override');
+        debugPrint(
+          '[ApiService] Stored base URL override is unreachable, rediscovering: $override',
+        );
       }
     } catch (e) {
       debugPrint('[ApiService] Error reading base URL override: $e');
@@ -67,7 +67,9 @@ class ApiService {
       if (discovered != null && discovered.isNotEmpty) {
         _resolvedBaseUrl = discovered;
         await AuthStorageService.saveBaseUrlOverride(discovered);
-        debugPrint('[ApiService] Resolved base URL via LAN discovery to $discovered');
+        debugPrint(
+          '[ApiService] Resolved base URL via LAN discovery to $discovered',
+        );
         return discovered;
       }
     } catch (e) {
@@ -84,7 +86,9 @@ class ApiService {
       final probeUri = Uri.parse('$baseUrl/health');
       final isRemote = baseUrl.startsWith('https://');
       final timeoutMs = isRemote ? 8000 : 1500;
-      final resp = await http.get(probeUri).timeout(Duration(milliseconds: timeoutMs));
+      final resp = await http
+          .get(probeUri)
+          .timeout(Duration(milliseconds: timeoutMs));
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         return true;
       }
@@ -106,7 +110,26 @@ class ApiService {
 
         final prefix = '${octets[0]}.${octets[1]}.${octets[2]}';
         final lastOctet = int.tryParse(octets[3]);
-        final commonHosts = <int>{1, 2, 3, 4, 5, 10, 11, 20, 50, 100, 101, 110, 111, 120, 125, 150, 200, 254};
+        final commonHosts = <int>{
+          1,
+          2,
+          3,
+          4,
+          5,
+          10,
+          11,
+          20,
+          50,
+          100,
+          101,
+          110,
+          111,
+          120,
+          125,
+          150,
+          200,
+          254,
+        };
         if (lastOctet != null) commonHosts.remove(lastOctet);
 
         for (final host in commonHosts) {
@@ -128,16 +151,20 @@ class ApiService {
 
     const batchSize = 40;
     for (var i = 0; i < candidateList.length; i += batchSize) {
-      final end = (i + batchSize < candidateList.length) ? i + batchSize : candidateList.length;
+      final end = (i + batchSize < candidateList.length)
+          ? i + batchSize
+          : candidateList.length;
       final batch = candidateList.sublist(i, end);
 
-      await Future.wait(batch.map((url) async {
-        if (foundUrl != null) return;
-        final ok = await _probeBaseUrl(url);
-        if (ok) {
-          foundUrl = url;
-        }
-      }));
+      await Future.wait(
+        batch.map((url) async {
+          if (foundUrl != null) return;
+          final ok = await _probeBaseUrl(url);
+          if (ok) {
+            foundUrl = url;
+          }
+        }),
+      );
 
       if (foundUrl != null) {
         return foundUrl;
@@ -174,13 +201,15 @@ class ApiService {
   }
 
   dynamic _processResponse(http.Response response) {
-    debugPrint('[ApiService] Response: ${response.statusCode} (${response.request?.url})');
-    
+    debugPrint(
+      '[ApiService] Response: ${response.statusCode} (${response.request?.url})',
+    );
+
     // Handle 401 unauthorized
     if (response.statusCode == 401) {
       _handleUnauthorized();
     }
-    
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) {
         debugPrint('[ApiService] Empty response body');
@@ -188,7 +217,9 @@ class ApiService {
       }
       try {
         final decoded = jsonDecode(response.body);
-        debugPrint('[ApiService] Response body (truncated): ${response.body.length > 200 ? response.body.substring(0, 200) + '...' : response.body}');
+        debugPrint(
+          '[ApiService] Response body (truncated): ${response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body}',
+        );
         return decoded;
       } catch (e) {
         debugPrint('[ApiService] JSON decode error: $e');
@@ -206,12 +237,19 @@ class ApiService {
     throw ApiException(message, response.statusCode);
   }
 
-  Future<void> _logRequest(String method, Uri uri, Map<String, String>? headers) async {
+  Future<void> _logRequest(
+    String method,
+    Uri uri,
+    Map<String, String>? headers,
+  ) async {
     debugPrint('[ApiService] Request: $method ${uri.path}');
     if (headers != null) {
       final sanitized = Map<String, String>.from(headers);
       if (sanitized.containsKey('Authorization')) {
-        sanitized['Authorization'] = sanitized['Authorization']!.replaceAll(RegExp(r'.{20}'), 'X');
+        sanitized['Authorization'] = sanitized['Authorization']!.replaceAll(
+          RegExp(r'.{20}'),
+          'X',
+        );
       }
       debugPrint('[ApiService] Headers: $sanitized');
     }
@@ -223,61 +261,74 @@ class ApiService {
     final uri = await _uri(AppConstants.loginEndpoint);
     final headers = await _headers(includeAuth: false);
     await _logRequest('POST', uri, headers);
-    final response = await http.post(
-      uri,
-      headers: headers,
-      body: jsonEncode({'studentPhone': phone, 'password': password}),
-    ).timeout(const Duration(seconds: 20));
+    final response = await http
+        .post(
+          uri,
+          headers: headers,
+          body: jsonEncode({'studentPhone': phone, 'password': password}),
+        )
+        .timeout(const Duration(seconds: 20));
     return _processResponse(response);
   }
 
   Future<http.Response> register(Map<String, dynamic> data) async {
-    return await http.post(
-      await _uri(AppConstants.registerEndpoint),
-      headers: await _headers(includeAuth: false),
-      body: jsonEncode(data),
-    ).timeout(const Duration(seconds: 20));
+    return await http
+        .post(
+          await _uri(AppConstants.registerEndpoint),
+          headers: await _headers(includeAuth: false),
+          body: jsonEncode(data),
+        )
+        .timeout(const Duration(seconds: 20));
   }
 
   Future<Map<String, dynamic>> fetchProfile() async {
-    final response = await http.get(
-      await _uri(AppConstants.profileMeEndpoint),
-      headers: await _headers(),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .get(
+          await _uri(AppConstants.profileMeEndpoint),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
-  Future<Map<String, dynamic>> submitProfileEditRequest(int classNo, String language, {bool isJoint = false}) async {
-    final response = await http.post(
-      await _uri(AppConstants.profileEditEndpoint),
-      headers: await _headers(),
-      body: jsonEncode({
-        'classNo': classNo,
-        'language': language,
-        'isJoint': isJoint,
-      }),
-    ).timeout(const Duration(seconds: 15));
+  Future<Map<String, dynamic>> submitProfileEditRequest(
+    int classNo,
+    String language, {
+    bool isJoint = false,
+  }) async {
+    final response = await http
+        .post(
+          await _uri(AppConstants.profileEditEndpoint),
+          headers: await _headers(),
+          body: jsonEncode({
+            'classNo': classNo,
+            'language': language,
+            'isJoint': isJoint,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
   // ─── Tests & Exams ───────────────────────────────────────────────────────────
 
   Future<List<exam.Exam>> fetchExams() async {
-    final response = await http.get(
-      await _uri(AppConstants.testsEndpoint),
-      headers: await _headers(),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .get(await _uri(AppConstants.testsEndpoint), headers: await _headers())
+        .timeout(const Duration(seconds: 15));
     final data = _processResponse(response);
     final list = data is List ? data : (data['data'] as List? ?? []);
     return list.map((item) => exam.Exam.fromJson(item)).toList();
   }
 
   Future<Map<String, dynamic>> startAttempt(String examId) async {
-    final response = await http.post(
-      await _uri(AppConstants.startAttemptEndpoint),
-      headers: await _headers(),
-      body: jsonEncode({'examId': examId}),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .post(
+          await _uri(AppConstants.startAttemptEndpoint),
+          headers: await _headers(),
+          body: jsonEncode({'examId': examId}),
+        )
+        .timeout(const Duration(seconds: 15));
     final data = _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
   }
@@ -295,23 +346,27 @@ class ApiService {
       'attemptId': attemptId,
       'responses': answers
           .where((a) => a['questionId'] != null)
-          .map((a) => {
-                'questionId': a['questionId'],
-                'userAnswer': a['answer'] ?? a['selectedOption'],
-              })
+          .map(
+            (a) => {
+              'questionId': a['questionId'],
+              'userAnswer': a['answer'] ?? a['selectedOption'],
+            },
+          )
           .toList(),
-      if (violations != null) 'violations': violations,
+      'violations': ?violations,
       'isAutoSubmitted': isAutoSubmitted,
-      if (autoSubmitReason != null) 'autoSubmitReason': autoSubmitReason,
+      'autoSubmitReason': ?autoSubmitReason,
       'emulatorDetected': emulatorDetected,
       'rootDetected': rootDetected,
     };
 
-    final response = await http.post(
-      await _uri(AppConstants.submitAttemptEndpoint),
-      headers: await _headers(),
-      body: jsonEncode(bodyData),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .post(
+          await _uri(AppConstants.submitAttemptEndpoint),
+          headers: await _headers(),
+          body: jsonEncode(bodyData),
+        )
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
@@ -320,13 +375,14 @@ class ApiService {
   Future<List<Announcement>> getAnnouncements({String? targetClass}) async {
     final params = <String, String>{};
     if (targetClass != null) params['targetClass'] = targetClass;
-    
-    final uri = (await _uri(AppConstants.announcementsEndpoint)).replace(queryParameters: params);
-    final response = await http.get(
-      uri,
-      headers: await _headers(),
-    ).timeout(const Duration(seconds: 15));
-    
+
+    final uri = (await _uri(
+      AppConstants.announcementsEndpoint,
+    )).replace(queryParameters: params);
+    final response = await http
+        .get(uri, headers: await _headers())
+        .timeout(const Duration(seconds: 15));
+
     final data = _processResponse(response);
     final list = data['data'] as List? ?? [];
     return list.map((a) => Announcement.fromJson(a)).toList();
@@ -335,20 +391,24 @@ class ApiService {
   // ─── Analytics ───────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getPerformance() async {
-    final response = await http.get(
-      await _uri('/api/v1/analytics/my-performance'),
-      headers: await _headers(),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .get(
+          await _uri('/api/v1/analytics/my-performance'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
   Future<double> fetchExamDifficulty(String examId) async {
     try {
-      final response = await http.get(
-        await _uri('/api/v1/ratings/exam-analytics/$examId'),
-        headers: await _headers(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            await _uri('/api/v1/ratings/exam-analytics/$examId'),
+            headers: await _headers(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       final body = _processResponse(response);
       if (body['success'] == true && body['data'] != null) {
         final List list = body['data'] as List;
@@ -379,7 +439,10 @@ class ApiService {
   // ─── Retry Methods ───────────────────────────────────────────────────────────
 
   /// Login with exponential backoff retry (1s → 2s → 4s)
-  Future<Map<String, dynamic>> loginWithRetry(String phone, String password) async {
+  Future<Map<String, dynamic>> loginWithRetry(
+    String phone,
+    String password,
+  ) async {
     int attempt = 0;
     const maxAttempts = 3;
     Duration delay = const Duration(seconds: 1);
@@ -387,7 +450,7 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await login(phone, password);
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
@@ -406,7 +469,7 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await fetchExams();
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
@@ -425,7 +488,7 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await startAttempt(examId);
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
@@ -460,18 +523,23 @@ class ApiService {
           emulatorDetected: emulatorDetected,
           rootDetected: rootDetected,
         );
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
         delay = Duration(seconds: delay.inSeconds * 2);
       }
     }
-    throw ApiException('Submit answers failed after $maxAttempts attempts', 500);
+    throw ApiException(
+      'Submit answers failed after $maxAttempts attempts',
+      500,
+    );
   }
 
   /// Get announcements with retry
-  Future<List<Announcement>> getAnnouncementsWithRetry({String? targetClass}) async {
+  Future<List<Announcement>> getAnnouncementsWithRetry({
+    String? targetClass,
+  }) async {
     int attempt = 0;
     const maxAttempts = 3;
     Duration delay = const Duration(seconds: 1);
@@ -479,14 +547,17 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await getAnnouncements(targetClass: targetClass);
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
         delay = Duration(seconds: delay.inSeconds * 2);
       }
     }
-    throw ApiException('Get announcements failed after $maxAttempts attempts', 500);
+    throw ApiException(
+      'Get announcements failed after $maxAttempts attempts',
+      500,
+    );
   }
 
   Future<Map<String, dynamic>> syncOfflineAttempt({
@@ -497,19 +568,23 @@ class ApiService {
       'examId': examId,
       'responses': responses
           .where((r) => r['questionId'] != null)
-          .map((r) => {
-                'questionId': r['questionId'],
-                'selectedAnswer': r['selectedAnswer'] ?? r['answer'],
-                'timeSpent': r['timeSpent'] ?? 0,
-              })
+          .map(
+            (r) => {
+              'questionId': r['questionId'],
+              'selectedAnswer': r['selectedAnswer'] ?? r['answer'],
+              'timeSpent': r['timeSpent'] ?? 0,
+            },
+          )
           .toList(),
     };
 
-    final response = await http.post(
-      await _uri(AppConstants.syncOfflineAttemptEndpoint),
-      headers: await _headers(),
-      body: jsonEncode(bodyData),
-    ).timeout(const Duration(seconds: 20));
+    final response = await http
+        .post(
+          await _uri(AppConstants.syncOfflineAttemptEndpoint),
+          headers: await _headers(),
+          body: jsonEncode(bodyData),
+        )
+        .timeout(const Duration(seconds: 20));
     return _processResponse(response);
   }
 
@@ -524,21 +599,26 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await syncOfflineAttempt(examId: examId, responses: responses);
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
         delay = Duration(seconds: delay.inSeconds * 2);
       }
     }
-    throw ApiException('Sync offline attempt failed after $maxAttempts attempts', 500);
+    throw ApiException(
+      'Sync offline attempt failed after $maxAttempts attempts',
+      500,
+    );
   }
 
   Future<List<String>> getCompletedExamIds() async {
-    final response = await http.get(
-      await _uri('/api/v1/testResponse/completed-exam-ids'),
-      headers: await _headers(),
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .get(
+          await _uri('/api/v1/testResponse/completed-exam-ids'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
     final data = _processResponse(response);
     final list = data['data'] as List? ?? [];
     return list.map((id) => id.toString()).toList();
@@ -552,7 +632,7 @@ class ApiService {
     while (attempt < maxAttempts) {
       try {
         return await getCompletedExamIds();
-      } on ApiException catch (e) {
+      } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
         await Future.delayed(delay);
