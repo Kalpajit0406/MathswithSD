@@ -47,7 +47,6 @@ class ApiService {
     }
 
     final candidates = <String>[
-      _staticBaseUrl,
       'http://10.0.2.2:5000', // Android emulator
       'http://localhost:5000', // Desktop
     ];
