@@ -10,6 +10,7 @@ import '../../services/connectivity_manager.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/exam_security_service.dart';
 import '../../services/network_time_service.dart';
+import '../../services/websocket_service.dart';
 import 'package:intl/intl.dart';
 import 'submission_success_screen.dart';
 
@@ -47,6 +48,40 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
   String _violationBannerMessage = '';
   Timer? _bannerTimer;
 
+  // Reconnection and online tracking (Part 1)
+  bool _showReconnectCountdown = false;
+  bool _freezeExamInteractions = false;
+  int _reconnectCountdownSeconds = 15;
+  Timer? _reconnectTimerUI;
+
+  void _startReconnectTimer() {
+    _reconnectTimerUI?.cancel();
+    _reconnectCountdownSeconds = 15;
+    _reconnectTimerUI = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_reconnectCountdownSeconds > 0) {
+          _reconnectCountdownSeconds--;
+        } else {
+          timer.cancel();
+          _autoSubmitExam('🔌 Disconnected from server. Reconnect timeout exceeded.');
+        }
+      });
+    });
+  }
+
+  void _cancelReconnectTimer() {
+    _reconnectTimerUI?.cancel();
+    _reconnectTimerUI = null;
+    setState(() {
+      _showReconnectCountdown = false;
+      _freezeExamInteractions = false;
+    });
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────
 
   @override
@@ -59,51 +94,40 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
   Future<void> _initializeExam() async {
     final provider = Provider.of<ExamProvider>(context, listen: false);
     try {
+      final isOffline = !ConnectivityManager().isOnline;
+      if (isOffline) {
+        throw Exception('Offline examinations are disabled. Active server session is required.');
+      }
+
       // ── Try to recover autosaved answers (crash recovery) ──
       final recovered = await _security.recoverAutosavedAnswers(widget.exam.id);
 
-      final isOffline = !ConnectivityManager().isOnline;
-      if (isOffline) {
-        final offlineExam = await OfflineExamService().getOfflineExam(
-          widget.exam.id,
-        );
-        if (offlineExam != null) {
-          if (offlineExam.isCompleted) {
-            throw Exception('This exam has already been completed offline.');
-          }
-          final elapsed = NetworkTimeService().istNow
-              .difference(offlineExam.startedAt)
-              .inSeconds;
-          final remaining = (offlineExam.duration * 60) - elapsed;
-          if (remaining <= 0) {
-            await OfflineExamService().completeOfflineExam(widget.exam.id);
-            throw Exception('Time limit for this exam has expired.');
-          }
-          await provider.startExamOffline(widget.exam.id, remaining);
-        } else {
-          final newOfflineExam = OfflineExam(
-            examId: widget.exam.id,
-            title: widget.exam.title,
-            duration: widget.exam.duration,
-            questions: widget.exam.questions.map((q) => q.toJson()).toList(),
-            startedAt: NetworkTimeService().istNow,
-            isCompleted: false,
-            status: 'started',
-          );
-          await OfflineExamService().saveExamOffline(newOfflineExam);
-          await provider.startExamOffline(
-            widget.exam.id,
-            widget.exam.duration * 60,
-          );
-        }
+      final cached = await provider.checkForResumableExam();
+      if (cached != null && cached['examId'] == widget.exam.id) {
+        await provider.resumeExam(cached);
       } else {
-        final cached = await provider.checkForResumableExam();
-        if (cached != null && cached['examId'] == widget.exam.id) {
-          await provider.resumeExam(cached);
-        } else {
-          await provider.startExam(widget.exam.id);
-        }
+        await provider.startExam(widget.exam.id);
       }
+
+      // Setup WebSocket connection event listener hook (Part 1)
+      final wsService = ExamWebSocketService();
+      wsService.statusStream.listen((connected) {
+        if (!mounted) return;
+        if (!connected) {
+          setState(() {
+            _showReconnectCountdown = true;
+            _freezeExamInteractions = true;
+          });
+          _startReconnectTimer();
+        } else {
+          _cancelReconnectTimer();
+        }
+      });
+
+      wsService.terminateStream.listen((reason) {
+        if (!mounted) return;
+        _autoSubmitExam(reason);
+      });
 
       // Restore autosaved answers if available
       if (recovered != null && recovered.isNotEmpty) {
@@ -123,8 +147,15 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         }
       }
 
-      // Listen to violation events
-      _violationSub = _security.violationStream.listen(_onViolation);
+      // Listen to violation events and stream them to WS backend (Part 9)
+      _violationSub = _security.violationStream.listen((event) {
+        _onViolation(event);
+        try {
+          ExamWebSocketService().sendTelemetry(event.toJson());
+        } catch (e) {
+          debugPrint('Failed to send telemetry over WS: $e');
+        }
+      });
 
       // ── Activate security AFTER exam is successfully initialized ──
       await _security.startSecureExam(
@@ -587,8 +618,10 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
     // ── Main Exam UI ──────────────────────────────────────────────────────────
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         // ── AppBar ──────────────────────────────────────────────────────────
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -1202,8 +1235,73 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           ],
         ),
       ),
-    );
-  }
+      if (_freezeExamInteractions)
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.85),
+            child: Center(
+              child: Card(
+                color: const Color(0xFF1E293B),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.redAccent, width: 2),
+                ),
+                margin: const EdgeInsets.all(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(
+                          color: Colors.redAccent,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        '⚠️ CONNECTION INTERRUPTED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Your connection to the secure exam server has been lost. Freeze mode active to preserve exam integrity.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Auto-submitting in: $_reconnectCountdownSeconds seconds',
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+);
+}
 
   // ── Submit Confirmation Dialog ────────────────────────────────────────────
 

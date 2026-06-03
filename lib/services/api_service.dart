@@ -202,7 +202,16 @@ class ApiService {
     onUnauthorized?.call();
   }
 
-  dynamic _processResponse(http.Response response) {
+  Future<dynamic> _parseJson(String body) async {
+    if (body.length > 20000) {
+      return compute(_jsonDecodeHelper, body);
+    }
+    return jsonDecode(body);
+  }
+
+  static dynamic _jsonDecodeHelper(String body) => jsonDecode(body);
+
+  Future<dynamic> _processResponse(http.Response response) async {
     debugPrint(
       '[ApiService] Response: ${response.statusCode} (${response.request?.url})',
     );
@@ -218,7 +227,7 @@ class ApiService {
         return {};
       }
       try {
-        final decoded = jsonDecode(response.body);
+        final decoded = await _parseJson(response.body);
         debugPrint(
           '[ApiService] Response body (truncated): ${response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body}',
         );
@@ -230,7 +239,7 @@ class ApiService {
     }
     String message = 'Request failed (${response.statusCode})';
     try {
-      final body = jsonDecode(response.body);
+      final body = await _parseJson(response.body);
       message = body['message'] ?? message;
     } catch (_) {
       debugPrint('[ApiService] Error response body: ${response.body}');

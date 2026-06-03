@@ -10,6 +10,7 @@ import '../utils/resource_manager.dart';
 import '../services/offline_exam_service.dart';
 import '../services/connectivity_manager.dart';
 import '../services/network_time_service.dart';
+import '../services/websocket_service.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
@@ -252,6 +253,10 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   }
 
   Future<void> startExam(String examId) async {
+    if (!ConnectivityManager().isOnline) {
+      throw Exception('Exams require an active server connection and live session.');
+    }
+
     _currentQuestionIndex = 0;
     _userAnswers = {};
     _currentExamId = examId;
@@ -278,6 +283,10 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       
       await _saveAttemptToPrefs();
       _startTimer();
+
+      // Establish WebSocket session for live telemetry & timer sync
+      importServicesAndConnectWs(examId);
+
       if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('Error starting exam: $e');
@@ -290,6 +299,19 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _markedForReview = {};
       await _clearAttemptFromPrefs();
       rethrow;
+    }
+  }
+
+  void importServicesAndConnectWs(String examId) {
+    try {
+      final wsService = ExamWebSocketService();
+      wsService.connect(_currentAttemptId!, examId);
+      wsService.onTimeUpdated = (serverSeconds) {
+        _remainingSeconds = serverSeconds;
+        if (!_isDisposed) notifyListeners();
+      };
+    } catch (e) {
+      debugPrint('Failed to connect to security WS: $e');
     }
   }
 
@@ -313,56 +335,20 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   }
 
   Future<void> startExamOffline(String examId, int remainingSecs) async {
-    _currentQuestionIndex = 0;
-    _userAnswers = {};
-    _currentExamId = examId;
-    _currentAttemptId = 'offline_$examId';
-    _remainingSeconds = remainingSecs;
-    _visitedQuestionIds = {};
-    _markedForReview = {};
-    
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final answersRaw = prefs.getString('offline_answers_$examId');
-      if (answersRaw != null) {
-        _userAnswers = Map<String, String>.from(jsonDecode(answersRaw));
-      }
-      final visitedRaw = prefs.getStringList('offline_visited_$examId') ?? [];
-      _visitedQuestionIds = Set<String>.from(visitedRaw);
-      final markedRaw = prefs.getStringList('offline_marked_$examId') ?? [];
-      _markedForReview = Set<String>.from(markedRaw);
-    } catch (e) {
-      debugPrint('Error loading cached offline answers: $e');
-    }
-    
-    // Auto-mark first question as visited if empty
-    final exam = _scheduledTests.firstWhere((e) => e.id == examId);
-    if (_visitedQuestionIds.isEmpty && exam.questions.isNotEmpty) {
-      _visitedQuestionIds.add(exam.questions[0].id);
-    }
-    
-    await _saveAttemptToPrefs();
-    _startTimer();
-    if (!_isDisposed) notifyListeners();
+    throw Exception('Offline examinations are disabled. Active server session is required.');
   }
 
   void setAnswer(String questionId, String answer) {
     _userAnswers[questionId] = answer;
     _scheduleAttemptSave();
     
-    if (_currentAttemptId != null && _currentAttemptId!.startsWith('offline_')) {
-      final response = OfflineResponse(
-        responseId: '${_currentAttemptId}_$questionId',
-        examId: _currentExamId!,
-        questionId: questionId,
-        selectedAnswer: answer,
-        timeSpent: 0,
-        answeredAt: NetworkTimeService().istNow,
-      );
-      OfflineExamService().saveOfflineResponse(response);
-      SharedPreferences.getInstance().then((prefs) {
-        prefs.setString('offline_answers_$_currentExamId', jsonEncode(_userAnswers));
-      });
+    // Sync answer continuously over WebSocket (zero trust telemetry)
+    if (_currentAttemptId != null && !_currentAttemptId!.startsWith('offline_')) {
+      try {
+        ExamWebSocketService().syncAnswer(questionId, answer);
+      } catch (e) {
+        debugPrint('Failed to sync answer over WS: $e');
+      }
     }
     
     if (!_isDisposed) notifyListeners();
@@ -454,6 +440,12 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     _timer?.cancel();
     _isLoading = true;
     if (!_isDisposed) notifyListeners();
+
+    try {
+      ExamWebSocketService().disconnect();
+    } catch (e) {
+      debugPrint('Error disconnecting WS: $e');
+    }
 
     try {
         await _pendingAttemptSave;
