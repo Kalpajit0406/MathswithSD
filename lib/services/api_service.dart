@@ -20,7 +20,7 @@ class ApiService {
   static VoidCallback? onUnauthorized;
   // Static value from build-time env; resolved at runtime by _getBaseUrl
   final String _staticBaseUrl = AppConstants.baseUrl;
-  String? _resolvedBaseUrl;
+  static String? _resolvedBaseUrl;
 
   String get baseUrl => _resolvedBaseUrl ?? _staticBaseUrl;
 
@@ -734,5 +734,14 @@ class ApiService {
         .timeout(const Duration(seconds: 10));
     final data = await _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  String? getDiagramUrl(String? diagramPath) {
+    if (diagramPath == null || diagramPath.isEmpty) return null;
+    if (diagramPath.startsWith('http')) return diagramPath;
+    final base = baseUrl;
+    final cleanBase = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    final cleanPath = diagramPath.startsWith('/') ? diagramPath : '/$diagramPath';
+    return '$cleanBase$cleanPath';
   }
 }
