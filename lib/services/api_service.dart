@@ -279,7 +279,8 @@ class ApiService {
           body: jsonEncode({'studentPhone': phone, 'password': password}),
         )
         .timeout(const Duration(seconds: 20));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   Future<http.Response> register(Map<String, dynamic> data) async {
@@ -299,7 +300,8 @@ class ApiService {
           headers: await _headers(),
         )
         .timeout(const Duration(seconds: 15));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   Future<Map<String, dynamic>> submitProfileEditRequest(
@@ -318,7 +320,8 @@ class ApiService {
           }),
         )
         .timeout(const Duration(seconds: 15));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   // ─── Tests & Exams ───────────────────────────────────────────────────────────
@@ -327,7 +330,7 @@ class ApiService {
     final response = await http
         .get(await _uri(AppConstants.testsEndpoint), headers: await _headers())
         .timeout(const Duration(seconds: 15));
-    final data = _processResponse(response);
+    final data = await _processResponse(response);
     final list = data is List ? data : (data['data'] as List? ?? []);
     return list.map((item) => exam.Exam.fromJson(item)).toList();
   }
@@ -340,7 +343,7 @@ class ApiService {
           body: jsonEncode({'examId': examId}),
         )
         .timeout(const Duration(seconds: 15));
-    final data = _processResponse(response);
+    final data = await _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
   }
 
@@ -378,7 +381,8 @@ class ApiService {
           body: jsonEncode(bodyData),
         )
         .timeout(const Duration(seconds: 15));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   // ─── Announcements ────────────────────────────────────────────────────────────
@@ -394,7 +398,7 @@ class ApiService {
         .get(uri, headers: await _headers())
         .timeout(const Duration(seconds: 15));
 
-    final data = _processResponse(response);
+    final data = await _processResponse(response);
     final list = data['data'] as List? ?? [];
     return list.map((a) => Announcement.fromJson(a)).toList();
   }
@@ -410,7 +414,8 @@ class ApiService {
     final response = await http
         .get(uri, headers: await _headers())
         .timeout(const Duration(seconds: 15));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   Future<double> fetchExamDifficulty(String examId) async {
@@ -422,7 +427,7 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      final body = _processResponse(response);
+      final body = await _processResponse(response);
       if (body['success'] == true && body['data'] != null) {
         final List list = body['data'] as List;
         if (list.isNotEmpty) {
@@ -598,7 +603,8 @@ class ApiService {
           body: jsonEncode(bodyData),
         )
         .timeout(const Duration(seconds: 20));
-    return _processResponse(response);
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
   }
 
   Future<Map<String, dynamic>> syncOfflineAttemptWithRetry({
@@ -632,7 +638,7 @@ class ApiService {
           headers: await _headers(),
         )
         .timeout(const Duration(seconds: 15));
-    final data = _processResponse(response);
+    final data = await _processResponse(response);
     final list = data['data'] as List? ?? [];
     return list.map((id) => id.toString()).toList();
   }
@@ -662,7 +668,7 @@ class ApiService {
           headers: await _headers(includeAuth: false),
         )
         .timeout(const Duration(seconds: 10));
-    final data = _processResponse(response);
+    final data = await _processResponse(response);
     final int timeStamp = data['timeStamp'] as int;
     return DateTime.fromMillisecondsSinceEpoch(timeStamp);
   }
