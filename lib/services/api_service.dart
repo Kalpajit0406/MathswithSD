@@ -666,4 +666,67 @@ class ApiService {
     final int timeStamp = data['timeStamp'] as int;
     return DateTime.fromMillisecondsSinceEpoch(timeStamp);
   }
+
+  // ─── Self Assessment ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> generateSelfAssessment() async {
+    final response = await http
+        .post(
+          await _uri('/api/v1/self-assessment/generate'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  Future<Map<String, dynamic>> getSelfAssessmentQuestion(String token) async {
+    final headers = await _headers();
+    headers['x-assessment-token'] = token;
+
+    final response = await http
+        .get(
+          await _uri('/api/v1/self-assessment/question'),
+          headers: headers,
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  Future<Map<String, dynamic>> submitSelfAssessmentAnswer(
+    String token,
+    String questionId,
+    String selectedAnswer,
+  ) async {
+    final headers = await _headers();
+    headers['x-assessment-token'] = token;
+
+    final response = await http
+        .post(
+          await _uri('/api/v1/self-assessment/submit'),
+          headers: headers,
+          body: jsonEncode({
+            'questionId': questionId,
+            'selectedAnswer': selectedAnswer,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  Future<Map<String, dynamic>> sendSelfAssessmentHeartbeat(String token) async {
+    final headers = await _headers();
+    headers['x-assessment-token'] = token;
+
+    final response = await http
+        .post(
+          await _uri('/api/v1/self-assessment/heartbeat'),
+          headers: headers,
+        )
+        .timeout(const Duration(seconds: 10));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
 }

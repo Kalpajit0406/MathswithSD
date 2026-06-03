@@ -14,6 +14,7 @@ import '../../widgets/glass_card.dart';
 import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
+import 'self_assessment_screen.dart';
 import 'package:intl/intl.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/kiosk_service.dart';
@@ -862,6 +863,81 @@ class _HomeTabState extends State<_HomeTab> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            FadeInSlide(
+              duration: const Duration(milliseconds: 600),
+              delay: const Duration(milliseconds: 400),
+              child: BounceOnTap(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SelfAssessmentScreen(),
+                    ),
+                  );
+                },
+                child: GlassCard(
+                  padding: const EdgeInsets.all(24),
+                  color: isDark
+                      ? const Color(0xFF4A148C).withValues(alpha: 0.15)
+                      : const Color(0xFFF3E5F5).withValues(alpha: 0.8),
+                  border: Border.all(
+                    color: const Color(0xFF9C27B0).withValues(alpha: 0.25),
+                    width: 1.2,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.psychology_rounded,
+                          color: Color(0xFF9C27B0),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Generate Practice Test',
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Create randomized self-assessments matching your class curriculum.',
+                              style: TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: themePrimary,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 32),
           ],
