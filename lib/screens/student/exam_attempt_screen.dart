@@ -9,6 +9,9 @@ import 'result_screen.dart';
 import '../../services/connectivity_manager.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/exam_security_service.dart';
+import '../../services/network_time_service.dart';
+import 'package:intl/intl.dart';
+import 'submission_success_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Colour constants (matches app theme)
@@ -68,7 +71,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           if (offlineExam.isCompleted) {
             throw Exception('This exam has already been completed offline.');
           }
-          final elapsed = DateTime.now()
+          final elapsed = NetworkTimeService().istNow
               .difference(offlineExam.startedAt)
               .inSeconds;
           final remaining = (offlineExam.duration * 60) - elapsed;
@@ -83,7 +86,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             title: widget.exam.title,
             duration: widget.exam.duration,
             questions: widget.exam.questions.map((q) => q.toJson()).toList(),
-            startedAt: DateTime.now(),
+            startedAt: NetworkTimeService().istNow,
             isCompleted: false,
             status: 'started',
           );
@@ -343,20 +346,42 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
       await _security.clearAutosavedAnswers(widget.exam.id);
 
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ResultScreen(
-              score: score,
-              totalQuestions: widget.exam.questions.length,
-              timeTaken:
-                  (widget.exam.duration * 60) - examProvider.remainingSeconds,
-              questions: widget.exam.questions,
-              userAnswers: examProvider.userAnswers,
-              isOffline: isOffline,
+        final examStart = widget.exam.getExamDateTime();
+        bool examEnded = true;
+        String endTimeStr = '';
+        if (examStart != null) {
+          final examEnd = examStart.add(Duration(minutes: widget.exam.duration));
+          final now = NetworkTimeService().istNow;
+          examEnded = now.isAfter(examEnd);
+          endTimeStr = '${widget.exam.date} @ ${DateFormat('hh:mm a').format(examEnd)}';
+        }
+
+        if (examEnded) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResultScreen(
+                score: score,
+                totalQuestions: widget.exam.questions.length,
+                timeTaken:
+                    (widget.exam.duration * 60) - examProvider.remainingSeconds,
+                questions: widget.exam.questions,
+                userAnswers: examProvider.userAnswers,
+                isOffline: isOffline,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SubmissionSuccessScreen(
+                examTitle: widget.exam.title,
+                endTimeStr: endTimeStr,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() => _isSubmitted = false);

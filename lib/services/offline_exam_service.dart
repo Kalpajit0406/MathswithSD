@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:async';
+import 'network_time_service.dart';
 
 /// Model for offline exam data stored locally
 class OfflineExam {
@@ -224,7 +225,7 @@ class OfflineExamService {
       'offline_exams',
       {
         'isCompleted': 1,
-        'completedAt': DateTime.now().toIso8601String(),
+        'completedAt': NetworkTimeService().istNow.toIso8601String(),
         'status': 'completed',
       },
       where: 'examId = ?',

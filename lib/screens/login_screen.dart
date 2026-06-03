@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -14,14 +16,25 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _passwordVisible = false;
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -51,21 +64,91 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor = isDark ? const Color(0xFFCCC3D4) : const Color(0xFF475569);
 
     return PopScope(
       canPop: false,
       child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light,
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A0F1D), Color(0xFF1E1B4B)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: SafeArea(
+          child: Stack(
+              children: [
+                // Animated ambient glowing circles for glassmorphism
+                AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    final progress = _animationController.value;
+                    final angle = progress * 2 * math.pi;
+
+                    // Sinusoidal drift offsets to simulate fluid flow
+                    final dx1 = math.sin(angle) * 45;
+                    final dy1 = math.cos(angle) * 45;
+
+                    final dx2 = math.cos(angle + math.pi / 2) * 55;
+                    final dy2 = math.sin(angle + math.pi / 2) * 55;
+
+                    final dx3 = math.sin(angle + math.pi) * 40;
+                    final dy3 = math.cos(angle + math.pi) * 40;
+
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                    return Stack(
+                      children: [
+                        Positioned(
+                          top: -100 + dy1,
+                          right: -100 + dx1,
+                          child: Container(
+                            width: 340,
+                            height: 340,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark
+                                  ? const Color(0xFF0051D5).withValues(alpha: 0.16)
+                                  : const Color(0xFF0051D5).withValues(alpha: 0.08),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 80 + dy2,
+                          left: -100 + dx2,
+                          child: Container(
+                            width: 360,
+                            height: 360,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark
+                                  ? const Color(0xFFF97316).withValues(alpha: 0.12)
+                                  : const Color(0xFFF97316).withValues(alpha: 0.06),
+                            ),
+                          ),
+                        ),
+                        if (isDark)
+                          Positioned(
+                            top: 260 + dy3,
+                            right: -120 + dx3,
+                            child: Container(
+                              width: 300,
+                              height: 300,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFD946EF).withValues(alpha: 0.09),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                    child: const SizedBox.shrink(),
+                  ),
+                ),
+                SafeArea(
               child: Center(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -156,12 +239,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             duration: const Duration(milliseconds: 700),
                             delay: const Duration(milliseconds: 100),
                             slideOffset: 20,
-                            child: const Text(
+                            child: Text(
                               'MathsWithSD',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: textColor,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -174,10 +257,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             duration: const Duration(milliseconds: 700),
                             delay: const Duration(milliseconds: 150),
                             slideOffset: 15,
-                            child: const Text(
+                            child: Text(
                               'Sign in to your student academy portal',
                               style: TextStyle(
-                                color: Color(0xFFCCC3D4),
+                                color: subtitleColor,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -204,8 +287,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 TextFormField(
                                   controller: _phoneController,
                                   keyboardType: TextInputType.phone,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: textColor,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -231,8 +314,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: !_passwordVisible,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: textColor,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -320,10 +403,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "New to MathsWithSD? ",
                                 style: TextStyle(
-                                  color: Color(0xFFA8A5B8),
+                                  color: isDark ? const Color(0xFFA8A5B8) : const Color(0xFF64748B),
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -331,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextButton(
                                 onPressed: widget.onNavigateToRegister,
                                 style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFD3BBFF),
+                                  foregroundColor: isDark ? const Color(0xFFD3BBFF) : const Color(0xFF6D28D9),
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,
                                   tapTargetSize:
@@ -355,17 +438,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildLabel(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
-      style: const TextStyle(
-        color: Color(0xFFD3BBFF),
+      style: TextStyle(
+        color: isDark ? const Color(0xFFD3BBFF) : const Color(0xFF4C1D95),
         fontSize: 13,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.5,
@@ -378,28 +463,29 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     Widget? suffix,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(
-        color: Colors.white.withValues(alpha: 0.35),
+        color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.4),
         fontWeight: FontWeight.w500,
         fontSize: 14,
       ),
-      prefixIcon: Icon(icon, color: const Color(0xFFD3BBFF), size: 20),
+      prefixIcon: Icon(icon, color: isDark ? const Color(0xFFD3BBFF) : const Color(0xFF4C1D95), size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.04),
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF8B5CF6) : const Color(0xFF6D28D9), width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),

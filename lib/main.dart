@@ -16,9 +16,13 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student/student_dashboard.dart';
 import 'providers/theme_provider.dart';
+import 'services/network_time_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize NetworkTimeService for timezone tamper protection
+  NetworkTimeService().initialize();
   
   // Check for emulator
   bool emulator = await _isEmulator();

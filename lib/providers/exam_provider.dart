@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../utils/resource_manager.dart';
 import '../services/offline_exam_service.dart';
 import '../services/connectivity_manager.dart';
+import '../services/network_time_service.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
@@ -94,7 +95,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       await prefs.setString('active_attempt_id', _currentAttemptId!);
       await prefs.setString('active_exam_id', _currentExamId ?? '');
       await prefs.setString('active_answers', jsonEncode(_userAnswers));
-      await prefs.setInt('active_last_tick', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt('active_last_tick', NetworkTimeService().istNow.millisecondsSinceEpoch);
       await prefs.setInt('active_remaining_seconds', _remainingSeconds);
       await prefs.setStringList('active_visited_ids', _visitedQuestionIds.toList());
       await prefs.setStringList('active_marked_review_ids', _markedForReview.toList());
@@ -132,12 +133,12 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       
       final examId = prefs.getString('active_exam_id') ?? '';
       final answersRaw = prefs.getString('active_answers') ?? '{}';
-      final lastTick = prefs.getInt('active_last_tick') ?? DateTime.now().millisecondsSinceEpoch;
+      final lastTick = prefs.getInt('active_last_tick') ?? NetworkTimeService().istNow.millisecondsSinceEpoch;
       final cachedRemaining = prefs.getInt('active_remaining_seconds') ?? 0;
       final visitedRaw = prefs.getStringList('active_visited_ids') ?? [];
       final markedRaw = prefs.getStringList('active_marked_review_ids') ?? [];
       
-      final elapsedSeconds = (DateTime.now().millisecondsSinceEpoch - lastTick) ~/ 1000;
+      final elapsedSeconds = (NetworkTimeService().istNow.millisecondsSinceEpoch - lastTick) ~/ 1000;
       final calculatedRemaining = cachedRemaining - elapsedSeconds;
 
       if (calculatedRemaining <= 0) {
@@ -356,7 +357,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         questionId: questionId,
         selectedAnswer: answer,
         timeSpent: 0,
-        answeredAt: DateTime.now(),
+        answeredAt: NetworkTimeService().istNow,
       );
       OfflineExamService().saveOfflineResponse(response);
       SharedPreferences.getInstance().then((prefs) {
@@ -465,7 +466,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
             questionId: ans['questionId'],
             selectedAnswer: ans['answer'] ?? '',
             timeSpent: 0,
-            answeredAt: DateTime.now(),
+            answeredAt: NetworkTimeService().istNow,
           );
           await OfflineExamService().saveOfflineResponse(response);
         }
@@ -510,7 +511,11 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   /// Fetch student's performance analytics data
   Future<Map<String, dynamic>?> fetchStudentPerformance({String timeframe = 'week'}) async {
     try {
-      return await _apiService.getPerformance(timeframe: timeframe);
+      final response = await _apiService.getPerformance(timeframe: timeframe);
+      if (response['success'] == true && response['data'] != null) {
+        return response['data'] as Map<String, dynamic>;
+      }
+      return null;
     } catch (e) {
       debugPrint('Error fetching student performance: $e');
       rethrow;

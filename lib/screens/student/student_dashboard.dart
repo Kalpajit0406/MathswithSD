@@ -17,7 +17,7 @@ import 'exam_attempt_screen.dart';
 import 'package:intl/intl.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/kiosk_service.dart';
-import '../../services/api_service.dart';
+import '../../services/network_time_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -881,37 +881,27 @@ class _LiveClockWidget extends StatefulWidget {
 class _LiveClockWidgetState extends State<_LiveClockWidget> {
   late Timer _timer;
   late DateTime _now;
-  Duration _timeOffset = Duration.zero;
-  bool _isSynced = false;
-  final ApiService _apiService = ApiService();
+  DateTime _lastLocalTime = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _now = DateTime.now();
-    _syncTime();
+    _now = NetworkTimeService().istNow;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final nowLocal = DateTime.now();
+      final diff = nowLocal.difference(_lastLocalTime).inSeconds.abs();
+      if (diff > 5) {
+        debugPrint('[LiveClock] Time jump detected ($diff s). Resyncing with network time.');
+        NetworkTimeService().syncTime();
+      }
+      _lastLocalTime = nowLocal;
+
       if (mounted) {
         setState(() {
-          _now = DateTime.now().add(_timeOffset);
+          _now = NetworkTimeService().istNow;
         });
       }
     });
-  }
-
-  Future<void> _syncTime() async {
-    try {
-      final serverTime = await _apiService.getServerTime();
-      if (mounted) {
-        setState(() {
-          _timeOffset = serverTime.difference(DateTime.now());
-          _isSynced = true;
-          _now = DateTime.now().add(_timeOffset);
-        });
-      }
-    } catch (e) {
-      debugPrint('[LiveClock] Failed to sync time with server: $e');
-    }
   }
 
   @override
@@ -926,6 +916,7 @@ class _LiveClockWidgetState extends State<_LiveClockWidget> {
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
     final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final isSynced = NetworkTimeService().isSynced;
     
     final timeStr = DateFormat('hh:mm:ss a').format(_now);
     final dateStr = DateFormat('EEE, MMM d, yyyy').format(_now);
@@ -942,10 +933,10 @@ class _LiveClockWidgetState extends State<_LiveClockWidget> {
               height: 6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _isSynced ? const Color(0xFF10B981) : Colors.amber,
+                color: isSynced ? const Color(0xFF10B981) : Colors.amber,
                 boxShadow: [
                   BoxShadow(
-                    color: (_isSynced ? const Color(0xFF10B981) : Colors.amber)
+                    color: (isSynced ? const Color(0xFF10B981) : Colors.amber)
                         .withValues(alpha: 0.5),
                     blurRadius: 4,
                     spreadRadius: 1,
@@ -974,7 +965,7 @@ class _LiveClockWidgetState extends State<_LiveClockWidget> {
         ),
         const SizedBox(height: 2),
         Text(
-          _isSynced ? dateStr : '$dateStr (Local)',
+          isSynced ? dateStr : '$dateStr (Local)',
           style: TextStyle(
             color: secondaryTextColor,
             fontSize: 11,
@@ -1136,7 +1127,16 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                     );
                   }
 
-                  final now = DateTime.now();
+                  final ist = NetworkTimeService().istNow;
+                  final now = DateTime(
+                    ist.year,
+                    ist.month,
+                    ist.day,
+                    ist.hour,
+                    ist.minute,
+                    ist.second,
+                    ist.millisecond,
+                  );
                   final filteredTests = provider.scheduledTests.where((test) {
                     final testTime = test.getExamDateTime();
                     final isCompleted =
@@ -1380,68 +1380,6 @@ class _ExamCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (!isCompleted && !isMissed)
-                        TextButton.icon(
-                          onPressed: () async {
-                            try {
-                              final offlineExam = OfflineExam(
-                                examId: test.id,
-                                title: test.title,
-                                duration: test.duration,
-                                questions: test.questions
-                                    .map((q) => q.toJson())
-                                    .toList(),
-                                startedAt: DateTime.now(),
-                                isCompleted: false,
-                                status: 'downloaded',
-                              );
-                              await OfflineExamService().saveExamOffline(
-                                offlineExam,
-                              );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '"${test.title}" downloaded for offline use.',
-                                    ),
-                                    backgroundColor: const Color(0xFF8B5CF6),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Failed to download: ${e.toString()}',
-                                    ),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.download_for_offline_rounded,
-                            size: 16,
-                          ),
-                          label: const Text(
-                            'Download Offline',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: themePrimary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 12),

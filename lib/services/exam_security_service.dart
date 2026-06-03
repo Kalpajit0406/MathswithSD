@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'network_time_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Violation Types & Severity
@@ -31,7 +32,7 @@ class ViolationEvent {
     required this.severity,
     required this.message,
     DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
+  }) : timestamp = timestamp ?? NetworkTimeService().istNow;
 
   Map<String, dynamic> toJson() => {
         'type': type.name,
