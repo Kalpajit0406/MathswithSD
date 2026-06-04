@@ -339,13 +339,18 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   }
 
   void setAnswer(String questionId, String answer) {
-    _userAnswers[questionId] = answer;
+    if (_userAnswers[questionId] == answer) {
+      _userAnswers.remove(questionId);
+    } else {
+      _userAnswers[questionId] = answer;
+    }
     _scheduleAttemptSave();
     
     // Sync answer continuously over WebSocket (zero trust telemetry)
     if (_currentAttemptId != null && !_currentAttemptId!.startsWith('offline_')) {
       try {
-        ExamWebSocketService().syncAnswer(questionId, answer);
+        final syncVal = _userAnswers.containsKey(questionId) ? answer : '';
+        ExamWebSocketService().syncAnswer(questionId, syncVal);
       } catch (e) {
         debugPrint('Failed to sync answer over WS: $e');
       }

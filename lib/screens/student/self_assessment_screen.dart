@@ -1054,7 +1054,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     child: InkWell(
                       onTap: () {
                         setState(() {
-                          _userAnswers[currentQId] = opt;
+                          if (_userAnswers[currentQId] == opt) {
+                            _userAnswers.remove(currentQId);
+                          } else {
+                            _userAnswers[currentQId] = opt;
+                          }
                         });
                       },
                       borderRadius: BorderRadius.circular(14),
