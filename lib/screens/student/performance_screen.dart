@@ -184,9 +184,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     bool isDark,
   ) {
     final totalAttempts = data['totalAttempts'] ?? 0;
-    final completionRate = data['completionRate'] ?? 0.0;
-    final accuracyRate = data['accuracyRate'] ?? 0.0;
-    final improvementTrend = data['improvementTrend'] ?? 0.0;
+    final lastTestPercentage = (data['lastTestPercentage'] ?? 0.0).toDouble();
+    final accuracyRate = (data['accuracyRate'] ?? 0.0).toDouble();
+    final improvementTrend = (data['improvementTrend'] ?? 0.0).toDouble();
     final performanceByChapter = data['performanceByChapter'] ?? {};
     final recentAttempts = data['recentAttempts'] ?? [];
 
@@ -250,7 +250,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             delay: const Duration(milliseconds: 100),
             child: _MetricsGrid(
               totalAttempts: totalAttempts,
-              completionRate: completionRate,
+              lastTestPercentage: lastTestPercentage,
               accuracyRate: accuracyRate,
               improvementTrend: improvementTrend,
               textColor: textColor,
@@ -563,7 +563,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
 class _MetricsGrid extends StatelessWidget {
   final int totalAttempts;
-  final double completionRate;
+  final double lastTestPercentage;
   final double accuracyRate;
   final double improvementTrend;
   final Color textColor;
@@ -571,7 +571,7 @@ class _MetricsGrid extends StatelessWidget {
 
   const _MetricsGrid({
     required this.totalAttempts,
-    required this.completionRate,
+    required this.lastTestPercentage,
     required this.accuracyRate,
     required this.improvementTrend,
     required this.textColor,
@@ -597,9 +597,9 @@ class _MetricsGrid extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _MetricCard(
-                title: 'Completion Rate',
-                value: '${completionRate.toStringAsFixed(1)}%',
-                icon: Icons.check_circle_outline_rounded,
+                title: 'Last Test Score',
+                value: '${lastTestPercentage.toStringAsFixed(1)}%',
+                icon: Icons.emoji_events_outlined,
                 color: const Color(0xFF10B981),
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
