@@ -721,6 +721,24 @@ class ApiService {
     return Map<String, dynamic>.from(data['data'] ?? {});
   }
 
+  Future<Map<String, dynamic>> getSelfAssessmentQuestionsBatch(
+    String token, {
+    int offset = 0,
+    int limit = 5,
+  }) async {
+    final headers = await _headers();
+    headers['x-assessment-token'] = token;
+
+    final response = await http
+        .get(
+          await _uri('/api/v1/self-assessment/questions-batch?offset=$offset&limit=$limit'),
+          headers: headers,
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
   Future<Map<String, dynamic>> submitSelfAssessmentAnswer(
     String token,
     String questionId,
@@ -736,6 +754,26 @@ class ApiService {
           body: jsonEncode({
             'questionId': questionId,
             'selectedAnswer': selectedAnswer,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  Future<Map<String, dynamic>> submitAllSelfAssessmentAnswers(
+    String token,
+    Map<String, String> answers,
+  ) async {
+    final headers = await _headers();
+    headers['x-assessment-token'] = token;
+
+    final response = await http
+        .post(
+          await _uri('/api/v1/self-assessment/submit-all'),
+          headers: headers,
+          body: jsonEncode({
+            'answers': answers,
           }),
         )
         .timeout(const Duration(seconds: 15));
