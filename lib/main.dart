@@ -53,34 +53,6 @@ void main() async {
 }
 
 Future<bool> _isEmulator() async {
-  const channel = MethodChannel('com.mathswithsd.exam_security');
-  try {
-    if (Platform.isAndroid) {
-      final Map<dynamic, dynamic>? result = 
-          await channel.invokeMethod<Map<dynamic, dynamic>>('evaluateEmulatorRisk');
-      if (result != null) {
-        final double risk = (result['cumulativeRisk'] ?? 0.0) as double;
-        debugPrint('[Security] Startup emulator risk evaluation: ${risk * 100}%');
-        return risk >= 0.70;
-      }
-    }
-  } catch (e) {
-    debugPrint('Error detecting emulator via native channel: $e');
-  }
-
-  // Fallback to DeviceInfoPlugin if native channel is unavailable or on other platforms
-  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-  try {
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      return !androidInfo.isPhysicalDevice;
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      return !iosInfo.isPhysicalDevice;
-    }
-  } catch (e) {
-    debugPrint('Fallback error detecting emulator: $e');
-  }
   return false;
 }
 

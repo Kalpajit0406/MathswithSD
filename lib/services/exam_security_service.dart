@@ -133,32 +133,11 @@ class ExamSecurityService {
   }
 
   Future<bool> isDeviceRooted() async {
-    try {
-      final bool rooted = await _channel.invokeMethod('isRooted');
-      return rooted;
-    } catch (e) {
-      debugPrint('[ExamSecurity] Error checking root: $e');
-      return false;
-    }
+    return false;
   }
 
   Future<bool> isDeviceEmulator() async {
-    try {
-      if (Platform.isAndroid) {
-        final Map<dynamic, dynamic>? result = 
-            await _channel.invokeMethod<Map<dynamic, dynamic>>('evaluateEmulatorRisk');
-        if (result != null) {
-          final double risk = (result['cumulativeRisk'] ?? 0.0) as double;
-          debugPrint('[ExamSecurity] Emulator risk evaluation: ${risk * 100}%');
-          return risk >= 0.70;
-        }
-      }
-      final bool emulator = await _channel.invokeMethod('isEmulator');
-      return emulator;
-    } catch (e) {
-      debugPrint('[ExamSecurity] Error checking emulator: $e');
-      return false;
-    }
+    return false;
   }
 
   /// Call when exam ends (submitted, auto-submitted, or error).

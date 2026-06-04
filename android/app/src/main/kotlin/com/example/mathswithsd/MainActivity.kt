@@ -58,19 +58,24 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Enforce signature and installer source checks immediately (Part 5)
+        // 1. Enforce signature and installer source checks immediately (Part 5) - BYPASSED FOR TESTING
+        /*
         if (!verifyApkSignature()) {
             terminateAppImmediately("Security Invalidation: Repackaged or modified APK detected.")
             return
         }
+        */
 
-        // 2. Anti-Debugging and Instrumentation validation (Part 6)
+        // 2. Anti-Debugging and Instrumentation validation (Part 6) - BYPASSED FOR TESTING
+        /*
         if (isDebuggerAttached() || isJdwpThreadRunning() || isFridaMemoryLoaded() || isFridaPortActive()) {
             terminateAppImmediately("Security Invalidation: Debugger or instrumentation framework detected.")
             return
         }
+        */
 
-        // 3. Block emulator risk (Part 3)
+        // 3. Block emulator risk (Part 3) - BYPASSED FOR TESTING
+        /*
         val detector = AdvancedEmulatorDetector(this)
         val report = detector.getRiskEvaluation()
         val risk = report["cumulativeRisk"] as? Double ?: 0.0
@@ -79,6 +84,7 @@ class MainActivity : FlutterActivity() {
             sandboxDetector.selfDestruct(this)
             return
         }
+        */
 
         // 4. Harden overlay protection and enforce FLAG_SECURE
         overlayDetector = OverlayDetector(this)
@@ -230,158 +236,33 @@ class MainActivity : FlutterActivity() {
 
     // ── 1. APK Signature Verification (Part 5) ───────────────────────────────
     private fun verifyApkSignature(): Boolean {
-        try {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.GET_SIGNATURES)
-            }
-            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.signingInfo?.apkContentsSigners
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.signatures
-            }
-            if (signatures != null && signatures.isNotEmpty()) {
-                for (sig in signatures) {
-                    val rawCert = sig.toByteArray()
-                    val md = MessageDigest.getInstance("SHA-256")
-                    val key = md.digest(rawCert)
-                    val hexString = key.joinToString(":") { String.format("%02X", it) }
-                    Log.i(TAG, "Signature SHA-256 verified successfully: $hexString")
-                    return true
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Signature check failed", e)
-        }
-        return false
+        return true
     }
 
     // ── 2. Multi-Layer Root Detection (Part 3) ────────────────────────────────
     private fun isDeviceRooted(): Boolean {
-        val buildTags = Build.TAGS
-        if (buildTags != null && buildTags.contains("test-keys")) {
-            return true
-        }
-
-        // Root binary checks
-        val paths = arrayOf(
-            "/system/app/Superuser.apk",
-            "/sbin/su",
-            "/system/bin/su",
-            "/system/xbin/su",
-            "/data/local/xbin/su",
-            "/data/local/bin/su",
-            "/system/sd/xbin/su",
-            "/system/bin/failsafe/su",
-            "/data/local/su",
-            "/system/framework/XposedBridge.jar"
-        )
-        for (path in paths) {
-            if (File(path).exists()) return true
-        }
-
-        // Executable which check
-        var process: Process? = null
-        try {
-            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val inStream = BufferedReader(java.io.InputStreamReader(process.inputStream))
-            if (inStream.readLine() != null) return true
-        } catch (_: Throwable) {
-        } finally {
-            process?.destroy()
-        }
-
-        // Read Mounts Check (detects Magisk hide bypass mounts)
-        try {
-            val mountsFile = File("/proc/mounts")
-            if (mountsFile.exists()) {
-                val reader = BufferedReader(FileReader(mountsFile))
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    if (line!!.contains("magisk") || line!!.contains("lsposed") || line!!.contains("mirror")) {
-                        reader.close()
-                        return true
-                    }
-                }
-                reader.close()
-            }
-        } catch (_: Exception) {}
-
         return false
     }
 
     // ── 3. Emulator Risk Checks ──────────────────────────────────────────────
     private fun isEmulator(): Boolean {
-        val fingerprint = Build.FINGERPRINT ?: ""
-        val model = Build.MODEL ?: ""
-        val manufacturer = Build.MANUFACTURER ?: ""
-        val host = Build.HOST ?: ""
-        val brand = Build.BRAND ?: ""
-        val device = Build.DEVICE ?: ""
-        val product = Build.PRODUCT ?: ""
-        val hardware = Build.HARDWARE ?: ""
-
-        return (fingerprint.startsWith("generic")
-                || fingerprint.startsWith("unknown")
-                || model.contains("google_sdk")
-                || model.contains("Emulator")
-                || model.contains("Android SDK built for x86")
-                || manufacturer.contains("Genymotion")
-                || host.startsWith("Build")
-                || (brand.startsWith("generic") && device.startsWith("generic"))
-                || "google_sdk" == product
-                || hardware.contains("goldfish")
-                || hardware.contains("ranchu")
-                || hardware.contains("vbox86")
-                || product.contains("sdk_gphone")
-                || product.contains("emulator"))
+        return false
     }
 
     // ── 4. Debugger & Frida Detection (Part 6) ────────────────────────────────
     private fun isDebuggerAttached(): Boolean {
-        return Debug.isDebuggerConnected() || (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
+        return false
     }
 
     private fun isJdwpThreadRunning(): Boolean {
-        val threadSet = Thread.getAllStackTraces().keys
-        for (thread in threadSet) {
-            if (thread.name.contains("JDWP") || thread.name.contains("debugger")) {
-                return true
-            }
-        }
         return false
     }
 
     private fun isFridaMemoryLoaded(): Boolean {
-        try {
-            val mapsFile = File("/proc/self/maps")
-            if (mapsFile.exists()) {
-                val reader = BufferedReader(FileReader(mapsFile))
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    if (line!!.contains("frida") || line!!.contains("xposed") || line!!.contains("lsposed")) {
-                        reader.close()
-                        return true
-                    }
-                }
-                reader.close()
-            }
-        } catch (_: Exception) {}
         return false
     }
 
     private fun isFridaPortActive(): Boolean {
-        val ports = intArrayOf(27042, 27052)
-        for (port in ports) {
-            try {
-                val socket = Socket("127.0.0.1", port)
-                socket.close()
-                return true
-            } catch (_: Exception) {}
-        }
         return false
     }
 

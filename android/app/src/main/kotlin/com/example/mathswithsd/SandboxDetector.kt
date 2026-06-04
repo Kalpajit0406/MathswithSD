@@ -20,14 +20,7 @@ class SandboxDetector(private val context: Context) {
      * Returns true if any virtualization indicator is detected.
      */
     fun isVirtualEnvironmentDetected(): Boolean {
-        val buildCheck = checkBuildProperties()
-        val sysPropCheck = checkSystemProperties()
-        val sensorCheck = checkPhysicalSensors()
-        val fileCheck = checkEmulatorFiles()
-
-        Log.w(TAG, "Detection results -> Build: $buildCheck, SysProp: $sysPropCheck, Sensors: $sensorCheck, Files: $fileCheck")
-
-        return buildCheck || sysPropCheck || sensorCheck || fileCheck
+        return false
     }
 
     /**

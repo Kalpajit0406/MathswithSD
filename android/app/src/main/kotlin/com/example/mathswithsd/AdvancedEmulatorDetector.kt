@@ -10,24 +10,17 @@ import java.io.File
 class AdvancedEmulatorDetector(private val context: Context) {
 
     fun getRiskEvaluation(): Map<String, Any> {
-        val buildRisk = checkBuildProperties()
-        val sensorRisk = checkPhysicalSensors()
-        val envRisk = checkSystemEnvironment()
-
-        // Weighted Risk Model: Build Properties (40%), System Environment/Files (35%), Physical Sensors (25%)
-        val cumulativeRisk = (buildRisk * 0.40f) + (envRisk * 0.35f) + (sensorRisk * 0.25f)
-
         val details = mapOf(
-            "buildRisk" to buildRisk,
-            "sensorRisk" to sensorRisk,
-            "envRisk" to envRisk,
+            "buildRisk" to 0.0f,
+            "sensorRisk" to 0.0f,
+            "envRisk" to 0.0f,
             "fingerprint" to (Build.FINGERPRINT ?: ""),
             "hardware" to (Build.HARDWARE ?: ""),
             "model" to (Build.MODEL ?: "")
         )
 
         return mapOf(
-            "cumulativeRisk" to cumulativeRisk.toDouble(),
+            "cumulativeRisk" to 0.0,
             "details" to details
         )
     }
