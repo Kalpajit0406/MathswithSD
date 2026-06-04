@@ -20,6 +20,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   // State variables
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isConfiguring = true;
+  List<String> _availableChapters = [];
+  final List<String> _selectedChapters = [];
+  int _selectedLimit = 10;
+  int _selectedTime = 30; // in minutes
   
   // Session details
   String? _sessionToken;
@@ -53,16 +58,16 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     super.initState();
     _isOnline = ConnectivityManager().isOnline;
     _setupConnectivityListener();
-    _startAssessmentSession();
+    _loadChapters();
   }
-  
+   
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
     _connectivitySubscription?.cancel();
     super.dispose();
   }
-  
+   
   void _setupConnectivityListener() {
     _connectivitySubscription = ConnectivityManager().statusChanges.listen((result) {
       final online = result != ConnectivityResult.none;
@@ -77,7 +82,38 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       }
     });
   }
-  
+
+  Future<void> _loadChapters() async {
+    if (!_isOnline) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'An active internet connection is required to start a self-assessment.';
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final chapters = await _apiService.getSelfAssessmentChapters();
+      setState(() {
+        _availableChapters = chapters;
+        _isLoading = false;
+      });
+    } on ApiException catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load available chapters. Please try again.';
+      });
+    }
+  }
+   
   Future<void> _startAssessmentSession() async {
     if (!_isOnline) {
       setState(() {
@@ -87,27 +123,46 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       return;
     }
     
+    if (_selectedChapters.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one chapter.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    
+     
     try {
-      final data = await _apiService.generateSelfAssessment();
-      
+      final data = await _apiService.generateSelfAssessment(
+        chapters: _selectedChapters,
+        limit: _selectedLimit,
+        time: _selectedTime,
+      );
+       
       _sessionToken = data['token'];
       _sessionId = data['sessionId'];
-      _totalQuestions = data['totalQuestions'] ?? 10;
+      _totalQuestions = data['totalQuestions'] ?? _selectedLimit;
       if (data['expiresAt'] != null) {
         _expiresAt = DateTime.parse(data['expiresAt']);
       }
       debugPrint('[SelfAssessment] Session started: $_sessionId, expires at: $_expiresAt');
-      
+       
       // Start 15s heartbeats
       _startHeartbeats();
-      
+       
       // Fetch first question
       await _loadCurrentQuestion();
+
+      setState(() {
+        _isConfiguring = false;
+        _isLoading = false;
+      });
     } on ApiException catch (e) {
       setState(() {
         _isLoading = false;
@@ -273,7 +328,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     
     final navigator = Navigator.of(context);
     return PopScope(
-      canPop: _isCompleted || _errorMessage != null,
+      canPop: _isConfiguring || _isCompleted || _errorMessage != null,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final confirm = await showDialog<bool>(
@@ -435,6 +490,10 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               ),
                             ),
                           );
+                        }
+                        
+                        if (_isConfiguring) {
+                          return _buildConfigurationView(textColor, secondaryTextColor, themePrimary, isDark);
                         }
                         
                         if (_isCompleted) {
@@ -958,6 +1017,228 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                   'Back to Dashboard',
                   style: TextStyle(
                     fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigurationView(
+      Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Customize Your Practice',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select chapters, question limit, and time to generate a randomized test.',
+            style: TextStyle(
+              fontSize: 14,
+              color: secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Chapter Selection
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Select Chapter(s)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
+                      ),
+                      if (_availableChapters.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              if (_selectedChapters.length == _availableChapters.length) {
+                                _selectedChapters.clear();
+                              } else {
+                                _selectedChapters.clear();
+                                _selectedChapters.addAll(_availableChapters);
+                              }
+                            });
+                          },
+                          child: Text(
+                            _selectedChapters.length == _availableChapters.length
+                                ? 'Deselect All'
+                                : 'Select All',
+                            style: TextStyle(
+                              color: themePrimary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (_availableChapters.isEmpty)
+                    Text(
+                      'No chapters available for your class.',
+                      style: TextStyle(color: secondaryTextColor, fontStyle: FontStyle.italic),
+                    )
+                  else
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 250),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                        ),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: _availableChapters.length,
+                        itemBuilder: (context, index) {
+                          final chapterName = _availableChapters[index];
+                          final isSelected = _selectedChapters.contains(chapterName);
+                          return CheckboxListTile(
+                            title: Text(
+                              chapterName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textColor,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            value: isSelected,
+                            activeColor: themePrimary,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true) {
+                                  _selectedChapters.add(chapterName);
+                                } else {
+                                  _selectedChapters.remove(chapterName);
+                                }
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  
+                  // Question Limit Selection
+                  Text(
+                    'Number of Questions',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [5, 10, 15, 20, 25].map((count) {
+                      final isSelected = _selectedLimit == count;
+                      return ChoiceChip(
+                        label: Text('$count Qs'),
+                        selected: isSelected,
+                        selectedColor: themePrimary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : textColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedLimit = count;
+                            });
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Duration Selection
+                  Text(
+                    'Time Limit',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: [10, 15, 20, 30, 45, 60].map((mins) {
+                      final isSelected = _selectedTime == mins;
+                      return ChoiceChip(
+                        label: Text('$mins mins'),
+                        selected: isSelected,
+                        selectedColor: themePrimary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : textColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedTime = mins;
+                            });
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+          
+          // Action Button
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _selectedChapters.isEmpty ? null : _startAssessmentSession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themePrimary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: themePrimary.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Start Practice Test',
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

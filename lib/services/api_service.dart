@@ -675,15 +675,36 @@ class ApiService {
 
   // ─── Self Assessment ─────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> generateSelfAssessment() async {
+  Future<Map<String, dynamic>> generateSelfAssessment({
+    List<String>? chapters,
+    int? limit,
+    int? time,
+  }) async {
     final response = await http
         .post(
           await _uri('/api/v1/self-assessment/generate'),
           headers: await _headers(),
+          body: jsonEncode({
+            if (chapters != null) 'chapters': chapters,
+            if (limit != null) 'limit': limit,
+            if (time != null) 'time': time,
+          }),
         )
         .timeout(const Duration(seconds: 15));
     final data = await _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
+  }
+
+  Future<List<String>> getSelfAssessmentChapters() async {
+    final response = await http
+        .get(
+          await _uri('/api/v1/self-assessment/chapters'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    final list = List<dynamic>.from(data['data'] ?? []);
+    return list.map((e) => e.toString()).toList();
   }
 
   Future<Map<String, dynamic>> getSelfAssessmentQuestion(String token) async {
