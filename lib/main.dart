@@ -13,6 +13,7 @@ import 'widgets/offline_indicator.dart';
 import 'utils/error_boundary.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'screens/student/student_dashboard.dart';
 import 'providers/theme_provider.dart';
 import 'services/network_time_service.dart';
@@ -277,11 +278,7 @@ class _AuthGate extends StatelessWidget {
         }
 
         // Unauthenticated
-        return LoginScreen(
-          onNavigateToRegister: () {
-            Navigator.pushReplacementNamed(context, '/register');
-          },
-        );
+        return const WelcomeScreen();
       },
     );
   }

@@ -47,7 +47,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _phoneController.text.trim(),
       _passwordController.text,
     );
-    if (!success && mounted) {
+    if (success && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } else if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage ?? 'Login failed'),
