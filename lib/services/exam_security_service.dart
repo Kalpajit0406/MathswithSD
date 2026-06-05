@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,11 +34,11 @@ class ViolationEvent {
   }) : timestamp = timestamp ?? NetworkTimeService().istNow;
 
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'severity': severity.name,
-        'message': message,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'type': type.name,
+    'severity': severity.name,
+    'message': message,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   @override
   String toString() =>
@@ -54,8 +53,9 @@ class ExamSecurityService {
   static const _channel = MethodChannel('com.mathswithsd.exam_security');
 
   // EventChannel for window mode changes (split-screen / floating window)
-  static const _windowEventChannel =
-      EventChannel('com.mathswithsd.exam_window_events');
+  static const _windowEventChannel = EventChannel(
+    'com.mathswithsd.exam_window_events',
+  );
   StreamSubscription<dynamic>? _windowEventSub;
 
   // Violation tracking
@@ -115,18 +115,22 @@ class ExamSecurityService {
     _subscribeToWindowEvents();
 
     if (rooted) {
-      _addViolation(ViolationEvent(
-        type: ViolationType.rootDetected,
-        severity: ViolationSeverity.critical,
-        message: 'Security Violation: Rooted device detected.',
-      ));
+      _addViolation(
+        ViolationEvent(
+          type: ViolationType.rootDetected,
+          severity: ViolationSeverity.critical,
+          message: 'Security Violation: Rooted device detected.',
+        ),
+      );
     }
     if (emulator) {
-      _addViolation(ViolationEvent(
-        type: ViolationType.emulatorDetected,
-        severity: ViolationSeverity.critical,
-        message: 'Security Violation: Emulator detected.',
-      ));
+      _addViolation(
+        ViolationEvent(
+          type: ViolationType.emulatorDetected,
+          severity: ViolationSeverity.critical,
+          message: 'Security Violation: Emulator detected.',
+        ),
+      );
     }
 
     debugPrint('[ExamSecurity] Secure exam session started for $examId');
@@ -186,11 +190,13 @@ class ExamSecurityService {
             '$_maxBackgroundViolations). Please stay in the exam.';
       }
 
-      _addViolation(ViolationEvent(
-        type: ViolationType.appBackgrounded,
-        severity: severity,
-        message: message,
-      ));
+      _addViolation(
+        ViolationEvent(
+          type: ViolationType.appBackgrounded,
+          severity: severity,
+          message: message,
+        ),
+      );
     }
   }
 
@@ -198,11 +204,12 @@ class ExamSecurityService {
 
   void _subscribeToWindowEvents() {
     _windowEventSub?.cancel();
-    _windowEventSub = _windowEventChannel
-        .receiveBroadcastStream()
-        .listen(_onWindowEvent, onError: (e) {
-      debugPrint('[ExamSecurity] Window event error: $e');
-    });
+    _windowEventSub = _windowEventChannel.receiveBroadcastStream().listen(
+      _onWindowEvent,
+      onError: (e) {
+        debugPrint('[ExamSecurity] Window event error: $e');
+      },
+    );
     debugPrint('[ExamSecurity] Subscribed to window mode events.');
   }
 
@@ -214,14 +221,18 @@ class ExamSecurityService {
   void _onWindowEvent(dynamic event) {
     if (!_kioskActive) return;
     if (event == 'multiWindow') {
-      debugPrint('[ExamSecurity] Split-screen / floating window detected — critical violation.');
-      _addViolation(ViolationEvent(
-        type: ViolationType.splitScreenDetected,
-        severity: ViolationSeverity.critical,
-        message:
-            'Split-screen or floating window detected. '
-            'The exam has been auto-submitted to protect integrity.',
-      ));
+      debugPrint(
+        '[ExamSecurity] Split-screen / floating window detected — critical violation.',
+      );
+      _addViolation(
+        ViolationEvent(
+          type: ViolationType.splitScreenDetected,
+          severity: ViolationSeverity.critical,
+          message:
+              'Split-screen or floating window detected. '
+              'The exam has been auto-submitted to protect integrity.',
+        ),
+      );
     }
   }
 
@@ -329,7 +340,9 @@ class ExamSecurityService {
         final parts = pair.split('==');
         if (parts.length == 2) map[parts[0]] = parts[1];
       }
-      debugPrint('[ExamSecurity] Recovered ${map.length} autosaved answers for $examId.');
+      debugPrint(
+        '[ExamSecurity] Recovered ${map.length} autosaved answers for $examId.',
+      );
       return map.isNotEmpty ? map : null;
     } catch (e) {
       debugPrint('[ExamSecurity] Answer recovery failed: $e');

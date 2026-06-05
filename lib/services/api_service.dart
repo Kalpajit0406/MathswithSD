@@ -685,9 +685,9 @@ class ApiService {
           await _uri('/api/v1/self-assessment/generate'),
           headers: await _headers(),
           body: jsonEncode({
-            if (chapters != null) 'chapters': chapters,
-            if (limit != null) 'limit': limit,
-            if (time != null) 'time': time,
+            'chapters': ?chapters,
+            'limit': ?limit,
+            'time': ?time,
           }),
         )
         .timeout(const Duration(seconds: 15));
@@ -712,10 +712,7 @@ class ApiService {
     headers['x-assessment-token'] = token;
 
     final response = await http
-        .get(
-          await _uri('/api/v1/self-assessment/question'),
-          headers: headers,
-        )
+        .get(await _uri('/api/v1/self-assessment/question'), headers: headers)
         .timeout(const Duration(seconds: 15));
     final data = await _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
@@ -731,7 +728,9 @@ class ApiService {
 
     final response = await http
         .get(
-          await _uri('/api/v1/self-assessment/questions-batch?offset=$offset&limit=$limit'),
+          await _uri(
+            '/api/v1/self-assessment/questions-batch?offset=$offset&limit=$limit',
+          ),
           headers: headers,
         )
         .timeout(const Duration(seconds: 15));
@@ -772,9 +771,7 @@ class ApiService {
         .post(
           await _uri('/api/v1/self-assessment/submit-all'),
           headers: headers,
-          body: jsonEncode({
-            'answers': answers,
-          }),
+          body: jsonEncode({'answers': answers}),
         )
         .timeout(const Duration(seconds: 15));
     final data = await _processResponse(response);
@@ -786,10 +783,7 @@ class ApiService {
     headers['x-assessment-token'] = token;
 
     final response = await http
-        .post(
-          await _uri('/api/v1/self-assessment/heartbeat'),
-          headers: headers,
-        )
+        .post(await _uri('/api/v1/self-assessment/heartbeat'), headers: headers)
         .timeout(const Duration(seconds: 10));
     final data = await _processResponse(response);
     return Map<String, dynamic>.from(data['data'] ?? {});
@@ -799,8 +793,12 @@ class ApiService {
     if (diagramPath == null || diagramPath.isEmpty) return null;
     if (diagramPath.startsWith('http')) return diagramPath;
     final base = baseUrl;
-    final cleanBase = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
-    final cleanPath = diagramPath.startsWith('/') ? diagramPath : '/$diagramPath';
+    final cleanBase = base.endsWith('/')
+        ? base.substring(0, base.length - 1)
+        : base;
+    final cleanPath = diagramPath.startsWith('/')
+        ? diagramPath
+        : '/$diagramPath';
     return '$cleanBase$cleanPath';
   }
 }

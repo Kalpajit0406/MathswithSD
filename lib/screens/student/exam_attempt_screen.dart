@@ -67,7 +67,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           _reconnectCountdownSeconds--;
         } else {
           timer.cancel();
-          _autoSubmitExam('🔌 Disconnected from server. Reconnect timeout exceeded.');
+          _autoSubmitExam(
+            '🔌 Disconnected from server. Reconnect timeout exceeded.',
+          );
         }
       });
     });
@@ -96,7 +98,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
     try {
       final isOffline = !ConnectivityManager().isOnline;
       if (isOffline) {
-        throw Exception('Offline examinations are disabled. Active server session is required.');
+        throw Exception(
+          'Offline examinations are disabled. Active server session is required.',
+        );
       }
 
       // ── Try to recover autosaved answers (crash recovery) ──
@@ -381,10 +385,13 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         bool examEnded = true;
         String endTimeStr = '';
         if (examStart != null) {
-          final examEnd = examStart.add(Duration(minutes: widget.exam.duration));
+          final examEnd = examStart.add(
+            Duration(minutes: widget.exam.duration),
+          );
           final now = NetworkTimeService().istNow;
           examEnded = now.isAfter(examEnd);
-          endTimeStr = '${widget.exam.date} @ ${DateFormat('hh:mm a').format(examEnd)}';
+          endTimeStr =
+              '${widget.exam.date} @ ${DateFormat('hh:mm a').format(examEnd)}';
         }
 
         if (examEnded) {
@@ -622,686 +629,705 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         children: [
           Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        // ── AppBar ──────────────────────────────────────────────────────────
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFF0F172A),
-          elevation: 0,
-          title: Row(
-            children: [
-              // Shield icon (security active)
-              Tooltip(
-                message: 'Secure Mode Active',
-                child: Icon(
-                  Icons.shield,
-                  color: Colors.greenAccent.shade400,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Q ${currentQIndex + 1}/$totalQ',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Timer
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: examProvider.remainingSeconds < 60
-                    ? Colors.red.shade700
-                    : Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
+            // ── AppBar ──────────────────────────────────────────────────────────
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: const Color(0xFF0F172A),
+              elevation: 0,
+              title: Row(
                 children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    color: examProvider.remainingSeconds < 60
-                        ? Colors.white
-                        : Colors.white,
-                    size: 16,
+                  // Shield icon (security active)
+                  Tooltip(
+                    message: 'Secure Mode Active',
+                    child: Icon(
+                      Icons.shield,
+                      color: Colors.greenAccent.shade400,
+                      size: 18,
+                    ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   Text(
-                    _formatTime(examProvider.remainingSeconds),
-                    style: TextStyle(
+                    'Q ${currentQIndex + 1}/$totalQ',
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-            ),
-            // Submit button
-            TextButton(
-              onPressed: () => _showSubmitConfirmDialog(),
-              child: const Text(
-                'FINISH',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        body: Column(
-          children: [
-            // ── Violation Banner ──────────────────────────────────────────
-            AnimatedSlide(
-              offset: _showViolationBanner ? Offset.zero : const Offset(0, -1),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-              child: AnimatedOpacity(
-                opacity: _showViolationBanner ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 250),
-                child: Container(
-                  width: double.infinity,
-                  color: Colors.deepOrange.shade700,
+              actions: [
+                // Timer
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 4,
+                  ),
                   padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: examProvider.remainingSeconds < 60
+                        ? Colors.red.shade700
+                        : Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.warning_rounded,
-                        color: Colors.white,
-                        size: 18,
+                      Icon(
+                        Icons.timer_outlined,
+                        color: examProvider.remainingSeconds < 60
+                            ? Colors.white
+                            : Colors.white,
+                        size: 16,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _violationBannerMessage,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTime(examProvider.remainingSeconds),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
-
-            // ── Offline Banner ────────────────────────────────────────────
-            if (!ConnectivityManager().isOnline)
-              Container(
-                width: double.infinity,
-                color: Colors.orange.shade800,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 6,
-                  horizontal: 16,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.wifi_off_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'OFFLINE MODE — Attempt saved locally',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // ── Question Palette ─────────────────────────────────────────
-            Container(
-              height: 60,
-              color: Colors.transparent,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 10,
-                ),
-                itemCount: totalQ,
-                itemBuilder: (context, i) {
-                  final qId = widget.exam.questions[i].id;
-                  final isAnswered = examProvider.userAnswers.containsKey(qId);
-                  final isVisited = examProvider.visitedQuestionIds.contains(
-                    qId,
-                  );
-                  final isMarkedForReview = examProvider.markedForReview
-                      .contains(qId);
-                  final isCurrent = i == currentQIndex;
-
-                  Color bgColor;
-                  Color textColor = Colors.white;
-                  bool showTick = false;
-
-                  if (isMarkedForReview) {
-                    bgColor = const Color(0xFF8B5CF6); // Purple
-                    if (isAnswered) {
-                      showTick = true;
-                    }
-                  } else if (isAnswered) {
-                    bgColor = const Color(0xFF10B981); // Green
-                  } else if (isVisited) {
-                    bgColor = Colors.red.shade600; // Red
-                  } else {
-                    bgColor = const Color(0xFFECEEF0); // Gray/White
-                    textColor = const Color(0xFF0F172A);
-                  }
-
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
-                  final currentBorderColor = isDark
-                      ? const Color(0xFF5D9BFF)
-                      : const Color(0xFF0051D5);
-
-                  return GestureDetector(
-                    onTap: () => examProvider.jumpToQuestion(i),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            shape: BoxShape.circle,
-                            border: isCurrent
-                                ? Border.all(
-                                    color: currentBorderColor,
-                                    width: 2.5,
-                                  )
-                                : Border.all(
-                                    color: Colors.transparent,
-                                    width: 2.5,
-                                  ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${i + 1}',
-                            style: TextStyle(
-                              color: textColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        if (showTick)
-                          Positioned(
-                            right: 0,
-                            top: -2,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF10B981),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 8,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // ── Progress Bar ──────────────────────────────────────────────
-            LinearProgressIndicator(
-              value: totalQ > 0 ? answeredCount / totalQ : 0,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              color: const Color(0xFF10B981),
-              minHeight: 3,
-            ),
-
-            // ── Legend Row ──────────────────────────────────────────────
-            Container(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : const Color(0xFFF8FAFC),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _buildLegendItem(
-                      context,
-                      'Not Visited',
-                      const Color(0xFFECEEF0),
-                      const Color(0xFF0F172A),
-                      hasTick: false,
-                    ),
-                    const SizedBox(width: 14),
-                    _buildLegendItem(
-                      context,
-                      'Visited',
-                      Colors.red.shade600,
-                      Colors.white,
-                      hasTick: false,
-                    ),
-                    const SizedBox(width: 14),
-                    _buildLegendItem(
-                      context,
-                      'Answered',
-                      const Color(0xFF10B981),
-                      Colors.white,
-                      hasTick: false,
-                    ),
-                    const SizedBox(width: 14),
-                    _buildLegendItem(
-                      context,
-                      'Review (Unanswered)',
-                      const Color(0xFF8B5CF6),
-                      Colors.white,
-                      hasTick: false,
-                    ),
-                    const SizedBox(width: 14),
-                    _buildLegendItem(
-                      context,
-                      'Review (Answered)',
-                      const Color(0xFF8B5CF6),
-                      Colors.white,
-                      hasTick: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Question Content ──────────────────────────────────────────
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Question card
-                    Builder(
-                      builder: (context) {
-                        final isMarkedForReview = examProvider.markedForReview
-                            .contains(currentQ.id);
-                        return GlassCard(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: const BoxDecoration(
-                                          color: _kPrimary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          '${currentQIndex + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      const Text(
-                                        'Question',
-                                        style: TextStyle(
-                                          color: _kPrimary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  IconButton(
-                                    icon: Icon(
-                                      isMarkedForReview
-                                          ? Icons.bookmark
-                                          : Icons.bookmark_border,
-                                      color: isMarkedForReview
-                                          ? const Color(0xFF8B5CF6)
-                                          : Colors.grey.shade500,
-                                      size: 24,
-                                    ),
-                                    tooltip: isMarkedForReview
-                                        ? 'Remove Bookmark'
-                                        : 'Mark for Review',
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => examProvider
-                                        .toggleMarkForReview(currentQ.id),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              LaTeXWidget(
-                                text: currentQ.questionText,
-                                color: const Color(0xFF0F172A),
-                              ),
-                              if (currentQ.diagram != null &&
-                                  currentQ.diagram!.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    currentQ.diagram!.startsWith('http')
-                                        ? currentQ.diagram!
-                                        : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${currentQ.diagram}',
-                                    height: 160,
-                                    width: double.infinity,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, _, _) =>
-                                        const SizedBox.shrink(),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Options
-                    if (currentQ.options != null)
-                      ...currentQ.options!.asMap().entries.map((entry) {
-                        final optIndex = entry.key;
-                        final opt = entry.value;
-                        final optLabels = ['A', 'B', 'C', 'D', 'E'];
-                        final label = optIndex < optLabels.length
-                            ? optLabels[optIndex]
-                            : '${optIndex + 1}';
-                        final isSelected =
-                            examProvider.userAnswers[currentQ.id] == opt;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: InkWell(
-                            onTap: () =>
-                                examProvider.setAnswer(currentQ.id, opt),
-                            borderRadius: BorderRadius.circular(14),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isSelected ? _kSelectedBg : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? _kPrimary
-                                      : const Color(0xFFECEEF0),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: _kPrimary.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ]
-                                    : [],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? _kPrimary
-                                          : const Color(0xFFECEEF0),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: InlineMathText(
-                                      text: opt,
-                                      fontSize: 15,
-                                      color: const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-
-                    // Unanswered note
-                    if (examProvider.userAnswers[currentQ.id] == null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 4),
-                        child: Text(
-                          'No answer selected',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Stats Bar ─────────────────────────────────────────────────
-            Container(
-              color: const Color(0xFFF8FAFC),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '$answeredCount/$totalQ answered',
-                      style: const TextStyle(
-                        color: Color(0xFF75859D),
-                        fontSize: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                // Submit button
+                TextButton(
+                  onPressed: () => _showSubmitConfirmDialog(),
+                  child: const Text(
+                    'FINISH',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (_security.backgroundViolationCount > 0)
-                    Flexible(
+                ),
+              ],
+            ),
+
+            body: Column(
+              children: [
+                // ── Violation Banner ──────────────────────────────────────────
+                AnimatedSlide(
+                  offset: _showViolationBanner
+                      ? Offset.zero
+                      : const Offset(0, -1),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: _showViolationBanner ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: Container(
+                      width: double.infinity,
+                      color: Colors.deepOrange.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.warning_amber,
-                            size: 14,
-                            color: Colors.orange.shade700,
+                          const Icon(
+                            Icons.warning_rounded,
+                            color: Colors.white,
+                            size: 18,
                           ),
-                          const SizedBox(width: 4),
-                          Flexible(
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
-                              style: TextStyle(
-                                color: Colors.orange.shade700,
+                              _violationBannerMessage,
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     ),
-                ],
-              ),
-            ),
+                  ),
+                ),
 
-            // ── Navigation Buttons ────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: const Color(0xFFECEEF0), width: 1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: currentQIndex > 0
-                          ? () => examProvider.previousQuestion()
-                          : null,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: const Color(0xFF0F172A),
-                        side: const BorderSide(color: Color(0xFFECEEF0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.chevron_left, size: 20),
-                      label: const Text('PREV'),
+                // ── Offline Banner ────────────────────────────────────────────
+                if (!ConnectivityManager().isOnline)
+                  Container(
+                    width: double.infinity,
+                    color: Colors.orange.shade800,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 16,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: currentQIndex < totalQ - 1
-                          ? () => examProvider.nextQuestion(totalQ)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _kPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.chevron_right,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      label: const Text(
-                        'NEXT',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      if (_freezeExamInteractions)
-        Positioned.fill(
-          child: Container(
-            color: Colors.black.withOpacity(0.85),
-            child: Center(
-              child: Card(
-                color: const Color(0xFF1E293B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.redAccent, width: 2),
-                ),
-                margin: const EdgeInsets.all(24),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: CircularProgressIndicator(
-                          color: Colors.redAccent,
-                          strokeWidth: 3,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        '⚠️ CONNECTION INTERRUPTED',
-                        style: TextStyle(
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.wifi_off_rounded,
                           color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'OFFLINE MODE — Attempt saved locally',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // ── Question Palette ─────────────────────────────────────────
+                Container(
+                  height: 60,
+                  color: Colors.transparent,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    itemCount: totalQ,
+                    itemBuilder: (context, i) {
+                      final qId = widget.exam.questions[i].id;
+                      final isAnswered = examProvider.userAnswers.containsKey(
+                        qId,
+                      );
+                      final isVisited = examProvider.visitedQuestionIds
+                          .contains(qId);
+                      final isMarkedForReview = examProvider.markedForReview
+                          .contains(qId);
+                      final isCurrent = i == currentQIndex;
+
+                      Color bgColor;
+                      Color textColor = Colors.white;
+                      bool showTick = false;
+
+                      if (isMarkedForReview) {
+                        bgColor = const Color(0xFF8B5CF6); // Purple
+                        if (isAnswered) {
+                          showTick = true;
+                        }
+                      } else if (isAnswered) {
+                        bgColor = const Color(0xFF10B981); // Green
+                      } else if (isVisited) {
+                        bgColor = Colors.red.shade600; // Red
+                      } else {
+                        bgColor = const Color(0xFFECEEF0); // Gray/White
+                        textColor = const Color(0xFF0F172A);
+                      }
+
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
+                      final currentBorderColor = isDark
+                          ? const Color(0xFF5D9BFF)
+                          : const Color(0xFF0051D5);
+
+                      return GestureDetector(
+                        onTap: () => examProvider.jumpToQuestion(i),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                shape: BoxShape.circle,
+                                border: isCurrent
+                                    ? Border.all(
+                                        color: currentBorderColor,
+                                        width: 2.5,
+                                      )
+                                    : Border.all(
+                                        color: Colors.transparent,
+                                        width: 2.5,
+                                      ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            if (showTick)
+                              Positioned(
+                                right: 0,
+                                top: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 8,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // ── Progress Bar ──────────────────────────────────────────────
+                LinearProgressIndicator(
+                  value: totalQ > 0 ? answeredCount / totalQ : 0,
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  color: const Color(0xFF10B981),
+                  minHeight: 3,
+                ),
+
+                // ── Legend Row ──────────────────────────────────────────────
+                Container(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black.withValues(alpha: 0.2)
+                      : const Color(0xFFF8FAFC),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _buildLegendItem(
+                          context,
+                          'Not Visited',
+                          const Color(0xFFECEEF0),
+                          const Color(0xFF0F172A),
+                          hasTick: false,
+                        ),
+                        const SizedBox(width: 14),
+                        _buildLegendItem(
+                          context,
+                          'Visited',
+                          Colors.red.shade600,
+                          Colors.white,
+                          hasTick: false,
+                        ),
+                        const SizedBox(width: 14),
+                        _buildLegendItem(
+                          context,
+                          'Answered',
+                          const Color(0xFF10B981),
+                          Colors.white,
+                          hasTick: false,
+                        ),
+                        const SizedBox(width: 14),
+                        _buildLegendItem(
+                          context,
+                          'Review (Unanswered)',
+                          const Color(0xFF8B5CF6),
+                          Colors.white,
+                          hasTick: false,
+                        ),
+                        const SizedBox(width: 14),
+                        _buildLegendItem(
+                          context,
+                          'Review (Answered)',
+                          const Color(0xFF8B5CF6),
+                          Colors.white,
+                          hasTick: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Question Content ──────────────────────────────────────────
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Question card
+                        Builder(
+                          builder: (context) {
+                            final isMarkedForReview = examProvider
+                                .markedForReview
+                                .contains(currentQ.id);
+                            return GlassCard(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 28,
+                                            height: 28,
+                                            decoration: const BoxDecoration(
+                                              color: _kPrimary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '${currentQIndex + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          const Text(
+                                            'Question',
+                                            style: TextStyle(
+                                              color: _kPrimary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          isMarkedForReview
+                                              ? Icons.bookmark
+                                              : Icons.bookmark_border,
+                                          color: isMarkedForReview
+                                              ? const Color(0xFF8B5CF6)
+                                              : Colors.grey.shade500,
+                                          size: 24,
+                                        ),
+                                        tooltip: isMarkedForReview
+                                            ? 'Remove Bookmark'
+                                            : 'Mark for Review',
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => examProvider
+                                            .toggleMarkForReview(currentQ.id),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  LaTeXWidget(
+                                    text: currentQ.questionText,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                                  if (currentQ.diagram != null &&
+                                      currentQ.diagram!.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        currentQ.diagram!.startsWith('http')
+                                            ? currentQ.diagram!
+                                            : '${Provider.of<ExamProvider>(context, listen: false).baseUrl}${currentQ.diagram}',
+                                        height: 160,
+                                        width: double.infinity,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) =>
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Options
+                        if (currentQ.options != null)
+                          ...currentQ.options!.asMap().entries.map((entry) {
+                            final optIndex = entry.key;
+                            final opt = entry.value;
+                            final optLabels = ['A', 'B', 'C', 'D', 'E'];
+                            final label = optIndex < optLabels.length
+                                ? optLabels[optIndex]
+                                : '${optIndex + 1}';
+                            final isSelected =
+                                examProvider.userAnswers[currentQ.id] == opt;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: InkWell(
+                                onTap: () =>
+                                    examProvider.setAnswer(currentQ.id, opt),
+                                borderRadius: BorderRadius.circular(14),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? _kSelectedBg
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? _kPrimary
+                                          : const Color(0xFFECEEF0),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: _kPrimary.withValues(
+                                                alpha: 0.15,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : [],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? _kPrimary
+                                              : const Color(0xFFECEEF0),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          label,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: InlineMathText(
+                                          text: opt,
+                                          fontSize: 15,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+
+                        // Unanswered note
+                        if (examProvider.userAnswers[currentQ.id] == null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, left: 4),
+                            child: Text(
+                              'No answer selected',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Stats Bar ─────────────────────────────────────────────────
+                Container(
+                  color: const Color(0xFFF8FAFC),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$answeredCount/$totalQ answered',
+                          style: const TextStyle(
+                            color: Color(0xFF75859D),
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Your connection to the secure exam server has been lost. Freeze mode active to preserve exam integrity.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.normal,
-                          decoration: TextDecoration.none,
+                      const SizedBox(width: 8),
+                      if (_security.backgroundViolationCount > 0)
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.warning_amber,
+                                size: 14,
+                                color: Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '${_security.backgroundViolationCount}/${_security.maxViolationsAllowed} violations',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // ── Navigation Buttons ────────────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: const Color(0xFFECEEF0), width: 1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: currentQIndex > 0
+                              ? () => examProvider.previousQuestion()
+                              : null,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            foregroundColor: const Color(0xFF0F172A),
+                            side: const BorderSide(color: Color(0xFFECEEF0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          label: const Text('PREV'),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Auto-submitting in: $_reconnectCountdownSeconds seconds',
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: currentQIndex < totalQ - 1
+                              ? () => examProvider.nextQuestion(totalQ)
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _kPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          label: const Text(
+                            'NEXT',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-        ),
-    ],
-  ),
-);
-}
+          if (_freezeExamInteractions)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.85),
+                child: Center(
+                  child: Card(
+                    color: const Color(0xFF1E293B),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Colors.redAccent, width: 2),
+                    ),
+                    margin: const EdgeInsets.all(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: Colors.redAccent,
+                              strokeWidth: 3,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            '⚠️ CONNECTION INTERRUPTED',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Your connection to the secure exam server has been lost. Freeze mode active to preserve exam integrity.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Auto-submitting in: $_reconnectCountdownSeconds seconds',
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   // ── Submit Confirmation Dialog ────────────────────────────────────────────
 

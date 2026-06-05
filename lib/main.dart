@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/exam_provider.dart';
@@ -20,10 +19,10 @@ import 'services/network_time_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize NetworkTimeService for timezone tamper protection
   NetworkTimeService().initialize();
-  
+
   // Check for emulator
   bool emulator = await _isEmulator();
   if (emulator) {
@@ -36,10 +35,10 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Start global Kiosk mode
   await KioskService.startKioskMode();
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -97,7 +96,11 @@ class _EmulatorWarningAppState extends State<EmulatorWarningApp> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 100),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.redAccent,
+                  size: 100,
+                ),
                 const SizedBox(height: 32),
                 const Text(
                   'Security Violation',
@@ -111,10 +114,7 @@ class _EmulatorWarningAppState extends State<EmulatorWarningApp> {
                 const Text(
                   'Running this app in an emulator is not allowed',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
                 ),
                 const SizedBox(height: 48),
                 const Text(
@@ -143,7 +143,8 @@ class MathsWithSDApp extends StatefulWidget {
   State<MathsWithSDApp> createState() => _MathsWithSDAppState();
 }
 
-class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObserver {
+class _MathsWithSDAppState extends State<MathsWithSDApp>
+    with WidgetsBindingObserver {
   bool _isMultiWindowPhase = false;
 
   @override
@@ -161,7 +162,8 @@ class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     setState(() {
-      if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      if (state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.paused) {
         _isMultiWindowPhase = true;
       } else if (state == AppLifecycleState.resumed) {
         _isMultiWindowPhase = false;
@@ -231,10 +233,12 @@ class _MathsWithSDAppState extends State<MathsWithSDApp> with WidgetsBindingObse
         home: const _AuthGate(),
         routes: {
           '/login': (context) => LoginScreen(
-            onNavigateToRegister: () => Navigator.pushReplacementNamed(context, '/register'),
+            onNavigateToRegister: () =>
+                Navigator.pushReplacementNamed(context, '/register'),
           ),
           '/register': (context) => RegisterScreen(
-            onBackToLogin: () => Navigator.pushReplacementNamed(context, '/login'),
+            onBackToLogin: () =>
+                Navigator.pushReplacementNamed(context, '/login'),
           ),
           '/student': (context) => const StudentDashboard(),
         },

@@ -16,7 +16,7 @@ class SelfAssessmentScreen extends StatefulWidget {
 
 class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   final ApiService _apiService = ApiService();
-  
+
   // State variables
   bool _isLoading = true;
   String? _errorMessage;
@@ -25,12 +25,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   final List<String> _selectedChapters = [];
   int _selectedLimit = 10;
   int _selectedTime = 30; // in minutes
-  
+
   // Session details
   String? _sessionToken;
   int _totalQuestions = 10;
   DateTime? _expiresAt;
-  
+
   // Question tracking list (loaded batch by batch)
   final List<Map<String, dynamic>> _questionsList = [];
   bool _fetchingNextBatch = false;
@@ -38,21 +38,21 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   final Map<String, String> _userAnswers = {}; // questionId -> selectedOption
   final Set<String> _markedForReview = {}; // questionId
   final Set<String> _visitedQuestionIds = {}; // questionId
-  
+
   // Current question details
   bool _isCompleted = false;
   bool _isSubmitting = false;
-  
+
   // Results details (populated when completed)
   Map<String, dynamic>? _results;
-  
+
   // Timers
   Timer? _heartbeatTimer;
   Timer? _countdownTimer;
   int _remainingSeconds = 1800; // default 30 mins
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   bool _isOnline = true;
-  
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +60,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     _setupConnectivityListener();
     _loadChapters();
   }
-   
+
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
@@ -68,9 +68,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     _connectivitySubscription?.cancel();
     super.dispose();
   }
-   
+
   void _setupConnectivityListener() {
-    _connectivitySubscription = ConnectivityManager().statusChanges.listen((result) {
+    _connectivitySubscription = ConnectivityManager().statusChanges.listen((
+      result,
+    ) {
       final online = result != ConnectivityResult.none;
       if (online != _isOnline) {
         setState(() {
@@ -88,7 +90,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     if (!_isOnline) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'An active internet connection is required to start a self-assessment.';
+        _errorMessage =
+            'An active internet connection is required to start a self-assessment.';
       });
       return;
     }
@@ -114,16 +117,17 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       });
     }
   }
-   
+
   Future<void> _startAssessmentSession() async {
     if (!_isOnline) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'An active internet connection is required to start a self-assessment.';
+        _errorMessage =
+            'An active internet connection is required to start a self-assessment.';
       });
       return;
     }
-    
+
     if (_selectedChapters.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -138,20 +142,20 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-     
+
     try {
       final data = await _apiService.generateSelfAssessment(
         chapters: _selectedChapters,
         limit: _selectedLimit,
         time: _selectedTime,
       );
-       
-       _sessionToken = data['token'];
+
+      _sessionToken = data['token'];
       _totalQuestions = data['totalQuestions'] ?? _selectedLimit;
       if (data['expiresAt'] != null) {
         _expiresAt = DateTime.parse(data['expiresAt']);
       }
-      
+
       _questionsList.clear();
       _userAnswers.clear();
       _markedForReview.clear();
@@ -162,7 +166,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       // Start 15s heartbeats
       _startHeartbeats();
       _startCountdownTimer();
-       
+
       // Fetch first batch of questions (offset 0)
       await _loadNextQuestionsBatch(0);
 
@@ -182,7 +186,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       });
     }
   }
-  
+
   void _startHeartbeats() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
@@ -191,7 +195,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       }
     });
   }
-  
+
   Future<void> _sendHeartbeat() async {
     try {
       await _apiService.sendSelfAssessmentHeartbeat(_sessionToken!);
@@ -203,7 +207,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       }
     }
   }
-  
+
   void _handleSessionTerminated(String reason) {
     _heartbeatTimer?.cancel();
     if (mounted) {
@@ -213,11 +217,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       });
     }
   }
-  
+
   void _startCountdownTimer() {
     _countdownTimer?.cancel();
     if (_expiresAt == null) return;
-    
+
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -237,7 +241,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
 
   Future<void> _loadNextQuestionsBatch(int offset) async {
     if (_sessionToken == null || _fetchingNextBatch) return;
-    if (_questionsList.length > offset) return; // Batch already loaded or loading
+    if (_questionsList.length > offset)
+      return; // Batch already loaded or loading
 
     _fetchingNextBatch = true;
     try {
@@ -246,22 +251,24 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
         offset: offset,
         limit: 5,
       );
-      
+
       final List<dynamic> questionsData = data['questions'] ?? [];
       final List<Map<String, dynamic>> parsedBatch = questionsData
           .map((q) => Map<String, dynamic>.from(q as Map))
           .toList();
-      
+
       setState(() {
         _questionsList.addAll(parsedBatch);
         _fetchingNextBatch = false;
-        
+
         // Mark the first loaded question as visited if just starting
         if (_questionsList.isNotEmpty && _visitedQuestionIds.isEmpty) {
           _visitedQuestionIds.add(_questionsList[0]['id']);
         }
       });
-      debugPrint('[SelfAssessment] Loaded questions batch at offset $offset. Total: ${_questionsList.length}');
+      debugPrint(
+        '[SelfAssessment] Loaded questions batch at offset $offset. Total: ${_questionsList.length}',
+      );
     } catch (e) {
       _fetchingNextBatch = false;
       debugPrint('[SelfAssessment] Failed to load batch at offset $offset: $e');
@@ -277,7 +284,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
 
   void _jumpToQuestion(int index) {
     if (index < 0 || index >= _totalQuestions) return;
-    
+
     setState(() {
       _currentQuestionIndex = index;
     });
@@ -293,7 +300,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     // General prefetching rule: when user reaches index % 5 >= 3, trigger prefetch of next batch (offset = next multiple of 5)
     if (index % 5 >= 3) {
       final nextBatchOffset = ((index ~/ 5) + 1) * 5;
-      if (nextBatchOffset < _totalQuestions && _questionsList.length <= nextBatchOffset) {
+      if (nextBatchOffset < _totalQuestions &&
+          _questionsList.length <= nextBatchOffset) {
         _loadNextQuestionsBatch(nextBatchOffset);
       }
     }
@@ -343,7 +351,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF0051D5)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF0051D5),
+            ),
             child: const Text('Finish'),
           ),
         ],
@@ -408,7 +418,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     return '$mStr:$sStr';
   }
 
-  Widget _buildLegendItem(String label, Color color, Color textColor, {required bool hasTick}) {
+  Widget _buildLegendItem(
+    String label,
+    Color color,
+    Color textColor, {
+    required bool hasTick,
+  }) {
     return Row(
       children: [
         Stack(
@@ -435,11 +450,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     color: Color(0xFF10B981),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 6,
-                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 6),
                 ),
               ),
           ],
@@ -458,14 +469,18 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       ],
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+    final themePrimary = isDark
+        ? const Color(0xFF5D9BFF)
+        : const Color(0xFF0051D5);
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF75859D);
-    
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : const Color(0xFF75859D);
+
     final navigator = Navigator.of(context);
     return PopScope(
       canPop: _isConfiguring || _isCompleted || _errorMessage != null,
@@ -506,19 +521,13 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: isDark
-                        ? [
-                            const Color(0xFF090D1A),
-                            const Color(0xFF020408),
-                          ]
-                        : [
-                            const Color(0xFFF8FAFC),
-                            const Color(0xFFF1F5F9),
-                          ],
+                        ? [const Color(0xFF090D1A), const Color(0xFF020408)]
+                        : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
                   ),
                 ),
               ),
             ),
-            
+
             // Background glowing bubble
             Positioned(
               top: -80,
@@ -532,23 +541,31 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 ),
               ),
             ),
-            
+
             SafeArea(
               child: Column(
                 children: [
                   // App Bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         if (_isConfiguring || _isCompleted) ...[
                           IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
+                            icon: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: textColor,
+                            ),
                             onPressed: () => Navigator.maybePop(context),
                           ),
                           Text(
-                            _isCompleted ? 'Assessment Results' : 'Self Assessment',
+                            _isCompleted
+                                ? 'Assessment Results'
+                                : 'Self Assessment',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
@@ -556,7 +573,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(width: 48), // Spacer to balance back button
+                          const SizedBox(
+                            width: 48,
+                          ), // Spacer to balance back button
                         ] else ...[
                           Row(
                             children: [
@@ -580,7 +599,10 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _remainingSeconds < 60
                                   ? Colors.red.shade700
@@ -591,14 +613,18 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               children: [
                                 Icon(
                                   Icons.timer_outlined,
-                                  color: _remainingSeconds < 60 ? Colors.white : themePrimary,
+                                  color: _remainingSeconds < 60
+                                      ? Colors.white
+                                      : themePrimary,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   _formatTime(_remainingSeconds),
                                   style: TextStyle(
-                                    color: _remainingSeconds < 60 ? Colors.white : textColor,
+                                    color: _remainingSeconds < 60
+                                        ? Colors.white
+                                        : textColor,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
                                   ),
@@ -620,7 +646,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Main Body
                   Expanded(
                     child: Builder(
@@ -630,7 +656,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             child: CircularProgressIndicator(),
                           );
                         }
-                        
+
                         if (_errorMessage != null) {
                           return Center(
                             child: Padding(
@@ -676,13 +702,19 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                                           backgroundColor: themePrimary,
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
                                         ),
                                         child: const Text(
                                           'Go Back',
-                                          style: TextStyle(fontWeight: FontWeight.w900),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -692,23 +724,38 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             ),
                           );
                         }
-                        
+
                         if (_isConfiguring) {
-                          return _buildConfigurationView(textColor, secondaryTextColor, themePrimary, isDark);
+                          return _buildConfigurationView(
+                            textColor,
+                            secondaryTextColor,
+                            themePrimary,
+                            isDark,
+                          );
                         }
-                        
+
                         if (_isCompleted) {
-                          return _buildResultsView(textColor, secondaryTextColor, themePrimary, isDark);
+                          return _buildResultsView(
+                            textColor,
+                            secondaryTextColor,
+                            themePrimary,
+                            isDark,
+                          );
                         }
-                        
-                        return _buildQuestionView(textColor, secondaryTextColor, themePrimary, isDark);
+
+                        return _buildQuestionView(
+                          textColor,
+                          secondaryTextColor,
+                          themePrimary,
+                          isDark,
+                        );
                       },
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Full screen offline barrier
             if (!_isOnline)
               Positioned.fill(
@@ -752,7 +799,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             ),
                           ],
@@ -767,7 +816,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       ),
     );
   }
-  
+
   void _previousQuestion() {
     if (_currentQuestionIndex > 0) {
       _jumpToQuestion(_currentQuestionIndex - 1);
@@ -790,7 +839,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     });
   }
 
-  Widget _buildQuestionView(Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+  Widget _buildQuestionView(
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     if (_questionsList.length <= _currentQuestionIndex) {
       return const Center(
         child: Column(
@@ -809,7 +863,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     final qText = currentQ['questionText'] as String? ?? '';
     final qDiagram = currentQ['diagram'] as String?;
     final qOptions = List<String>.from(currentQ['options'] ?? []);
-    
+
     final totalQ = _totalQuestions;
     final answeredCount = _userAnswers.length;
     final isMarkedForReview = _markedForReview.contains(currentQId);
@@ -822,17 +876,15 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
           color: Colors.transparent,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             itemCount: totalQ,
             itemBuilder: (context, i) {
               final bool isLoaded = i < _questionsList.length;
               final String? qId = isLoaded ? _questionsList[i]['id'] : null;
-              
+
               final isAnswered = qId != null && _userAnswers.containsKey(qId);
-              final isVisited = qId != null && _visitedQuestionIds.contains(qId);
+              final isVisited =
+                  qId != null && _visitedQuestionIds.contains(qId);
               final isMarked = qId != null && _markedForReview.contains(qId);
               final isCurrent = i == _currentQuestionIndex;
 
@@ -871,14 +923,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                         color: bgColor,
                         shape: BoxShape.circle,
                         border: isCurrent
-                            ? Border.all(
-                                color: currentBorderColor,
-                                width: 2.5,
-                              )
-                            : Border.all(
-                                color: Colors.transparent,
-                                width: 2.5,
-                              ),
+                            ? Border.all(color: currentBorderColor, width: 2.5)
+                            : Border.all(color: Colors.transparent, width: 2.5),
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -933,15 +979,40 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildLegendItem('Not Visited', const Color(0xFFECEEF0), const Color(0xFF0F172A), hasTick: false),
+                _buildLegendItem(
+                  'Not Visited',
+                  const Color(0xFFECEEF0),
+                  const Color(0xFF0F172A),
+                  hasTick: false,
+                ),
                 const SizedBox(width: 14),
-                _buildLegendItem('Visited', Colors.red.shade600, Colors.white, hasTick: false),
+                _buildLegendItem(
+                  'Visited',
+                  Colors.red.shade600,
+                  Colors.white,
+                  hasTick: false,
+                ),
                 const SizedBox(width: 14),
-                _buildLegendItem('Answered', const Color(0xFF10B981), Colors.white, hasTick: false),
+                _buildLegendItem(
+                  'Answered',
+                  const Color(0xFF10B981),
+                  Colors.white,
+                  hasTick: false,
+                ),
                 const SizedBox(width: 14),
-                _buildLegendItem('Review (Unanswered)', const Color(0xFF8B5CF6), Colors.white, hasTick: false),
+                _buildLegendItem(
+                  'Review (Unanswered)',
+                  const Color(0xFF8B5CF6),
+                  Colors.white,
+                  hasTick: false,
+                ),
                 const SizedBox(width: 14),
-                _buildLegendItem('Review (Answered)', const Color(0xFF8B5CF6), Colors.white, hasTick: true),
+                _buildLegendItem(
+                  'Review (Answered)',
+                  const Color(0xFF8B5CF6),
+                  Colors.white,
+                  hasTick: true,
+                ),
               ],
             ),
           ),
@@ -1029,7 +1100,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             height: 160,
                             width: double.infinity,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           ),
                         ),
                       ],
@@ -1046,7 +1117,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                   final label = optIndex < optLabels.length
                       ? optLabels[optIndex]
                       : '${optIndex + 1}';
-                  
+
                   final isSelected = _userAnswers[currentQId] == opt;
 
                   return Padding(
@@ -1068,19 +1139,27 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFE6EFFF))
-                              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+                              ? (isDark
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFE6EFFF))
+                              : (isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.white),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF0051D5)
-                                : (isDark ? Colors.white12 : const Color(0xFFECEEF0)),
+                                : (isDark
+                                      ? Colors.white12
+                                      : const Color(0xFFECEEF0)),
                             width: isSelected ? 1.5 : 1,
                           ),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: const Color(0xFF0051D5).withValues(alpha: 0.15),
+                                    color: const Color(
+                                      0xFF0051D5,
+                                    ).withValues(alpha: 0.15),
                                     blurRadius: 10,
                                     offset: const Offset(0, 2),
                                   ),
@@ -1095,7 +1174,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? const Color(0xFF0051D5)
-                                    : (isDark ? Colors.white10 : const Color(0xFFECEEF0)),
+                                    : (isDark
+                                          ? Colors.white10
+                                          : const Color(0xFFECEEF0)),
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
@@ -1104,7 +1185,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                                 style: TextStyle(
                                   color: isSelected
                                       ? Colors.white
-                                      : (isDark ? Colors.white70 : const Color(0xFF0F172A)),
+                                      : (isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF0F172A)),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -1115,7 +1198,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               child: InlineMathText(
                                 text: opt,
                                 fontSize: 15,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                           ],
@@ -1145,7 +1230,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
 
         // ── Stats Bar ─────────────────────────────────────────────────
         Container(
-          color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFFF8FAFC),
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.3)
+              : const Color(0xFFF8FAFC),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1185,7 +1272,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       : null,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                    foregroundColor: isDark
+                        ? Colors.white
+                        : const Color(0xFF0F172A),
                     side: BorderSide(
                       color: isDark ? Colors.white12 : const Color(0xFFECEEF0),
                     ),
@@ -1227,14 +1316,19 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       ],
     );
   }
-  
-  Widget _buildResultsView(Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+
+  Widget _buildResultsView(
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     final score = _results?['score'] ?? 0;
     final total = _results?['total'] ?? _totalQuestions;
     final percentage = _results?['percentage'] ?? 0.0;
     final analytics = _results?['analytics'] ?? {};
     final weakTopics = List<String>.from(analytics['weakTopics'] ?? []);
-    
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(24),
@@ -1275,14 +1369,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
             delay: const Duration(milliseconds: 150),
             child: Text(
               'Your results have been processed securely',
-              style: TextStyle(
-                fontSize: 14,
-                color: secondaryTextColor,
-              ),
+              style: TextStyle(fontSize: 14, color: secondaryTextColor),
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Scorecard Card
           FadeInSlide(
             duration: const Duration(milliseconds: 600),
@@ -1327,7 +1418,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w900,
-                              color: percentage >= 50.0 ? Colors.green : Colors.orangeAccent,
+                              color: percentage >= 50.0
+                                  ? Colors.green
+                                  : Colors.orangeAccent,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1348,7 +1441,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          
+
           // Weak areas section
           if (weakTopics.isNotEmpty) ...[
             FadeInSlide(
@@ -1374,7 +1467,10 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 delay: Duration(milliseconds: 300 + (idx * 50)),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orangeAccent.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -1384,7 +1480,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.lightbulb_outline_rounded, color: Colors.orangeAccent, size: 20),
+                      const Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: Colors.orangeAccent,
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -1406,7 +1506,10 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               duration: const Duration(milliseconds: 600),
               delay: const Duration(milliseconds: 250),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
@@ -1416,7 +1519,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.star_rounded, color: Colors.green, size: 24),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Colors.green,
+                      size: 24,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -1434,9 +1541,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               ),
             ),
           ],
-          
+
           const SizedBox(height: 36),
-          
+
           // Return to dashboard
           FadeInSlide(
             duration: const Duration(milliseconds: 600),
@@ -1456,10 +1563,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 ),
                 child: const Text(
                   'Back to Dashboard',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
               ),
             ),
@@ -1470,7 +1574,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   }
 
   Widget _buildConfigurationView(
-      Color textColor, Color secondaryTextColor, Color themePrimary, bool isDark) {
+    Color textColor,
+    Color secondaryTextColor,
+    Color themePrimary,
+    bool isDark,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -1487,10 +1595,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
           const SizedBox(height: 8),
           Text(
             'Select chapters, question limit, and time to generate a randomized test.',
-            style: TextStyle(
-              fontSize: 14,
-              color: secondaryTextColor,
-            ),
+            style: TextStyle(fontSize: 14, color: secondaryTextColor),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -1514,7 +1619,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                         TextButton(
                           onPressed: () {
                             setState(() {
-                              if (_selectedChapters.length == _availableChapters.length) {
+                              if (_selectedChapters.length ==
+                                  _availableChapters.length) {
                                 _selectedChapters.clear();
                               } else {
                                 _selectedChapters.clear();
@@ -1523,7 +1629,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                             });
                           },
                           child: Text(
-                            _selectedChapters.length == _availableChapters.length
+                            _selectedChapters.length ==
+                                    _availableChapters.length
                                 ? 'Deselect All'
                                 : 'Select All',
                             style: TextStyle(
@@ -1538,7 +1645,10 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                   if (_availableChapters.isEmpty)
                     Text(
                       'No chapters available for your class.',
-                      style: TextStyle(color: secondaryTextColor, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        color: secondaryTextColor,
+                        fontStyle: FontStyle.italic,
+                      ),
                     )
                   else
                     Material(
@@ -1561,14 +1671,18 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                           itemCount: _availableChapters.length,
                           itemBuilder: (context, index) {
                             final chapterName = _availableChapters[index];
-                            final isSelected = _selectedChapters.contains(chapterName);
+                            final isSelected = _selectedChapters.contains(
+                              chapterName,
+                            );
                             return CheckboxListTile(
                               title: Text(
                                 chapterName,
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: textColor,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                               value: isSelected,
@@ -1589,7 +1703,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       ),
                     ),
                   const SizedBox(height: 24),
-                  
+
                   // Question Limit Selection
                   Text(
                     'Number of Questions',
@@ -1662,7 +1776,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               ),
             ),
           ),
-          
+
           // Action Button
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1670,7 +1784,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _selectedChapters.isEmpty ? null : _startAssessmentSession,
+                onPressed: _selectedChapters.isEmpty
+                    ? null
+                    : _startAssessmentSession,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
                   foregroundColor: Colors.white,
@@ -1682,10 +1798,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 ),
                 child: const Text(
                   'Start Practice Test',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                 ),
               ),
             ),
