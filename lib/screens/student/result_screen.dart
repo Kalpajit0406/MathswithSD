@@ -1,9 +1,11 @@
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
 import '../../widgets/glass_card.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   final int score;
   final int totalQuestions;
   final int timeTaken;
@@ -22,9 +24,31 @@ class ResultScreen extends StatelessWidget {
   });
 
   @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 25),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final double percentage = totalQuestions > 0
-        ? (score / totalQuestions) * 100
+    final double percentage = widget.totalQuestions > 0
+        ? (widget.score / widget.totalQuestions) * 100
         : 0;
     final bool passed = percentage >= 40;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -58,14 +82,88 @@ class ResultScreen extends StatelessWidget {
             indicatorWeight: 3,
           ),
         ),
-        body: TabBarView(
+        body: Stack(
           children: [
-            _buildSummary(context, percentage, passed),
-            _buildReviewList(
-              textColor,
-              secondaryTextColor,
-              themePrimary,
-              isDark,
+            // Animated ambient glowing circles for glassmorphism
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                final progress = _animationController.value;
+                final angle = progress * 2 * math.pi;
+
+                // Sinusoidal drift offsets to simulate fluid flow
+                final dx1 = math.sin(angle) * 45;
+                final dy1 = math.cos(angle) * 45;
+
+                final dx2 = math.cos(angle + math.pi / 2) * 55;
+                final dy2 = math.sin(angle + math.pi / 2) * 55;
+
+                final dx3 = math.sin(angle + math.pi) * 40;
+                final dy3 = math.cos(angle + math.pi) * 40;
+
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: -100 + dy1,
+                      right: -100 + dx1,
+                      child: Container(
+                        width: 340,
+                        height: 340,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? const Color(0xFF0051D5).withValues(alpha: 0.16)
+                              : const Color(0xFF0051D5).withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 80 + dy2,
+                      left: -100 + dx2,
+                      child: Container(
+                        width: 360,
+                        height: 360,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? const Color(0xFFF97316).withValues(alpha: 0.12)
+                              : const Color(0xFFF97316).withValues(alpha: 0.06),
+                        ),
+                      ),
+                    ),
+                    if (isDark)
+                      Positioned(
+                        top: 260 + dy3,
+                        right: -120 + dx3,
+                        child: Container(
+                          width: 300,
+                          height: 300,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFD946EF).withValues(alpha: 0.09),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: const SizedBox.shrink(),
+              ),
+            ),
+            TabBarView(
+              children: [
+                _buildSummary(context, percentage, passed),
+                _buildReviewList(
+                  textColor,
+                  secondaryTextColor,
+                  themePrimary,
+                  isDark,
+                ),
+              ],
             ),
           ],
         ),
@@ -114,7 +212,7 @@ class ResultScreen extends StatelessWidget {
                   children: [
                     _StatColumn(
                       label: 'Score',
-                      value: '$score / $totalQuestions',
+                      value: '${widget.score} / ${widget.totalQuestions}',
                       textColor: textColor,
                       secondaryTextColor: secondaryTextColor,
                     ),
@@ -126,7 +224,7 @@ class ResultScreen extends StatelessWidget {
                     ),
                     _StatColumn(
                       label: 'Time',
-                      value: '${(timeTaken / 60).floor()}m ${timeTaken % 60}s',
+                      value: '${(widget.timeTaken / 60).floor()}m ${widget.timeTaken % 60}s',
                       textColor: textColor,
                       secondaryTextColor: secondaryTextColor,
                     ),
@@ -135,7 +233,7 @@ class ResultScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (isOffline) ...[
+          if (widget.isOffline) ...[
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -210,10 +308,10 @@ class ResultScreen extends StatelessWidget {
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: questions.length,
+      itemCount: widget.questions.length,
       itemBuilder: (context, index) {
-        final q = questions[index];
-        final userAns = userAnswers[q.id];
+        final q = widget.questions[index];
+        final userAns = widget.userAnswers[q.id];
         final isCorrect = userAns == q.correctAnswer;
         final isUnanswered = userAns == null;
 

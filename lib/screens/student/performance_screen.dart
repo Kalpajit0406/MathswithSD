@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -12,14 +14,25 @@ class PerformanceScreen extends StatefulWidget {
   State<PerformanceScreen> createState() => _PerformanceScreenState();
 }
 
-class _PerformanceScreenState extends State<PerformanceScreen> {
+class _PerformanceScreenState extends State<PerformanceScreen> with SingleTickerProviderStateMixin {
   late Future<Map<String, dynamic>?> _performanceFuture;
   String _selectedTimeframe = 'week';
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 25),
+    )..repeat();
     _loadPerformance();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _loadPerformance() {
@@ -83,37 +96,111 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        child: FutureBuilder<Map<String, dynamic>?>(
-          future: _performanceFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: themePrimary),
-              );
-            }
+      body: Stack(
+        children: [
+          // Animated ambient glowing circles for glassmorphism
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              final progress = _animationController.value;
+              final angle = progress * 2 * math.pi;
 
-            if (snapshot.hasError || snapshot.data == null) {
-              return _buildErrorState(
-                () => setState(_loadPerformance),
-                textColor,
-                secondaryTextColor,
-                themePrimary,
-                isDark,
-              );
-            }
+              // Sinusoidal drift offsets to simulate fluid flow
+              final dx1 = math.sin(angle) * 45;
+              final dy1 = math.cos(angle) * 45;
 
-            final data = snapshot.data!;
-            return _buildPerformanceContent(
-              data,
-              auth,
-              textColor,
-              secondaryTextColor,
-              themePrimary,
-              isDark,
-            );
-          },
-        ),
+              final dx2 = math.cos(angle + math.pi / 2) * 55;
+              final dy2 = math.sin(angle + math.pi / 2) * 55;
+
+              final dx3 = math.sin(angle + math.pi) * 40;
+              final dy3 = math.cos(angle + math.pi) * 40;
+
+              return Stack(
+                children: [
+                  Positioned(
+                    top: -100 + dy1,
+                    right: -100 + dx1,
+                    child: Container(
+                      width: 340,
+                      height: 340,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? const Color(0xFF0051D5).withValues(alpha: 0.16)
+                            : const Color(0xFF0051D5).withValues(alpha: 0.08),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 80 + dy2,
+                    left: -100 + dx2,
+                    child: Container(
+                      width: 360,
+                      height: 360,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? const Color(0xFFF97316).withValues(alpha: 0.12)
+                            : const Color(0xFFF97316).withValues(alpha: 0.06),
+                      ),
+                    ),
+                  ),
+                  if (isDark)
+                    Positioned(
+                      top: 260 + dy3,
+                      right: -120 + dx3,
+                      child: Container(
+                        width: 300,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFD946EF).withValues(alpha: 0.09),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          SafeArea(
+            child: FutureBuilder<Map<String, dynamic>?>(
+              future: _performanceFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(color: themePrimary),
+                  );
+                }
+
+                if (snapshot.hasError || snapshot.data == null) {
+                  return _buildErrorState(
+                    () => setState(_loadPerformance),
+                    textColor,
+                    secondaryTextColor,
+                    themePrimary,
+                    isDark,
+                  );
+                }
+
+                final data = snapshot.data!;
+                return _buildPerformanceContent(
+                  data,
+                  auth,
+                  textColor,
+                  secondaryTextColor,
+                  themePrimary,
+                  isDark,
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

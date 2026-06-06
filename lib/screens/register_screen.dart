@@ -95,6 +95,122 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       return;
     }
 
+    final phone = _studentPhoneCtrl.text.trim();
+
+    // ── Phase 1: Pre-check phone status ───────────────────────────────────
+    try {
+      final api = ApiService();
+      final status = await api.checkPhoneStatus(phone);
+      final bool isBlacklisted = status['blacklisted'] == true;
+      final int attemptCount =
+          (status['attemptCount'] as num?)?.toInt() ?? 0;
+
+      if (!mounted) return;
+
+      // Blocklisted — hard stop, non-dismissable dialog
+      if (isBlacklisted || attemptCount >= 5) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: const Color(0xFF1A0A2E),
+            title: const Row(
+              children: [
+                Icon(Icons.block_rounded, color: Colors.redAccent, size: 26),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Number Blocklisted',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Your phone number has been permanently blocked due to '
+              'repeated rejected registrations.\n\n'
+              'Please contact the Administrator to resolve this.',
+              style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK',
+                    style: TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // 5th attempt warning — amber dialog
+      if (attemptCount == 4) {
+        final bool? proceed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: const Color(0xFF1A0A2E),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.amber, size: 26),
+                SizedBox(width: 10),
+                Text(
+                  'Final Attempt',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'This is your last registration attempt.\n\n'
+              'If your registration is rejected again, your phone number '
+              'will be permanently blocked and you will need to contact '
+              'the Administrator.\n\n'
+              'Do you still wish to proceed?',
+              style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel',
+                    style: TextStyle(
+                        color: Color(0xFFCBB8FF), fontWeight: FontWeight.bold)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Proceed Anyway',
+                    style: TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.w900)),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true || !mounted) return;
+      }
+    } catch (_) {
+      // Network error during status check — let the backend enforce rules
+    }
+
+    // ── Phase 2: Actual registration ──────────────────────────────────────
     setState(() => _isLoading = true);
 
     try {

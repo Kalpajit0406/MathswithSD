@@ -293,6 +293,20 @@ class ApiService {
         .timeout(const Duration(seconds: 20));
   }
 
+  /// Returns { blacklisted: bool, attemptCount: int } for a phone number.
+  /// Called before showing the registration loader so we can gate/warn early.
+  Future<Map<String, dynamic>> checkPhoneStatus(String phone) async {
+    final response = await http
+        .get(
+          await _uri(
+              '${AppConstants.phoneStatusEndpoint}/${Uri.encodeComponent(phone)}'),
+          headers: await _headers(includeAuth: false),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
+  }
+
   Future<Map<String, dynamic>> fetchProfile() async {
     final response = await http
         .get(
