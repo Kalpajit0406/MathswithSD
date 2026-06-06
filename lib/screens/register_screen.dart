@@ -380,48 +380,41 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                   ],
                                 ),
                                 if (_classNo == '11' || _classNo == '12') ...[
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        height: 24,
-                                        width: 24,
-                                        child: Checkbox(
-                                          value: _isJoint,
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _isJoint = val ?? false;
-                                            });
-                                          },
-                                          activeColor: const Color(0xFF8B5CF6),
-                                        ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF8B5CF6)
+                                          .withValues(alpha: 0.07),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: const Color(0xFF8B5CF6)
+                                            .withValues(alpha: 0.2),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Enroll in Joint Entrance preparation',
-                                              style: TextStyle(
-                                                color: textColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Optional curriculum for engineering entrance prep',
-                                              style: TextStyle(
-                                                color: textColor.withValues(alpha: 0.6),
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline_rounded,
+                                          color: Color(0xFF8B5CF6),
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Joint Entrance enrolment can be requested from your profile after your account is approved by the teacher.',
+                                            style: TextStyle(
+                                              color: const Color(0xFF8B5CF6)
+                                                  .withValues(alpha: 0.9),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ],

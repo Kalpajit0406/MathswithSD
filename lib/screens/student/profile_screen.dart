@@ -36,6 +36,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  /// Returns true only when the student has actually changed at least one field.
+  bool get _hasChanges {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final user = auth.user;
+    if (user == null) return false;
+
+    final originalClass = user.classNo;
+    final originalLanguage = user.language ?? 'English';
+    // isJoint is only meaningful for class 11/12; treat it as false otherwise.
+    final originalIsJoint =
+        (originalClass == 11 || originalClass == 12) ? (user.isJoint ?? false) : false;
+    final effectiveIsJoint =
+        (_selectedClassNo == 11 || _selectedClassNo == 12) ? _selectedIsJoint : false;
+
+    return _selectedClassNo != originalClass ||
+        _selectedLanguage != originalLanguage ||
+        effectiveIsJoint != originalIsJoint;
+  }
+
   Future<void> _saveChanges(AuthProvider auth) async {
     if (_selectedClassNo == null || _selectedLanguage == null) return;
     
@@ -443,20 +462,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isSaving ? null : () => _saveChanges(auth),
+                      onPressed: (_isSaving || !_hasChanges)
+                          ? null
+                          : () => _saveChanges(auth),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: themePrimary,
+                        backgroundColor:
+                            _hasChanges ? themePrimary : Colors.grey.shade300,
+                        disabledBackgroundColor: Colors.grey.shade300,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
                       child: _isSaving
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
                             )
-                          : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                          : Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                color: _hasChanges
+                                    ? Colors.white
+                                    : Colors.grey.shade500,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                     ),
                   ),
                 ],
