@@ -13,8 +13,8 @@ import 'widgets/offline_indicator.dart';
 import 'utils/error_boundary.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/welcome_screen.dart';
 import 'screens/student/student_dashboard.dart';
+import 'screens/splash_screen.dart';
 import 'providers/theme_provider.dart';
 import 'services/network_time_service.dart';
 
@@ -231,7 +231,7 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
             ],
           );
         },
-        home: const _AuthGate(),
+        home: const SplashScreen(),
         routes: {
           '/login': (context) => LoginScreen(
             onNavigateToRegister: () =>
@@ -244,42 +244,6 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
           '/student': (context) => const StudentDashboard(),
         },
       ),
-    );
-  }
-}
-
-class _AuthGate extends StatelessWidget {
-  const _AuthGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
-        if (auth.status == AuthStatus.initial) {
-          // Splash screen while checking auto-login
-          return const Scaffold(
-            backgroundColor: Color(0xFF0A1628),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.school, color: Color(0xFF00BCD4), size: 80),
-                  SizedBox(height: 24),
-                  CircularProgressIndicator(color: Color(0xFF00BCD4)),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (auth.isAuthenticated) {
-          // Force student dashboard even if user is admin (security cleanup)
-          return const StudentDashboard();
-        }
-
-        // Unauthenticated
-        return const WelcomeScreen();
-      },
     );
   }
 }

@@ -42,6 +42,7 @@ dependencies:
   connectivity_plus: ^7.1.1
   dio: ^5.9.2
   sqflite: ^2.4.2+1
+  flutter_avif: ^3.1.0
 
 dependency_overrides:
   path_provider_android: 2.2.12
