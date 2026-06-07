@@ -15,6 +15,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student/student_dashboard.dart';
 import 'screens/splash_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'providers/theme_provider.dart';
 import 'services/network_time_service.dart';
 
@@ -242,6 +243,7 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
                 Navigator.pushReplacementNamed(context, '/login'),
           ),
           '/student': (context) => const StudentDashboard(),
+          '/welcome': (context) => const WelcomeScreen(),
         },
       ),
     );

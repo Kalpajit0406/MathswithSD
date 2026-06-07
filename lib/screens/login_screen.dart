@@ -73,10 +73,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.light,
-          child: Stack(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF0F172A), const Color(0xFF020617)]
+                  : [const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+            child: Stack(
               children: [
                 // Animated ambient glowing circles for glassmorphism
                 AnimatedBuilder(
@@ -204,32 +213,28 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             duration: const Duration(milliseconds: 700),
                             slideOffset: 30,
                             child: Container(
-                              width: 88,
-                              height: 88,
+                              width: 96,
+                              height: 96,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF8B5CF6),
-                                    Color(0xFF4C1D95),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
                                 borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  width: 2.0,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF8B5CF6,
-                                    ).withValues(alpha: 0.35),
-                                    blurRadius: 20,
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 15,
                                     offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.school_rounded,
-                                color: Colors.white,
-                                size: 44,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Image.asset(
+                                  'assets/images/app_icon.jpg',
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
                           ),
@@ -363,8 +368,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             decoration: BoxDecoration(
                                               gradient: const LinearGradient(
                                                 colors: [
-                                                  Color(0xFF8B5CF6),
-                                                  Color(0xFF4C1D95),
+                                                  Color(0xFF1E3A8A),
+                                                  Color(0xFF0F172A),
                                                 ],
                                               ),
                                               borderRadius:
@@ -444,8 +449,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         ),
       ),
     ),
-  );
-  }
+  ),
+);
+}
 
   Widget _buildLabel(String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -476,14 +482,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       prefixIcon: Icon(icon, color: isDark ? const Color(0xFFD3BBFF) : const Color(0xFF4C1D95), size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.45),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
+        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.6)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
+        borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.6)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
