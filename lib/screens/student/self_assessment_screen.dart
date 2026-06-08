@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../services/api_service.dart';
@@ -14,7 +16,8 @@ class SelfAssessmentScreen extends StatefulWidget {
   State<SelfAssessmentScreen> createState() => _SelfAssessmentScreenState();
 }
 
-class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
+class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
+    with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
 
   // State variables
@@ -45,6 +48,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
 
   // Results details (populated when completed)
   Map<String, dynamic>? _results;
+  int _resultsActiveTab = 0; // 0 for Summary, 1 for Review Solutions
 
   // Timers
   Timer? _heartbeatTimer;
@@ -53,16 +57,23 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   bool _isOnline = true;
 
+  late AnimationController _animationController;
+
   @override
   void initState() {
     super.initState();
     _isOnline = ConnectivityManager().isOnline;
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat(reverse: true);
     _setupConnectivityListener();
     _loadChapters();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _heartbeatTimer?.cancel();
     _countdownTimer?.cancel();
     _connectivitySubscription?.cancel();
@@ -162,6 +173,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       _visitedQuestionIds.clear();
       _currentQuestionIndex = 0;
       _isCompleted = false;
+      _resultsActiveTab = 0;
 
       // Start 15s heartbeats
       _startHeartbeats();
@@ -338,26 +350,87 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   Future<void> _submitAllAnswers() async {
     if (_sessionToken == null) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? const Color(0xFFDAE2FD) : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark
+        ? const Color(0xFFCBC3D7)
+        : const Color(0xFF75859D);
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Finish Practice Test?'),
-        content: Text(
-          'Are you sure you want to submit the test? You have answered ${_userAnswers.length} out of $_totalQuestions questions.',
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GlassCard(
+          padding: const EdgeInsets.all(24),
+          borderRadius: 24,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.assignment_turned_in_outlined,
+                color: Color(0xFF8B5CF6),
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Finish Practice Test?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Are you sure you want to submit the test? You have answered ${_userAnswers.length} out of $_totalQuestions questions.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: secondaryTextColor,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: isDark ? Colors.white12 : const Color(0xFFECEEF0),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: textColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B5CF6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Finish',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF0051D5),
-            ),
-            child: const Text('Finish'),
-          ),
-        ],
       ),
     );
 
@@ -385,6 +458,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       setState(() {
         _isSubmitting = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Submission failed: ${e.message}'),
@@ -395,6 +469,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
       setState(() {
         _isSubmitting = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('An error occurred. Please try again.'),
@@ -475,11 +550,11 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themePrimary = isDark
-        ? const Color(0xFF5D9BFF)
+        ? const Color(0xFF8B5CF6) // Nocturnal violet accent
         : const Color(0xFF0051D5);
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textColor = isDark ? const Color(0xFFDAE2FD) : const Color(0xFF0F172A);
     final secondaryTextColor = isDark
-        ? Colors.white70
+        ? const Color(0xFFCBC3D7)
         : const Color(0xFF75859D);
 
     final navigator = Navigator.of(context);
@@ -489,22 +564,79 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
         if (didPop) return;
         final confirm = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Exit Self Assessment?'),
-            content: const Text(
-              'Your progress will be lost and this attempt will count towards your daily limit of 5 assessments.',
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: GlassCard(
+              padding: const EdgeInsets.all(24),
+              borderRadius: 24,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.redAccent,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Exit Self Assessment?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Your progress will be lost and this attempt will count towards your daily limit of 5 assessments.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryTextColor,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: isDark ? Colors.white12 : const Color(0xFFECEEF0),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(color: textColor),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Exit',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                child: const Text('Exit'),
-              ),
-            ],
           ),
         );
         if (confirm == true && mounted) {
@@ -522,24 +654,82 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: isDark
-                        ? [const Color(0xFF090D1A), const Color(0xFF020408)]
+                        ? [const Color(0xFF0B1326), const Color(0xFF060D20)]
                         : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
                   ),
                 ),
               ),
             ),
 
-            // Background glowing bubble
-            Positioned(
-              top: -80,
-              right: -80,
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: themePrimary.withValues(alpha: isDark ? 0.08 : 0.04),
-                ),
+            // Animated ambient glowing circles for glassmorphism
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                final progress = _animationController.value;
+                final angle = progress * 2 * math.pi;
+
+                // Sinusoidal drift offsets to simulate fluid flow
+                final dx1 = math.sin(angle) * 45;
+                final dy1 = math.cos(angle) * 45;
+
+                final dx2 = math.cos(angle + math.pi / 2) * 55;
+                final dy2 = math.sin(angle + math.pi / 2) * 55;
+
+                final dx3 = math.sin(angle + math.pi) * 40;
+                final dy3 = math.cos(angle + math.pi) * 40;
+
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: -100 + dy1,
+                      right: -100 + dx1,
+                      child: Container(
+                        width: 340,
+                        height: 340,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? const Color(0xFF8B5CF6).withValues(alpha: 0.12)
+                              : const Color(0xFF8B5CF6).withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 80 + dy2,
+                      left: -100 + dx2,
+                      child: Container(
+                        width: 360,
+                        height: 360,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? const Color(0xFF0051D5).withValues(alpha: 0.10)
+                              : const Color(0xFF0051D5).withValues(alpha: 0.04),
+                        ),
+                      ),
+                    ),
+                    if (isDark)
+                      Positioned(
+                        top: 260 + dy3,
+                        right: -120 + dx3,
+                        child: Container(
+                          width: 300,
+                          height: 300,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFD946EF).withValues(alpha: 0.08),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: const SizedBox.shrink(),
               ),
             ),
 
@@ -653,8 +843,26 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     child: Builder(
                       builder: (context) {
                         if (_isLoading || _isSubmitting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: themePrimary,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _isSubmitting
+                                      ? 'Grading answers securely...'
+                                      : 'Preparing questions...',
+                                  style: TextStyle(
+                                    color: secondaryTextColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         }
 
@@ -665,7 +873,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               child: GlassCard(
                                 padding: const EdgeInsets.all(28),
                                 color: isDark
-                                    ? Colors.black.withValues(alpha: 0.4)
+                                    ? const Color(0xFF1E1B4B).withValues(alpha: 0.3)
                                     : Colors.white.withValues(alpha: 0.8),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -767,6 +975,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       padding: const EdgeInsets.all(32.0),
                       child: GlassCard(
                         padding: const EdgeInsets.all(28),
+                        color: isDark
+                            ? const Color(0xFF1E1B4B).withValues(alpha: 0.4)
+                            : Colors.white.withValues(alpha: 0.8),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -776,32 +987,32 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               size: 54,
                             ),
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'Connection Disconnected',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: textColor,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Self-assessments require an active server authority connection. Reconnect to resume.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                color: secondaryTextColor,
                                 height: 1.4,
                               ),
                             ),
                             const SizedBox(height: 20),
-                            const SizedBox(
+                            SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  themePrimary,
                                 ),
                               ),
                             ),
@@ -847,13 +1058,16 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     bool isDark,
   ) {
     if (_questionsList.length <= _currentQuestionIndex) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading questions batch...'),
+            CircularProgressIndicator(color: themePrimary),
+            const SizedBox(height: 16),
+            Text(
+              'Loading questions batch...',
+              style: TextStyle(color: secondaryTextColor, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       );
@@ -903,13 +1117,13 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               } else if (isVisited) {
                 bgColor = Colors.red.shade600; // Red
               } else {
-                bgColor = const Color(0xFFECEEF0); // Gray/White
-                itemTextColor = const Color(0xFF0F172A);
+                bgColor = isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : const Color(0xFFECEEF0); // Gray/White
+                itemTextColor = isDark ? const Color(0xFFDAE2FD) : const Color(0xFF0F172A);
               }
 
-              final currentBorderColor = isDark
-                  ? const Color(0xFF5D9BFF)
-                  : const Color(0xFF0051D5);
+              final currentBorderColor = themePrimary;
 
               return GestureDetector(
                 onTap: () => _jumpToQuestion(i),
@@ -925,7 +1139,19 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                         shape: BoxShape.circle,
                         border: isCurrent
                             ? Border.all(color: currentBorderColor, width: 2.5)
-                            : Border.all(color: Colors.transparent, width: 2.5),
+                            : Border.all(
+                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                                width: 1.5,
+                              ),
+                        boxShadow: isCurrent
+                            ? [
+                                BoxShadow(
+                                  color: themePrimary.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                )
+                              ]
+                            : [],
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -964,15 +1190,15 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
         // ── Progress Bar ──────────────────────────────────────────────
         LinearProgressIndicator(
           value: totalQ > 0 ? answeredCount / totalQ : 0,
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
           color: const Color(0xFF10B981),
-          minHeight: 3,
+          minHeight: 4,
         ),
 
         // ── Legend Row ──────────────────────────────────────────────
         Container(
           color: isDark
-              ? Colors.black.withValues(alpha: 0.2)
+              ? const Color(0xFF0B1326).withValues(alpha: 0.5)
               : const Color(0xFFF8FAFC),
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: SingleChildScrollView(
@@ -982,8 +1208,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               children: [
                 _buildLegendItem(
                   'Not Visited',
-                  const Color(0xFFECEEF0),
-                  const Color(0xFF0F172A),
+                  isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFECEEF0),
+                  isDark ? const Color(0xFFDAE2FD) : const Color(0xFF0F172A),
                   hasTick: false,
                 ),
                 const SizedBox(width: 14),
@@ -1029,6 +1255,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 // Question card
                 GlassCard(
                   padding: const EdgeInsets.all(18),
+                  color: isDark
+                      ? const Color(0xFF1E1B4B).withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.65),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1040,8 +1269,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               Container(
                                 width: 28,
                                 height: 28,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF0051D5),
+                                decoration: BoxDecoration(
+                                  color: themePrimary,
                                   shape: BoxShape.circle,
                                 ),
                                 alignment: Alignment.center,
@@ -1055,12 +1284,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Text(
+                              Text(
                                 'Question',
                                 style: TextStyle(
-                                  color: Color(0xFF0051D5),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
+                                  color: themePrimary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
@@ -1088,12 +1317,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       InlineMathText(
                         text: qText,
                         fontSize: 16,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        color: textColor,
                       ),
                       if (qDiagram != null && qDiagram.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           child: Image.network(
                             qDiagram.startsWith('http')
                                 ? qDiagram
@@ -1133,7 +1362,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                           }
                         });
                       },
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         width: double.infinity,
@@ -1141,28 +1370,27 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? (isDark
-                                    ? const Color(0xFF1E293B)
+                                    ? const Color(0xFF1E1B4B).withValues(alpha: 0.65)
                                     : const Color(0xFFE6EFFF))
                               : (isDark
                                     ? Colors.white.withValues(alpha: 0.05)
                                     : Colors.white),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF0051D5)
+                                ? themePrimary
                                 : (isDark
-                                      ? Colors.white12
+                                      ? Colors.white.withValues(alpha: 0.1)
                                       : const Color(0xFFECEEF0)),
-                            width: isSelected ? 1.5 : 1,
+                            width: isSelected ? 2.0 : 1.5,
                           ),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF0051D5,
-                                    ).withValues(alpha: 0.15),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
+                                    color: themePrimary.withValues(alpha: 0.25),
+                                    blurRadius: 15,
+                                    spreadRadius: 1,
+                                    offset: const Offset(0, 0),
                                   ),
                                 ]
                               : [],
@@ -1174,9 +1402,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               height: 32,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFF0051D5)
+                                    ? themePrimary
                                     : (isDark
-                                          ? Colors.white10
+                                          ? Colors.white.withValues(alpha: 0.1)
                                           : const Color(0xFFECEEF0)),
                                 shape: BoxShape.circle,
                               ),
@@ -1186,9 +1414,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                                 style: TextStyle(
                                   color: isSelected
                                       ? Colors.white
-                                      : (isDark
-                                            ? Colors.white70
-                                            : const Color(0xFF0F172A)),
+                                      : textColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -1199,9 +1425,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               child: InlineMathText(
                                 text: opt,
                                 fontSize: 15,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF0F172A),
+                                color: textColor,
                               ),
                             ),
                           ],
@@ -1218,7 +1442,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     child: Text(
                       'No answer selected',
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: secondaryTextColor,
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                       ),
@@ -1232,9 +1456,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
         // ── Stats Bar ─────────────────────────────────────────────────
         Container(
           color: isDark
-              ? Colors.black.withValues(alpha: 0.3)
+              ? Colors.black.withValues(alpha: 0.15)
               : const Color(0xFFF8FAFC),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1242,8 +1466,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 child: Text(
                   '$answeredCount/$totalQ answered',
                   style: TextStyle(
-                    color: isDark ? Colors.white70 : const Color(0xFF75859D),
+                    color: secondaryTextColor,
                     fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1273,9 +1498,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       : null,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    foregroundColor: isDark
-                        ? Colors.white
-                        : const Color(0xFF0F172A),
+                    foregroundColor: textColor,
                     side: BorderSide(
                       color: isDark ? Colors.white12 : const Color(0xFFECEEF0),
                     ),
@@ -1307,7 +1530,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                   ),
                   label: const Text(
                     'NEXT',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -1329,10 +1552,146 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
     final percentage = _results?['percentage'] ?? 0.0;
     final analytics = _results?['analytics'] ?? {};
     final weakTopics = List<String>.from(analytics['weakTopics'] ?? []);
+    final List<dynamic> gradedQuestions = _results?['questions'] ?? [];
 
+    return Column(
+      children: [
+        // Premium Sliding Tab Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF1E1B4B).withValues(alpha: 0.2)
+                  : Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+            ),
+            child: Stack(
+              children: [
+                AnimatedAlign(
+                  alignment: _resultsActiveTab == 0
+                      ? Alignment.centerLeft
+                      : Alignment.centerRight,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: Container(
+                      margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: themePrimary,
+                        borderRadius: BorderRadius.circular(21),
+                        boxShadow: [
+                          BoxShadow(
+                            color: themePrimary.withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _resultsActiveTab = 0),
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: Text(
+                            'SUMMARY',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              color: _resultsActiveTab == 0
+                                  ? Colors.white
+                                  : (isDark
+                                      ? const Color(0xFFDAE2FD)
+                                      : const Color(0xFF475569)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _resultsActiveTab = 1),
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: Text(
+                            'REVIEW SOLUTIONS',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              color: _resultsActiveTab == 1
+                                  ? Colors.white
+                                  : (isDark
+                                      ? const Color(0xFFDAE2FD)
+                                      : const Color(0xFF475569)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Tab Content
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: _resultsActiveTab == 0
+                ? _buildResultsSummary(
+                    score,
+                    total,
+                    percentage,
+                    weakTopics,
+                    themePrimary,
+                    isDark,
+                    textColor,
+                    secondaryTextColor,
+                  )
+                : _buildResultsReviewList(
+                    gradedQuestions,
+                    themePrimary,
+                    isDark,
+                    textColor,
+                    secondaryTextColor,
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultsSummary(
+    int score,
+    int total,
+    double percentage,
+    List<String> weakTopics,
+    Color themePrimary,
+    bool isDark,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    final bool passed = percentage >= 40.0;
     return SingleChildScrollView(
+      key: const ValueKey<int>(0),
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Column(
         children: [
           FadeInSlide(
@@ -1341,11 +1700,23 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.green.withValues(alpha: 0.1),
+                color: passed
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.redAccent.withValues(alpha: 0.1),
+                boxShadow: [
+                  BoxShadow(
+                    color: (passed ? Colors.green : Colors.redAccent)
+                        .withValues(alpha: 0.15),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                  )
+                ],
               ),
-              child: const Icon(
-                Icons.check_circle_outline_rounded,
-                color: Colors.green,
+              child: Icon(
+                passed
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.error_outline_rounded,
+                color: passed ? Colors.green : Colors.redAccent,
                 size: 72,
               ),
             ),
@@ -1355,7 +1726,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
             duration: const Duration(milliseconds: 600),
             delay: const Duration(milliseconds: 100),
             child: Text(
-              'Assessment Complete',
+              passed ? 'Assessment Complete!' : 'Practice Mode Finished',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
@@ -1373,67 +1744,66 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               style: TextStyle(fontSize: 14, color: secondaryTextColor),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
 
           // Scorecard Card
           FadeInSlide(
             duration: const Duration(milliseconds: 600),
             delay: const Duration(milliseconds: 200),
             child: GlassCard(
-              padding: const EdgeInsets.all(28),
-              child: Column(
+              padding: const EdgeInsets.all(24),
+              color: isDark
+                  ? const Color(0xFF1E1B4B).withValues(alpha: 0.3)
+                  : Colors.white.withValues(alpha: 0.75),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  Column(
                     children: [
-                      Column(
-                        children: [
-                          Text(
-                            '$score / $total',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Score Obtained',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '$score / $total',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: textColor,
+                        ),
                       ),
-                      Container(
-                        width: 1,
-                        height: 50,
-                        color: textColor.withValues(alpha: 0.1),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Score Obtained',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: secondaryTextColor,
+                        ),
                       ),
-                      Column(
-                        children: [
-                          Text(
-                            '${percentage.toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: percentage >= 50.0
-                                  ? Colors.green
-                                  : Colors.orangeAccent,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Percentage',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
+                    ],
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: textColor.withValues(alpha: 0.1),
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        '${percentage.toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: percentage >= 50.0
+                              ? Colors.green
+                              : Colors.orangeAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Accuracy',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: secondaryTextColor,
+                        ),
                       ),
                     ],
                   ),
@@ -1443,7 +1813,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
           ),
           const SizedBox(height: 28),
 
-          // Weak areas section
+          // Focus areas
           if (weakTopics.isNotEmpty) ...[
             FadeInSlide(
               duration: const Duration(milliseconds: 600),
@@ -1507,10 +1877,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               duration: const Duration(milliseconds: 600),
               delay: const Duration(milliseconds: 250),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
@@ -1561,6 +1928,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 0,
+                  shadowColor: themePrimary.withValues(alpha: 0.3),
                 ),
                 child: const Text(
                   'Back to Dashboard',
@@ -1569,6 +1937,184 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsReviewList(
+    List<dynamic> gradedQuestions,
+    Color themePrimary,
+    bool isDark,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    if (gradedQuestions.isEmpty) {
+      return const Center(
+        child: Text(
+          'No solutions review data returned by server.',
+          style: TextStyle(fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      key: const ValueKey<int>(1),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20),
+      itemCount: gradedQuestions.length,
+      itemBuilder: (context, index) {
+        final q = gradedQuestions[index];
+        final qText = q['questionText'] as String? ?? '';
+        final diagram = q['diagram'] as String?;
+        final userAns = q['userAnswer'] as String?;
+        final correctAns = q['correctAnswer'] as String?;
+        final isCorrect = q['isCorrect'] as bool? ?? false;
+        final bool isUnanswered = userAns == null;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: GlassCard(
+            padding: EdgeInsets.zero,
+            color: isDark
+                ? const Color(0xFF1E1B4B).withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.75),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: themePrimary.withValues(alpha: 0.1),
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: themePrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        isUnanswered
+                            ? 'UNANSWERED'
+                            : (isCorrect ? 'CORRECT' : 'INCORRECT'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: isUnanswered
+                              ? Colors.orangeAccent
+                              : (isCorrect ? Colors.green : Colors.redAccent),
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        isUnanswered
+                            ? Icons.help_outline_rounded
+                            : (isCorrect
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.cancel_outlined),
+                        color: isUnanswered
+                            ? Colors.orangeAccent
+                            : (isCorrect ? Colors.green : Colors.redAccent),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFECEEF0),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InlineMathText(
+                        text: qText,
+                        color: textColor,
+                      ),
+                      if (diagram != null && diagram.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            diagram.startsWith('http')
+                                ? diagram
+                                : '${_apiService.baseUrl}$diagram',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      _buildReviewOptionRow(
+                        label: 'Your Answer',
+                        value: userAns ?? 'Not Answered',
+                        isCorrect: isCorrect,
+                        color: isCorrect ? Colors.green : Colors.redAccent,
+                        textColor: textColor,
+                        isDark: isDark,
+                      ),
+                      if (!isCorrect) const SizedBox(height: 8),
+                      if (!isCorrect)
+                        _buildReviewOptionRow(
+                          label: 'Correct Answer',
+                          value: correctAns ?? 'N/A',
+                          isCorrect: true,
+                          color: Colors.green,
+                          textColor: textColor,
+                          isDark: isDark,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewOptionRow({
+    required String label,
+    required String value,
+    required bool isCorrect,
+    required Color color,
+    required Color textColor,
+    required bool isDark,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          InlineMathText(text: value, fontSize: 14, color: textColor),
         ],
       ),
     );
@@ -1591,6 +2137,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
               fontSize: 22,
               fontWeight: FontWeight.w900,
               color: textColor,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
@@ -1601,6 +2148,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
           const SizedBox(height: 20),
           Expanded(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1629,13 +2177,15 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                               }
                             });
                           },
+                          style: TextButton.styleFrom(
+                            foregroundColor: themePrimary,
+                          ),
                           child: Text(
                             _selectedChapters.length ==
                                     _availableChapters.length
                                 ? 'Deselect All'
                                 : 'Select All',
-                            style: TextStyle(
-                              color: themePrimary,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -1652,20 +2202,14 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                       ),
                     )
                   else
-                    Material(
+                    GlassCard(
+                      borderRadius: 16,
+                      padding: EdgeInsets.zero,
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                      clipBehavior: Clip.antiAlias,
+                          ? const Color(0xFF1E1B4B).withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.6),
                       child: Container(
-                        constraints: const BoxConstraints(maxHeight: 250),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark ? Colors.white12 : Colors.black12,
-                          ),
-                        ),
+                        constraints: const BoxConstraints(maxHeight: 220),
                         child: ListView.builder(
                           shrinkWrap: true,
                           physics: const ClampingScrollPhysics(),
@@ -1715,25 +2259,57 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
                     children: [5, 10, 15, 20, 25].map((count) {
                       final isSelected = _selectedLimit == count;
-                      return ChoiceChip(
-                        label: Text('$count Qs'),
-                        selected: isSelected,
-                        selectedColor: themePrimary,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : textColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _selectedLimit = count;
-                            });
-                          }
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedLimit = count;
+                          });
                         },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? themePrimary
+                                : (isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.white),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? themePrimary
+                                  : (isDark
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : const Color(0xFFECEEF0)),
+                              width: 1.5,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: themePrimary.withValues(alpha: 0.25),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: Text(
+                            '$count Qs',
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -1754,21 +2330,52 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                     runSpacing: 8.0,
                     children: [10, 15, 20, 30, 45, 60].map((mins) {
                       final isSelected = _selectedTime == mins;
-                      return ChoiceChip(
-                        label: Text('$mins mins'),
-                        selected: isSelected,
-                        selectedColor: themePrimary,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : textColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _selectedTime = mins;
-                            });
-                          }
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedTime = mins;
+                          });
                         },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? themePrimary
+                                : (isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.white),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? themePrimary
+                                  : (isDark
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : const Color(0xFFECEEF0)),
+                              width: 1.5,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: themePrimary.withValues(alpha: 0.25),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: Text(
+                            '$mins mins',
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -1791,11 +2398,12 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: themePrimary.withValues(alpha: 0.3),
+                  disabledBackgroundColor: themePrimary.withValues(alpha: 0.25),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  elevation: 0,
+                  elevation: _selectedChapters.isEmpty ? 0 : 8,
+                  shadowColor: themePrimary.withValues(alpha: 0.4),
                 ),
                 child: const Text(
                   'Start Practice Test',
