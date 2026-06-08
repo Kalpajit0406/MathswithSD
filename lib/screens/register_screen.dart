@@ -826,7 +826,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                     builder: (context) {
                                       final isEnabled = !widget.isTrial || (_termsAccepted && _agreementAccepted);
                                       return BounceOnTap(
-                                        onTap: isEnabled ? _register : null,
+                                        onTap: isEnabled ? () => _register() : null,
                                         child: Container(
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(

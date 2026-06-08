@@ -14,6 +14,6 @@ class BounceOnTap extends shared.BounceOnTap {
   const BounceOnTap({
     super.key,
     required super.child,
-    required super.onTap,
+    super.onTap,
   }) : super(scaleFactor: 0.95);
 }

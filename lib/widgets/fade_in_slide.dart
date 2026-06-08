@@ -76,13 +76,13 @@ class _FadeInSlideState extends State<FadeInSlide> with SingleTickerProviderStat
 
 class BounceOnTap extends StatefulWidget {
   final Widget child;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final double scaleFactor;
 
   const BounceOnTap({
     super.key,
     required this.child,
-    required this.onTap,
+    this.onTap,
     this.scaleFactor = 0.95,
   });
 
@@ -114,11 +114,14 @@ class _BounceOnTapState extends State<BounceOnTap> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    if (widget.onTap == null) {
+      return widget.child;
+    }
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
         _controller.reverse();
-        widget.onTap();
+        widget.onTap?.call();
       },
       onTapCancel: () => _controller.reverse(),
       child: ScaleTransition(
