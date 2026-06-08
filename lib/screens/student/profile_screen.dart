@@ -100,6 +100,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final user = auth.user;
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
@@ -333,12 +340,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           isExpanded: true,
                           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                           style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-                          items: const [
-                            DropdownMenuItem(value: 9, child: Text('Class 9')),
-                            DropdownMenuItem(value: 10, child: Text('Class 10')),
-                            DropdownMenuItem(value: 11, child: Text('Class 11')),
-                            DropdownMenuItem(value: 12, child: Text('Class 12')),
-                          ],
+                          items: user.accountType == 'TRIAL'
+                              ? const [
+                                  DropdownMenuItem(value: 11, child: Text('Class 11')),
+                                  DropdownMenuItem(value: 12, child: Text('Class 12')),
+                                ]
+                              : const [
+                                  DropdownMenuItem(value: 9, child: Text('Class 9')),
+                                  DropdownMenuItem(value: 10, child: Text('Class 10')),
+                                  DropdownMenuItem(value: 11, child: Text('Class 11')),
+                                  DropdownMenuItem(value: 12, child: Text('Class 12')),
+                                ],
                           onChanged: (val) {
                             setState(() {
                               _selectedClassNo = val;
@@ -359,11 +371,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: 24,
                             child: Checkbox(
                               value: _selectedIsJoint,
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedIsJoint = val ?? false;
-                                });
-                              },
+                              onChanged: user.accountType == 'TRIAL'
+                                  ? null
+                                  : (val) {
+                                      setState(() {
+                                        _selectedIsJoint = val ?? false;
+                                      });
+                                    },
                               activeColor: themePrimary,
                             ),
                           ),
@@ -374,11 +388,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: [
                                 Text(
                                   'Enroll in Joint Entrance preparation',
-                                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13),
+                                  style: TextStyle(
+                                    color: user.accountType == 'TRIAL' ? Colors.grey : textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Optional curriculum for engineering entrance prep',
+                                  user.accountType == 'TRIAL'
+                                      ? 'Joint Entrance requires conversion to NORMAL account.'
+                                      : 'Optional curriculum for engineering entrance prep',
                                   style: TextStyle(color: secondaryTextColor, fontSize: 11),
                                 ),
                               ],
@@ -496,6 +516,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
 
+            if (user.accountType == 'TRIAL') ...[
+              const SizedBox(height: 24),
+              GlassCard(
+                color: themePrimary.withValues(alpha: isDark ? 0.15 : 0.08),
+                border: Border.all(color: themePrimary.withValues(alpha: 0.3)),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.workspace_premium_rounded, color: themePrimary, size: 28),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Upgrade Account',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'If you want the full experience, contact Soumen Sir.',
+                      style: TextStyle(
+                        color: secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -573,9 +630,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Text('Cancel', style: TextStyle(color: secondaryTextColor, fontWeight: FontWeight.w700)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              auth.logout();
+              await auth.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+              }
             },
             child: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800)),
           ),

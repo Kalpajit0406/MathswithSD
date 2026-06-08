@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'teacher_contact_screen.dart';
+import 'register_screen.dart';
 import '../widgets/glass_card.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -79,9 +80,74 @@ class WelcomeScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => LoginScreen(
                           onNavigateToRegister: () {
-                            Navigator.pushReplacementNamed(context, '/register');
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RegisterScreen(
+                                  onBackToLogin: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
+                            );
                           },
                         ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Free Assessment Card
+                _buildChoiceButton(
+                  context,
+                  title: 'Free Assessment',
+                  subtitle: 'Register for trial and check your math skills.',
+                  icon: Icons.assignment_turned_in_rounded,
+                  color: const Color(0xFF10B981),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        backgroundColor: Colors.white,
+                        title: const Text(
+                          'Free Assessment',
+                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+                        ),
+                        content: const Text(
+                          'By registering as a Free Assessment student, you can test your math skills without paying any fees. Certain premium features may remain restricted.',
+                          style: TextStyle(color: Color(0xFF334155), height: 1.5, fontSize: 15),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RegisterScreen(
+                                    isTrial: true,
+                                    onBackToLogin: () {
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                            child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w800)),
+                          ),
+                        ],
                       ),
                     );
                   },

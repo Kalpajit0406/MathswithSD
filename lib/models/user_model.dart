@@ -15,6 +15,10 @@ class AppUser {
   final String? dateOfBirth;
   final String? language;
   final Map<String, dynamic>? pendingProfileEdit;
+  final String? accountType;
+  final bool? trialApproved;
+  final int? requestAttempts;
+  final String? deviceFingerprint;
   final String token;
 
   AppUser({
@@ -33,6 +37,10 @@ class AppUser {
     this.dateOfBirth,
     this.language,
     this.pendingProfileEdit,
+    this.accountType,
+    this.trialApproved,
+    this.requestAttempts,
+    this.deviceFingerprint,
     required this.token,
   });
 
@@ -55,6 +63,10 @@ class AppUser {
       dateOfBirth: json['dateOfBirth'],
       language: json['language'],
       pendingProfileEdit: json['pendingProfileEdit'],
+      accountType: json['accountType'] ?? 'NORMAL',
+      trialApproved: json['trialApproved'] ?? false,
+      requestAttempts: json['requestAttempts'] != null ? int.tryParse(json['requestAttempts'].toString()) : 0,
+      deviceFingerprint: json['deviceFingerprint'],
       token: token,
     );
   }
@@ -70,6 +82,10 @@ class StudentUser {
   final bool? verified;
   final bool? isRejected;
   final bool? isJoint;
+  final String? accountType;
+  final bool? trialApproved;
+  final int? requestAttempts;
+  final String? deviceFingerprint;
 
   StudentUser({
     required this.id,
@@ -80,6 +96,10 @@ class StudentUser {
     this.verified,
     this.isRejected,
     this.isJoint,
+    this.accountType,
+    this.trialApproved,
+    this.requestAttempts,
+    this.deviceFingerprint,
   });
 
   String get fullName => '$firstName $lastName';
@@ -94,6 +114,10 @@ class StudentUser {
       verified: json['verified'],
       isRejected: json['isRejected'] ?? false,
       isJoint: json['isJoint'] ?? false,
+      accountType: json['accountType'] ?? 'NORMAL',
+      trialApproved: json['trialApproved'] ?? false,
+      requestAttempts: json['requestAttempts'] != null ? int.tryParse(json['requestAttempts'].toString()) : 0,
+      deviceFingerprint: json['deviceFingerprint'],
     );
   }
 }

@@ -1,14 +1,18 @@
 import 'dart:ui';
 import 'dart:math' as math;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/fade_in_slide.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onBackToLogin;
-  const RegisterScreen({super.key, required this.onBackToLogin});
+  final bool isTrial;
+  const RegisterScreen({super.key, required this.onBackToLogin, this.isTrial = false});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -33,7 +37,13 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   bool _isLoading = false;
   bool _isJoint = false;
 
-  final _classes = ['9', '10', '11', '12'];
+  // Legal Scroll Check States
+  bool _termsScrolledBottom = false;
+  bool _termsAccepted = false;
+  bool _agreementScrolledBottom = false;
+  bool _agreementAccepted = false;
+
+  late final List<String> _classes;
   final _languages = ['Bengali', 'English', 'Both'];
   final _genders = ['Male', 'Female', 'Other'];
 
@@ -42,6 +52,8 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    _classes = widget.isTrial ? ['11', '12'] : ['9', '10', '11', '12'];
+    _classNo = widget.isTrial ? '11' : '10';
     _animationController = AnimationController(
       duration: const Duration(seconds: 20),
       vsync: this,
@@ -88,11 +100,56 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     }
   }
 
+  Future<Map<String, String>> _getDeviceBlueprint() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String androidId = '';
+    String model = '';
+    String manufacturer = '';
+
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        androidId = androidInfo.id;
+        model = androidInfo.model;
+        manufacturer = androidInfo.manufacturer;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        androidId = iosInfo.identifierForVendor ?? '';
+        model = iosInfo.model;
+        manufacturer = 'Apple';
+      }
+    } catch (e) {
+      debugPrint('Error getting device info: $e');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    String? installId = prefs.getString('app_install_id');
+    if (installId == null) {
+      final randomVal = DateTime.now().millisecondsSinceEpoch.toString() + '_' + (100000 + math.Random().nextInt(900000)).toString();
+      installId = randomVal;
+      await prefs.setString('app_install_id', installId);
+    }
+
+    return {
+      'androidId': androidId,
+      'model': model,
+      'manufacturer': manufacturer,
+      'appInstallId': installId,
+    };
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     if (_passwordCtrl.text != _confirmPasswordCtrl.text) {
       _showError('Passwords do not match');
       return;
+    }
+
+    if (widget.isTrial) {
+      if (!_termsAccepted || !_agreementAccepted) {
+        _showError('You must open and accept both agreements to register.');
+        return;
+      }
     }
 
     final phone = _studentPhoneCtrl.text.trim();
@@ -107,7 +164,6 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
 
       if (!mounted) return;
 
-      // Blocklisted — hard stop, non-dismissable dialog
       if (isBlacklisted || attemptCount >= 5) {
         await showDialog(
           context: context,
@@ -122,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Number Blocklisted',
+                    'Number Blacklisted',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -133,9 +189,9 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
               ],
             ),
             content: const Text(
-              'Your phone number has been permanently blocked due to '
+              'Your phone number has been temporarily blacklisted due to '
               'repeated rejected registrations.\n\n'
-              'Please contact the Administrator to resolve this.',
+              'Please contact the Administrator (Soumen Sir) to resolve this.',
               style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
             ),
             actions: [
@@ -151,7 +207,6 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         return;
       }
 
-      // 5th attempt warning — amber dialog
       if (attemptCount == 4) {
         final bool? proceed = await showDialog<bool>(
           context: context,
@@ -178,7 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
             content: const Text(
               'This is your last registration attempt.\n\n'
               'If your registration is rejected again, your phone number '
-              'will be permanently blocked and you will need to contact '
+              'will be temporarily blocked for 30 days and you will need to contact '
               'the Administrator.\n\n'
               'Do you still wish to proceed?',
               style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
@@ -215,7 +270,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
 
     try {
       final api = ApiService();
-      final response = await api.register({
+      final Map<String, dynamic> regData = {
         'firstName': _firstNameCtrl.text.trim(),
         'lastName': _lastNameCtrl.text.trim(),
         'dateOfBirth': _dobCtrl.text.trim(),
@@ -227,14 +282,23 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         'studentPhone': _studentPhoneCtrl.text.trim(),
         'guardianPhone': _guardianPhoneCtrl.text.trim(),
         'password': _passwordCtrl.text,
-      });
+      };
+
+      if (widget.isTrial) {
+        regData['accountType'] = 'TRIAL';
+        regData['deviceBlueprint'] = await _getDeviceBlueprint();
+      }
+
+      final response = await api.register(regData);
 
       if (mounted) {
         if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text(
-                'Registration successful! Please wait for admin approval.',
+              content: Text(
+                widget.isTrial
+                    ? 'Wait until your request gets approved or contact Soumen Sir.'
+                    : 'Registration successful! Please wait for admin approval.',
               ),
               backgroundColor: Colors.green.shade700,
               behavior: SnackBarBehavior.floating,
@@ -266,6 +330,26 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         content: Text(msg),
         backgroundColor: Colors.red.shade700,
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showAgreementDialog(String title, String content, bool isTerms) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => ScrollAgreementDialog(
+        title: title,
+        content: content,
+        onScrollToBottom: () {
+          setState(() {
+            if (isTerms) {
+              _termsScrolledBottom = true;
+            } else {
+              _agreementScrolledBottom = true;
+            }
+          });
+        },
       ),
     );
   }
@@ -606,6 +690,124 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 32),
 
+                        if (widget.isTrial) ...[
+                          const SizedBox(height: 24),
+                          FadeInSlide(
+                            duration: const Duration(milliseconds: 600),
+                            delay: const Duration(milliseconds: 150),
+                            child: GlassCard(
+                              color: isDark
+                                  ? Colors.black.withValues(alpha: 0.3)
+                                  : Colors.white.withValues(alpha: 0.5),
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Legal Agreements',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  
+                                  // Terms & Conditions Row
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _termsAccepted,
+                                        activeColor: const Color(0xFF10B981),
+                                        onChanged: _termsScrolledBottom
+                                            ? (val) {
+                                                setState(() {
+                                                  _termsAccepted = val ?? false;
+                                                });
+                                              }
+                                            : null,
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _showAgreementDialog(
+                                              'Terms & Conditions',
+                                              'MathsWithSD Terms and Conditions:\n\n1. Acceptance of Terms: By registering as a trial student, you agree to abide by all the rules and restrictions of the MathsWithSD platform.\n\n2. Fair Use Policy: You agree not to scrape, download, or distribute any questions or learning materials from this platform.\n\n3. Abuse Prevention: Multiple registrations using duplicate details, fake numbers, or device emulation are strictly prohibited. The system generates device fingerprints to detect and prevent such abuse.\n\n4. Account Expiration: Trial accounts are provided for a limited duration and can be blocked or rejected at the sole discretion of the Administrator (Soumen Sir).\n\n5. Trial Restrictions: You will only have access to practice test generation and basic results. Scheduled exams, premium analytics, and live features remain restricted.',
+                                              true,
+                                            );
+                                          },
+                                          child: Text(
+                                            'I accept the Terms & Conditions',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: _termsScrolledBottom ? textColor : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (!_termsScrolledBottom)
+                                        const Text(
+                                          '(Read to Unlock)',
+                                          style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                        )
+                                      else
+                                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // Free Tier Agreement Row
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _agreementAccepted,
+                                        activeColor: const Color(0xFF10B981),
+                                        onChanged: _agreementScrolledBottom
+                                            ? (val) {
+                                                setState(() {
+                                                  _agreementAccepted = val ?? false;
+                                                });
+                                              }
+                                            : null,
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _showAgreementDialog(
+                                              'Free Tier Student Agreement',
+                                              'MathsWithSD Free Tier Student Agreement:\n\n1. Purpose: This agreement governs your use of the free-tier trial features in the MathsWithSD ecosystem.\n\n2. Limitations: Practice test generation is capped at a maximum of 5 generations per day. The daily limit is strictly enforced on the server-side.\n\n3. Content Protection: Question pool exposure is capped at 50 unique questions. Subsequent practice tests will shuffle and repeat previously seen questions.\n\n4. Upgrade Policy: You may contact Soumen Sir at any time to upgrade to a premium/normal student account. Charges may apply for normal/premium enrollment.\n\n5. Temporary Blacklist: If your registration request is rejected 5 times, your phone number and device fingerprint will be temporarily blacklisted for 30 days.',
+                                              false,
+                                            );
+                                          },
+                                          child: Text(
+                                            'I accept the Free Tier Student Agreement',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: _agreementScrolledBottom ? textColor : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (!_agreementScrolledBottom)
+                                        const Text(
+                                          '(Read to Unlock)',
+                                          style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                        )
+                                      else
+                                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+
                         // Submit Button
                         FadeInSlide(
                           duration: const Duration(milliseconds: 600),
@@ -620,38 +822,46 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                       color: Color(0xFF8B5CF6),
                                     ),
                                   )
-                                : BounceOnTap(
-                                    onTap: _register,
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFF8B5CF6),
-                                            Color(0xFF4C1D95),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(
-                                              0xFF8B5CF6,
-                                            ).withValues(alpha: 0.3),
-                                            blurRadius: 16,
-                                            offset: const Offset(0, 6),
+                                : Builder(
+                                    builder: (context) {
+                                      final isEnabled = !widget.isTrial || (_termsAccepted && _agreementAccepted);
+                                      return BounceOnTap(
+                                        onTap: isEnabled ? _register : null,
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            gradient: isEnabled
+                                                ? const LinearGradient(
+                                                    colors: [
+                                                      Color(0xFF8B5CF6),
+                                                      Color(0xFF4C1D95),
+                                                    ],
+                                                  )
+                                                : null,
+                                            color: isEnabled ? null : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: isEnabled
+                                                ? [
+                                                    BoxShadow(
+                                                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                                                      blurRadius: 16,
+                                                      offset: const Offset(0, 6),
+                                                    ),
+                                                  ]
+                                                : null,
                                           ),
-                                        ],
-                                      ),
-                                      child: const Text(
-                                        'Register Account',
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                          letterSpacing: -0.2,
+                                          child: Text(
+                                            'Register Account',
+                                            style: TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w800,
+                                              color: isEnabled ? Colors.white : (isDark ? Colors.white30 : Colors.grey.shade600),
+                                              letterSpacing: -0.2,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                           ),
                         ),
@@ -889,6 +1099,89 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       items: options
           .map((o) => DropdownMenuItem(value: o, child: Text(o)))
           .toList(),
+    );
+  }
+}
+
+class ScrollAgreementDialog extends StatefulWidget {
+  final String title;
+  final String content;
+  final VoidCallback onScrollToBottom;
+
+  const ScrollAgreementDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    required this.onScrollToBottom,
+  });
+
+  @override
+  State<ScrollAgreementDialog> createState() => _ScrollAgreementDialogState();
+}
+
+class _ScrollAgreementDialogState extends State<ScrollAgreementDialog> {
+  final ScrollController _scrollController = ScrollController();
+  bool _reachedBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 20) {
+        if (!_reachedBottom) {
+          setState(() {
+            _reachedBottom = true;
+          });
+          widget.onScrollToBottom();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+      backgroundColor: Colors.white,
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 300,
+        child: Scrollbar(
+          thumbVisibility: true,
+          controller: _scrollController,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: Text(
+                widget.content,
+                style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.black87),
+              ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: _reachedBottom ? () => Navigator.pop(context) : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+            disabledBackgroundColor: Colors.grey.shade300,
+            disabledForegroundColor: Colors.grey.shade600,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: Text(
+            _reachedBottom ? 'Accept & Close' : 'Scroll to bottom to accept',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }

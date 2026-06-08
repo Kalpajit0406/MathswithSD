@@ -458,6 +458,48 @@ class _HomeTabState extends State<_HomeTab> {
     super.dispose();
   }
 
+  void _showUpgradeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        title: const Row(
+          children: [
+            Icon(Icons.lock_rounded, color: Colors.amber, size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Premium Feature',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Contact Soumen Sir if you would like to upgrade. Charges may apply.',
+          style: TextStyle(color: Color(0xFF334155), fontSize: 16, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey,
+            ),
+            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0051D5),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
@@ -774,108 +816,154 @@ class _HomeTabState extends State<_HomeTab> {
               ),
             ),
             const SizedBox(height: 16),
+            Builder(builder: (context) {
+              final auth = Provider.of<AuthProvider>(context);
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+              final isTrial = auth.user?.accountType == 'TRIAL';
 
-            Row(
-              children: [
-                Expanded(
-                  child: FadeInSlide(
-                    duration: const Duration(milliseconds: 600),
-                    delay: const Duration(milliseconds: 200),
-                    child: BounceOnTap(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AnnouncementsScreen(
-                            isAdmin: false,
-                            studentClass: auth.user?.classNo?.toString(),
-                          ),
-                        ),
-                      ),
-                      child: const _ActionCard(
-                        title: 'Notices',
-                        subtitle: 'Teacher announcements',
-                        icon: Icons.campaign_rounded,
-                        color: Color(0xFFF97316),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FadeInSlide(
-                    duration: const Duration(milliseconds: 600),
-                    delay: const Duration(milliseconds: 250),
-                    child: BounceOnTap(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const ScheduledExamsScreen(isStartTest: false),
-                        ),
-                      ),
-                      child: _ActionCard(
-                        title: 'Exams',
-                        subtitle: 'Scheduled tests',
-                        icon: Icons.event_note_rounded,
-                        color: themePrimary,
+              return Row(
+                children: [
+                  Expanded(
+                    child: FadeInSlide(
+                      duration: const Duration(milliseconds: 600),
+                      delay: const Duration(milliseconds: 200),
+                      child: BounceOnTap(
+                        onTap: isTrial
+                            ? () => _showUpgradeDialog(context)
+                            : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AnnouncementsScreen(
+                                      isAdmin: false,
+                                      studentClass: auth.user?.classNo?.toString(),
+                                    ),
+                                  ),
+                                ),
+                        child: isTrial
+                            ? ImageFiltered(
+                                imageFilter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+                                child: const _ActionCard(
+                                  title: 'Notices',
+                                  subtitle: 'Teacher announcements',
+                                  icon: Icons.campaign_rounded,
+                                  color: Color(0xFFF97316),
+                                ),
+                              )
+                            : const _ActionCard(
+                                title: 'Notices',
+                                subtitle: 'Teacher announcements',
+                                icon: Icons.campaign_rounded,
+                                color: Color(0xFFF97316),
+                              ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: FadeInSlide(
+                      duration: const Duration(milliseconds: 600),
+                      delay: const Duration(milliseconds: 250),
+                      child: BounceOnTap(
+                        onTap: isTrial
+                            ? () => _showUpgradeDialog(context)
+                            : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ScheduledExamsScreen(isStartTest: false),
+                                  ),
+                                ),
+                        child: isTrial
+                            ? ImageFiltered(
+                                imageFilter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+                                child: _ActionCard(
+                                  title: 'Exams',
+                                  subtitle: 'Scheduled tests',
+                                  icon: Icons.event_note_rounded,
+                                  color: themePrimary,
+                                ),
+                              )
+                            : _ActionCard(
+                                title: 'Exams',
+                                subtitle: 'Scheduled tests',
+                                icon: Icons.event_note_rounded,
+                                color: themePrimary,
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
             const SizedBox(height: 16),
+            Builder(builder: (context) {
+              final auth = Provider.of<AuthProvider>(context);
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
+              final isTrial = auth.user?.accountType == 'TRIAL';
 
-            Row(
-              children: [
-                Expanded(
-                  child: FadeInSlide(
-                    duration: const Duration(milliseconds: 600),
-                    delay: const Duration(milliseconds: 300),
-                    child: BounceOnTap(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const ScheduledExamsScreen(isStartTest: true),
-                          ),
-                        );
-                      },
-                      child: const _ActionCard(
-                        title: 'Start Test',
-                        subtitle: 'Attempt now',
-                        icon: Icons.play_circle_outline_rounded,
-                        color: Color(0xFF10B981),
+              return Row(
+                children: [
+                  Expanded(
+                    child: FadeInSlide(
+                      duration: const Duration(milliseconds: 600),
+                      delay: const Duration(milliseconds: 300),
+                      child: BounceOnTap(
+                        onTap: isTrial
+                            ? () => _showUpgradeDialog(context)
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ScheduledExamsScreen(isStartTest: true),
+                                  ),
+                                );
+                              },
+                        child: isTrial
+                            ? ImageFiltered(
+                                imageFilter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+                                child: const _ActionCard(
+                                  title: 'Start Test',
+                                  subtitle: 'Attempt now',
+                                  icon: Icons.play_circle_outline_rounded,
+                                  color: Color(0xFF10B981),
+                                ),
+                              )
+                            : const _ActionCard(
+                                title: 'Start Test',
+                                subtitle: 'Attempt now',
+                                icon: Icons.play_circle_outline_rounded,
+                                color: Color(0xFF10B981),
+                              ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FadeInSlide(
-                    duration: const Duration(milliseconds: 600),
-                    delay: const Duration(milliseconds: 350),
-                    child: BounceOnTap(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PerformanceScreen(),
-                          ),
-                        );
-                      },
-                      child: const _ActionCard(
-                        title: 'Results',
-                        subtitle: 'Your performance',
-                        icon: Icons.analytics_outlined,
-                        color: Color(0xFFFBBF24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: FadeInSlide(
+                      duration: const Duration(milliseconds: 600),
+                      delay: const Duration(milliseconds: 350),
+                      child: BounceOnTap(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PerformanceScreen(),
+                            ),
+                          );
+                        },
+                        child: const _ActionCard(
+                          title: 'Results',
+                          subtitle: 'Your performance',
+                          icon: Icons.analytics_outlined,
+                          color: Color(0xFFFBBF24),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
             const SizedBox(height: 16),
             FadeInSlide(
               duration: const Duration(milliseconds: 600),

@@ -241,8 +241,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen> {
 
   Future<void> _loadNextQuestionsBatch(int offset) async {
     if (_sessionToken == null || _fetchingNextBatch) return;
-    if (_questionsList.length > offset)
+    if (_questionsList.length > offset) {
       return; // Batch already loaded or loading
+    }
 
     _fetchingNextBatch = true;
     try {

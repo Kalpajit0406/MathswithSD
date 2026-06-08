@@ -7,7 +7,6 @@ import '../shared/latex_widget.dart';
 import '../../widgets/glass_card.dart';
 import 'result_screen.dart';
 import '../../services/connectivity_manager.dart';
-import '../../services/offline_exam_service.dart';
 import '../../services/exam_security_service.dart';
 import '../../services/network_time_service.dart';
 import '../../services/websocket_service.dart';
