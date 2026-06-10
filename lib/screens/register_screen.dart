@@ -150,6 +150,11 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         _showError('You must open and accept both agreements to register.');
         return;
       }
+    } else {
+      if (!_termsAccepted) {
+        _showError('You must open and accept the Terms & Conditions to register.');
+        return;
+      }
     }
 
     final phone = _studentPhoneCtrl.text.trim();
@@ -690,72 +695,74 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 32),
 
-                        if (widget.isTrial) ...[
-                          const SizedBox(height: 24),
-                          FadeInSlide(
-                            duration: const Duration(milliseconds: 600),
-                            delay: const Duration(milliseconds: 150),
-                            child: GlassCard(
-                              color: isDark
-                                  ? Colors.black.withValues(alpha: 0.3)
-                                  : Colors.white.withValues(alpha: 0.5),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Legal Agreements',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 16,
-                                      color: textColor,
-                                    ),
+                        const SizedBox(height: 24),
+                        FadeInSlide(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 150),
+                          child: GlassCard(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.3)
+                                : Colors.white.withValues(alpha: 0.5),
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Legal Agreements',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    color: textColor,
                                   ),
-                                  const SizedBox(height: 12),
-                                  
-                                  // Terms & Conditions Row
-                                  Row(
-                                    children: [
-                                      Checkbox(
-                                        value: _termsAccepted,
-                                        activeColor: const Color(0xFF10B981),
-                                        onChanged: _termsScrolledBottom
-                                            ? (val) {
-                                                setState(() {
-                                                  _termsAccepted = val ?? false;
-                                                });
-                                              }
-                                            : null,
-                                      ),
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            _showAgreementDialog(
-                                              'Terms & Conditions',
-                                              'MathsWithSD Terms and Conditions:\n\n1. Acceptance of Terms: By registering as a trial student, you agree to abide by all the rules and restrictions of the MathsWithSD platform.\n\n2. Fair Use Policy: You agree not to scrape, download, or distribute any questions or learning materials from this platform.\n\n3. Abuse Prevention: Multiple registrations using duplicate details, fake numbers, or device emulation are strictly prohibited. The system generates device fingerprints to detect and prevent such abuse.\n\n4. Account Expiration: Trial accounts are provided for a limited duration and can be blocked or rejected at the sole discretion of the Administrator (Soumen Sir).\n\n5. Trial Restrictions: You will only have access to practice test generation and basic results. Scheduled exams, premium analytics, and live features remain restricted.',
-                                              true,
-                                            );
-                                          },
-                                          child: Text(
-                                            'I accept the Terms & Conditions',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: _termsScrolledBottom ? textColor : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
-                                              decoration: TextDecoration.underline,
-                                            ),
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // Terms & Conditions Row
+                                Row(
+                                  children: [
+                                    Checkbox(
+                                      value: _termsAccepted,
+                                      activeColor: const Color(0xFF10B981),
+                                      onChanged: _termsScrolledBottom
+                                          ? (val) {
+                                              setState(() {
+                                                _termsAccepted = val ?? false;
+                                              });
+                                            }
+                                          : null,
+                                    ),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _showAgreementDialog(
+                                            'Terms & Conditions',
+                                            widget.isTrial
+                                                ? 'MathsWithSD Terms and Conditions:\n\n1. Acceptance of Terms: By registering as a trial student, you agree to abide by all the rules and restrictions of the MathsWithSD platform.\n\n2. Fair Use Policy: You agree not to scrape, download, or distribute any questions or learning materials from this platform.\n\n3. Abuse Prevention: Multiple registrations using duplicate details, fake numbers, or device emulation are strictly prohibited. The system generates device fingerprints to detect and prevent such abuse.\n\n4. Account Expiration: Trial accounts are provided for a limited duration and can be blocked or rejected at the sole discretion of the Administrator (Soumen Sir).\n\n5. Trial Restrictions: You will only have access to practice test generation and basic results. Scheduled exams, premium analytics, and live features remain restricted.'
+                                                : 'MathsWithSD Terms and Conditions:\n\n1. Acceptance of Terms: By registering as a student, you agree to abide by all the rules and restrictions of the MathsWithSD platform.\n\n2. Fair Use Policy: You agree not to scrape, download, or distribute any questions or learning materials from this platform.\n\n3. Abuse Prevention: Multiple registrations using duplicate details, fake numbers, or device emulation are strictly prohibited. The system generates device fingerprints to detect and prevent such abuse.\n\n4. Enrollment Policy: Normal student accounts require verification and approval by the Administrator (Soumen Sir).\n\n5. Platform Access: Regular accounts get full access to live exams, practice tests, premium analytics, and custom support, subject to active subscription status.',
+                                            true,
+                                          );
+                                        },
+                                        child: Text(
+                                          'I accept the Terms & Conditions',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: _termsScrolledBottom ? textColor : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
+                                            decoration: TextDecoration.underline,
                                           ),
                                         ),
                                       ),
-                                      if (!_termsScrolledBottom)
-                                        const Text(
-                                          '(Read to Unlock)',
-                                          style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
-                                        )
-                                      else
-                                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
-                                    ],
-                                  ),
+                                    ),
+                                    if (!_termsScrolledBottom)
+                                      const Text(
+                                        '(Read to Unlock)',
+                                        style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                      )
+                                    else
+                                      const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                                  ],
+                                ),
+                                if (widget.isTrial) ...[
                                   const SizedBox(height: 8),
 
                                   // Free Tier Agreement Row
@@ -802,10 +809,10 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                     ],
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                         const SizedBox(height: 32),
 
                         // Submit Button
@@ -824,7 +831,9 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                   )
                                 : Builder(
                                     builder: (context) {
-                                      final isEnabled = !widget.isTrial || (_termsAccepted && _agreementAccepted);
+                                      final isEnabled = widget.isTrial
+                                          ? (_termsAccepted && _agreementAccepted)
+                                          : _termsAccepted;
                                       return BounceOnTap(
                                         onTap: isEnabled ? () => _register() : null,
                                         child: Container(
