@@ -985,10 +985,10 @@ class _HomeTabState extends State<_HomeTab> {
                 child: GlassCard(
                   padding: const EdgeInsets.all(24),
                   color: isDark
-                      ? const Color(0xFF4A148C).withValues(alpha: 0.15)
-                      : const Color(0xFFF3E5F5).withValues(alpha: 0.8),
+                      ? themePrimary.withValues(alpha: 0.08)
+                      : themePrimary.withValues(alpha: 0.05),
                   border: Border.all(
-                    color: const Color(0xFF9C27B0).withValues(alpha: 0.25),
+                    color: themePrimary.withValues(alpha: 0.25),
                     width: 1.2,
                   ),
                   child: Row(
@@ -996,15 +996,15 @@ class _HomeTabState extends State<_HomeTab> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF9C27B0).withValues(alpha: 0.15),
+                          color: themePrimary.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                            color: themePrimary.withValues(alpha: 0.25),
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.psychology_rounded,
-                          color: Color(0xFF9C27B0),
+                          color: themePrimary,
                           size: 28,
                         ),
                       ),
