@@ -525,7 +525,15 @@ class _HomeTabState extends State<_HomeTab> {
         elevation: 0,
         title: Row(
           children: [
-            Icon(Icons.school_rounded, color: themePrimary, size: 28),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/app_icon.jpg',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
+            ),
             const SizedBox(width: 10),
             Text(
               'MathswithSD',
