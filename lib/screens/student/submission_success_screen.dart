@@ -1,15 +1,160 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/exam_model.dart';
+import '../../providers/exam_provider.dart';
+import '../../services/network_time_service.dart';
 import '../../widgets/glass_card.dart';
+import 'result_screen.dart';
 
-class SubmissionSuccessScreen extends StatelessWidget {
-  final String examTitle;
+class SubmissionSuccessScreen extends StatefulWidget {
+  final Exam exam;
+  final String attemptId;
   final String endTimeStr;
 
   const SubmissionSuccessScreen({
     super.key,
-    required this.examTitle,
+    required this.exam,
+    required this.attemptId,
     required this.endTimeStr,
   });
+
+  @override
+  State<SubmissionSuccessScreen> createState() => _SubmissionSuccessScreenState();
+}
+
+class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
+  Timer? _timer;
+  int _remainingSeconds = 0;
+  bool _fetchingResult = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemainingTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        _calculateRemainingTime();
+      }
+    });
+  }
+
+  void _calculateRemainingTime() {
+    final now = NetworkTimeService().istNow;
+    final examStart = widget.exam.getExamDateTime();
+    if (examStart != null) {
+      final examEnd = examStart.add(Duration(minutes: widget.exam.duration));
+      final diff = examEnd.difference(now);
+      if (diff.isNegative) {
+        setState(() {
+          _remainingSeconds = 0;
+        });
+        _timer?.cancel();
+      } else {
+        setState(() {
+          _remainingSeconds = diff.inSeconds;
+        });
+      }
+    } else {
+      setState(() {
+        _remainingSeconds = 0;
+      });
+      _timer?.cancel();
+    }
+  }
+
+  String _formatDuration(int totalSeconds) {
+    if (totalSeconds <= 0) return '';
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    } else {
+      return '${seconds}s';
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _handleViewResult() async {
+    if (widget.attemptId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid attempt ID. Cannot fetch result.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _fetchingResult = true;
+    });
+
+    try {
+      final examProvider = Provider.of<ExamProvider>(context, listen: false);
+      final resultData = await examProvider.getResult(widget.attemptId);
+
+      final userAnswers = <String, String>{};
+      if (resultData['responses'] != null) {
+        for (var resp in resultData['responses']) {
+          final qId = resp['questionId']?.toString();
+          final uAns = resp['userAnswer']?.toString() ?? resp['selectedAnswer']?.toString() ?? '';
+          if (qId != null) {
+            userAnswers[qId] = uAns;
+          }
+        }
+      }
+
+      final score = resultData['score'] is num ? (resultData['score'] as num).toInt() : 0;
+      int timeTaken = 0;
+      if (resultData['startTime'] != null && resultData['endTime'] != null) {
+        try {
+          final start = DateTime.parse(resultData['startTime']);
+          final end = DateTime.parse(resultData['endTime']);
+          timeTaken = end.difference(start).inSeconds;
+        } catch (_) {}
+      }
+      if (timeTaken <= 0) {
+        timeTaken = widget.exam.duration * 60;
+      }
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResultScreen(
+              score: score,
+              totalQuestions: widget.exam.questions.length,
+              timeTaken: timeTaken,
+              questions: widget.exam.questions,
+              userAnswers: userAnswers,
+              isOffline: false,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load result: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _fetchingResult = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +208,7 @@ class SubmissionSuccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Your responses for "$examTitle" have been successfully submitted.',
+                      'Your responses for "${widget.exam.title}" have been successfully submitted.',
                       style: TextStyle(
                         fontSize: 14,
                         color: secondaryTextColor,
@@ -110,13 +255,53 @@ class SubmissionSuccessScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            endTimeStr,
+                            widget.endTimeStr,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: themePrimary,
                             ),
                           ),
+                          if (_remainingSeconds > 0) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              'Remaining Time:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatDuration(_remainingSeconds),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: themePrimary,
+                              ),
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_outline,
+                                  color: Colors.green,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Exam period has ended',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -125,21 +310,56 @@ class SubmissionSuccessScreen extends StatelessWidget {
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed: () => Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/student', (_) => false),
+                onPressed: _remainingSeconds > 0 || _fetchingResult ? null : _handleViewResult,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themePrimary,
                   foregroundColor: isDark ? Colors.black : Colors.white,
+                  disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 0,
                 ),
+                child: _fetchingResult
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDark ? Colors.black : Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        _remainingSeconds > 0
+                            ? 'Assessment Result (Available in ${_formatDuration(_remainingSeconds)})'
+                            : 'View Assessment Result',
+                        style: TextStyle(
+                          color: _remainingSeconds > 0
+                              ? (isDark ? Colors.white38 : Colors.black38)
+                              : (isDark ? Colors.black : Colors.white),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/student', (_) => false),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: themePrimary.withValues(alpha: 0.5), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: Text(
-                  'Back to Home',
+                  'Go to Dashboard',
                   style: TextStyle(
-                    color: isDark ? Colors.black : Colors.white,
+                    color: themePrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),

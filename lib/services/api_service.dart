@@ -289,6 +289,32 @@ class ApiService {
     return Map<String, dynamic>.from(data);
   }
 
+  Future<Map<String, dynamic>> getResult(String attemptId) async {
+    final response = await http
+        .get(
+          await _uri('${AppConstants.testResponseEndpoint}/result/$attemptId'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<Map<String, dynamic>> getResultWithRetry(String attemptId) async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    while (attempt < maxAttempts) {
+      try {
+        return await getResult(attemptId);
+      } catch (e) {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(Duration(milliseconds: 1000 * attempt));
+      }
+    }
+    throw ApiException('Get result failed after $maxAttempts attempts', 500);
+  }
+
   // ─── Announcements ────────────────────────────────────────────────────────────
 
   Future<List<Announcement>> getAnnouncements({String? targetClass}) async {

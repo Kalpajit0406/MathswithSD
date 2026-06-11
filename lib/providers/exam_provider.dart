@@ -498,6 +498,21 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     }
   }
 
+  Future<Map<String, dynamic>> getResult(String attemptId) async {
+    _isLoading = true;
+    if (!_isDisposed) notifyListeners();
+    try {
+      final response = await _apiService.getResultWithRetry(attemptId);
+      return response['data'] ?? {};
+    } catch (e) {
+      if (kDebugMode) debugPrint('[ExamProvider] Error getting result: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      if (!_isDisposed) notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _isDisposed = true;

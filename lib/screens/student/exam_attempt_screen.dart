@@ -362,6 +362,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
       finalAnswers.add({'questionId': q.id, 'answer': userAns});
     }
 
+    final attemptId = examProvider.currentAttemptId;
     final isOffline =
         !ConnectivityManager().isOnline ||
         (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
@@ -413,7 +414,8 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
             context,
             MaterialPageRoute(
               builder: (_) => SubmissionSuccessScreen(
-                examTitle: widget.exam.title,
+                exam: widget.exam,
+                attemptId: attemptId ?? '',
                 endTimeStr: endTimeStr,
               ),
             ),
