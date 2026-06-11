@@ -11,6 +11,7 @@ import '../services/offline_exam_service.dart';
 import '../services/connectivity_manager.dart';
 import '../services/network_time_service.dart';
 import '../services/websocket_service.dart';
+import '../utils/network_error_handler.dart';
 
 enum LoadState { idle, loading, error, loaded }
 
@@ -215,7 +216,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _announcementsState = LoadState.loaded;
     } catch (e) {
       if (kDebugMode) debugPrint('[ExamProvider] Error loading announcements: $e');
-      _announcementsError = 'Failed to load announcements. Please check your internet connection.';
+      _announcementsError = friendlyNetworkError(e);
       _announcementsState = LoadState.error;
     }
     if (!_isDisposed) notifyListeners();

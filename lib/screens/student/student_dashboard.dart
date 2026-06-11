@@ -544,15 +544,17 @@ class _HomeTabState extends State<_HomeTab> {
           ),
           IconButton(
             icon: Icon(Icons.notifications_none_rounded, color: textColor),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AnnouncementsScreen(
-                  isAdmin: false,
-                  studentClass: auth.user?.classNo?.toString(),
-                ),
-              ),
-            ),
+            onPressed: auth.user?.accountType == 'TRIAL'
+                ? () => _showUpgradeDialog(context)
+                : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AnnouncementsScreen(
+                          isAdmin: false,
+                          studentClass: auth.user?.classNo?.toString(),
+                        ),
+                      ),
+                    ),
           ),
           const SizedBox(width: 8),
         ],

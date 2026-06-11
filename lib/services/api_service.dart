@@ -83,8 +83,8 @@ class ApiService {
 
   static dynamic _jsonDecodeHelper(String body) => jsonDecode(body);
 
-  /// Maps raw HTTP status codes to user-friendly messages.
   String _friendlyMessage(int statusCode, String serverMessage) {
+    if (serverMessage.isNotEmpty) return serverMessage;
     switch (statusCode) {
       case 401: return 'Your session has expired. Please log in again.';
       case 403: return 'You do not have permission to perform this action.';
@@ -96,7 +96,7 @@ class ApiService {
       case 503:
       case 504: return 'The server encountered an issue. Please try again in a few moments.';
       default:
-        return serverMessage.isNotEmpty ? serverMessage : 'An error occurred (HTTP $statusCode). Please try again.';
+        return 'An error occurred (HTTP $statusCode). Please try again.';
     }
   }
 
