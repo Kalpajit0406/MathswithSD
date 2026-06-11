@@ -31,7 +31,7 @@ class Exam {
           .toList(),
       date: json['date'] ?? '',
       time: json['time'] ?? '',
-      classNo: json['classNo'] ?? 0,
+      classNo: json['classNo'] ?? 10,
       language: json['language'] ?? 'English',
     );
   }

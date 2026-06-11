@@ -61,7 +61,7 @@ class _StudentDashboardState extends State<StudentDashboard>
             questions: [],
             date: '',
             time: '',
-            classNo: 0,
+            classNo: 10,
             language: 'English',
           ),
         );
@@ -701,7 +701,7 @@ class _HomeTabState extends State<_HomeTab> {
                       questions: [],
                       date: '',
                       time: '',
-                      classNo: 0,
+                      classNo: 10,
                       language: 'English',
                     ),
                   );
