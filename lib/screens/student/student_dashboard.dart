@@ -267,7 +267,7 @@ class _CustomBottomNavBar extends StatelessWidget {
             onTap: () => onTap(index),
             behavior: HitTestBehavior.opaque,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -275,7 +275,7 @@ class _CustomBottomNavBar extends StatelessWidget {
                     duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 6,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
@@ -291,7 +291,7 @@ class _CustomBottomNavBar extends StatelessWidget {
                       size: 24,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     label,
                     style: TextStyle(
@@ -898,8 +898,6 @@ class _HomeTabState extends State<_HomeTab> {
             const SizedBox(height: 16),
             Builder(builder: (context) {
               final auth = Provider.of<AuthProvider>(context);
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              final themePrimary = isDark ? const Color(0xFF5D9BFF) : const Color(0xFF0051D5);
               final isTrial = auth.user?.accountType == 'TRIAL';
 
               return Row(
