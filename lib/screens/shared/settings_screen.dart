@@ -213,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
-                  hintText: 'e.g., http://192.168.1.5:5000',
+                  hintText: 'e.g., https://api.mathswithsd.in',
                   hintStyle: TextStyle(
                     color: isDark ? Colors.white30 : Colors.black38,
                   ),
