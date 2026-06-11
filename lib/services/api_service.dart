@@ -89,6 +89,7 @@ class ApiService {
       case 401: return 'Your session has expired. Please log in again.';
       case 403: return 'You do not have permission to perform this action.';
       case 404: return 'The requested resource was not found.';
+      case 413: return 'The selected file is too large. Please upload a smaller file.';
       case 429: return 'Too many requests. Please wait a moment and try again.';
       case 500:
       case 502:
