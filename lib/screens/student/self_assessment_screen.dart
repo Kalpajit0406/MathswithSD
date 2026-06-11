@@ -1547,9 +1547,9 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
     Color themePrimary,
     bool isDark,
   ) {
-    final score = _results?['score'] ?? 0;
-    final total = _results?['total'] ?? _totalQuestions;
-    final percentage = _results?['percentage'] ?? 0.0;
+    final score = (_results?['score'] as num?)?.toInt() ?? 0;
+    final total = (_results?['total'] as num?)?.toInt() ?? _totalQuestions;
+    final percentage = (_results?['percentage'] as num?)?.toDouble() ?? 0.0;
     final analytics = _results?['analytics'] ?? {};
     final weakTopics = List<String>.from(analytics['weakTopics'] ?? []);
     final List<dynamic> gradedQuestions = _results?['questions'] ?? [];
