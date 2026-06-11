@@ -191,7 +191,7 @@ class _StudentDashboardState extends State<StudentDashboard>
         ),
         bottomNavigationBar: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
               child: BackdropFilter(
@@ -253,64 +253,69 @@ class _CustomBottomNavBar extends StatelessWidget {
       },
     ];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: List.generate(items.length, (index) {
-        final item = items[index];
-        final isSelected = currentIndex == index;
-        final iconData =
-            (isSelected ? item['activeIcon'] : item['icon']) as IconData;
-        final label = item['label'] as String;
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.noScaling,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(items.length, (index) {
+          final item = items[index];
+          final isSelected = currentIndex == index;
+          final iconData =
+              (isSelected ? item['activeIcon'] : item['icon']) as IconData;
+          final label = item['label'] as String;
 
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => onTap(index),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onTap(index),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? themePrimary.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        iconData,
+                        color: isSelected
+                            ? themePrimary
+                            : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                        size: 24,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? themePrimary.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.w900
+                            : FontWeight.w700,
+                        color: isSelected
+                            ? themePrimary
+                            : (isDark ? Colors.white38 : const Color(0xFF75859D)),
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                    child: Icon(
-                      iconData,
-                      color: isSelected
-                          ? themePrimary
-                          : (isDark ? Colors.white38 : const Color(0xFF75859D)),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected
-                          ? FontWeight.w900
-                          : FontWeight.w700,
-                      color: isSelected
-                          ? themePrimary
-                          : (isDark ? Colors.white38 : const Color(0xFF75859D)),
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }
