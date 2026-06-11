@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/test_model.dart';
 import '../models/exam_model.dart' as exam;
@@ -33,15 +35,15 @@ class ApiService {
       final override = await AuthStorageService.getBaseUrlOverride();
       if (override != null && override.isNotEmpty) {
         _resolvedBaseUrl = override;
-        debugPrint('[ApiService] Using stored base URL override: $override');
+        if (kDebugMode) debugPrint('[ApiService] Using stored base URL override.');
         return override;
       }
     } catch (e) {
-      debugPrint('[ApiService] Error reading base URL override: $e');
+      if (kDebugMode) debugPrint('[ApiService] Error reading base URL override: $e');
     }
 
     // Use the compile-time constant — defaults to production.
-    debugPrint('[ApiService] Using static base URL: $_staticBaseUrl');
+    if (kDebugMode) debugPrint('[ApiService] Using static base URL.');
     _resolvedBaseUrl = _staticBaseUrl;
     return _staticBaseUrl;
   }
@@ -66,9 +68,8 @@ class ApiService {
     }
     return headers;
   }
-
   Future<void> _handleUnauthorized() async {
-    debugPrint('[ApiService] 401 Unauthorized - clearing all stored data');
+    if (kDebugMode) debugPrint('[ApiService] 401 Unauthorized — session cleared.');
     await AuthStorageService.clearAll();
     onUnauthorized?.call();
   }
@@ -82,76 +83,93 @@ class ApiService {
 
   static dynamic _jsonDecodeHelper(String body) => jsonDecode(body);
 
-  Future<dynamic> _processResponse(http.Response response) async {
-    debugPrint(
-      '[ApiService] Response: ${response.statusCode} (${response.request?.url})',
-    );
+  /// Maps raw HTTP status codes to user-friendly messages.
+  String _friendlyMessage(int statusCode, String serverMessage) {
+    switch (statusCode) {
+      case 401: return 'Your session has expired. Please log in again.';
+      case 403: return 'You do not have permission to perform this action.';
+      case 404: return 'The requested resource was not found.';
+      case 429: return 'Too many requests. Please wait a moment and try again.';
+      case 500:
+      case 502:
+      case 503:
+      case 504: return 'The server encountered an issue. Please try again in a few moments.';
+      default:
+        return serverMessage.isNotEmpty ? serverMessage : 'An error occurred (HTTP $statusCode). Please try again.';
+    }
+  }
 
+  Future<dynamic> _processResponse(http.Response response) async {
     // Handle 401 unauthorized
     if (response.statusCode == 401) {
       _handleUnauthorized();
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (response.body.isEmpty) {
-        debugPrint('[ApiService] Empty response body');
-        return {};
-      }
+      if (response.body.isEmpty) return {};
       try {
-        final decoded = await _parseJson(response.body);
-        debugPrint(
-          '[ApiService] Response body (truncated): ${response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body}',
-        );
-        return decoded;
+        return await _parseJson(response.body);
       } catch (e) {
-        debugPrint('[ApiService] JSON decode error: $e');
-        throw ApiException('Invalid JSON response: $e', response.statusCode);
+        if (kDebugMode) debugPrint('[ApiService] JSON decode error: $e');
+        throw ApiException('Received an unexpected response. Please try again.', response.statusCode);
       }
     }
-    String message = 'Request failed (${response.statusCode})';
+
+    // Map status codes to user-friendly messages
+    String serverMessage = '';
     try {
       final body = await _parseJson(response.body);
-      message = body['message'] ?? message;
-    } catch (_) {
-      debugPrint('[ApiService] Error response body: ${response.body}');
-    }
-    debugPrint('[ApiService] Error: $message');
-    throw ApiException(message, response.statusCode);
+      serverMessage = (body['message'] as String?) ?? '';
+    } catch (_) {}
+    final friendlyMessage = _friendlyMessage(response.statusCode, serverMessage);
+    if (kDebugMode) debugPrint('[ApiService] Error ${response.statusCode}: $serverMessage');
+    throw ApiException(friendlyMessage, response.statusCode);
   }
 
-  Future<void> _logRequest(
-    String method,
-    Uri uri,
-    Map<String, String>? headers,
-  ) async {
-    debugPrint('[ApiService] Request: $method ${uri.path}');
-    if (headers != null) {
-      final sanitized = Map<String, String>.from(headers);
-      if (sanitized.containsKey('Authorization')) {
-        sanitized['Authorization'] = sanitized['Authorization']!.replaceAll(
-          RegExp(r'.{20}'),
-          'X',
-        );
+  /// Safe request wrapper — converts low-level network errors to ApiExceptions
+  Future<T> _safeRequest<T>(Future<T> Function() fn,
+      {String? operation}) async {
+    try {
+      return await fn();
+    } on SocketException {
+      throw ApiException(
+        'Unable to connect to the server. Please check your internet connection.',
+        0,
+      );
+    } on TimeoutException {
+      throw ApiException(
+        'The request timed out. Please try again.',
+        408,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[ApiService] ${operation ?? 'Request'} failed: $e');
       }
-      debugPrint('[ApiService] Headers: $sanitized');
+      throw ApiException(
+        'An unexpected error occurred. Please try again.',
+        500,
+      );
     }
   }
 
   // ─── Auth ────────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> login(String phone, String password) async {
-    final uri = await _uri(AppConstants.loginEndpoint);
-    final headers = await _headers(includeAuth: false);
-    await _logRequest('POST', uri, headers);
-    final response = await http
-        .post(
-          uri,
-          headers: headers,
-          body: jsonEncode({'studentPhone': phone, 'password': password}),
-        )
-        .timeout(const Duration(seconds: 20));
-    final data = await _processResponse(response);
-    return Map<String, dynamic>.from(data);
+    return _safeRequest(operation: 'Login', () async {
+      final uri = await _uri(AppConstants.loginEndpoint);
+      final headers = await _headers(includeAuth: false);
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({'studentPhone': phone, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 20));
+      final data = await _processResponse(response);
+      return Map<String, dynamic>.from(data);
+    });
   }
 
   Future<http.Response> register(Map<String, dynamic> data) async {
@@ -334,7 +352,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching exam difficulty: $e');
+      if (kDebugMode) debugPrint('[ApiService] Error fetching exam difficulty: $e');
     }
     return 3.0; // Default fallback
   }

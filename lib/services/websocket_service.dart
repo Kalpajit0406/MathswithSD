@@ -15,7 +15,9 @@ class ExamWebSocketService {
     // Listen to connectivity changes to instantly trigger reconnection when online
     _connectivitySubscription = ConnectivityManager().statusChanges.listen((status) {
       if (status != ConnectivityResult.none && !_isConnected && _currentAttemptId != null) {
-        debugPrint('[WebSocket] Device back online! Instantly triggering connection.');
+        if (kDebugMode) {
+          debugPrint('[WebSocket] Device back online! Instantly triggering connection.');
+        }
         _reconnectTimer?.cancel();
         _reconnectTimer = null;
         _establishConnection();
@@ -70,11 +72,15 @@ class ExamWebSocketService {
       final wsBase = baseRestUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
       final wsUrl = '$wsBase/api/v1/exam-ws?token=$token&attemptId=$_currentAttemptId';
 
-      debugPrint('[WebSocket] Connecting to $wsUrl');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Connecting to $wsBase/api/v1/exam-ws?token=***&attemptId=$_currentAttemptId');
+      }
       _socket = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 8));
       _isConnected = true;
       _statusController.add(true);
-      debugPrint('[WebSocket] Connected successfully.');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Connected successfully.');
+      }
 
       // Clear reconnect timers
       _reconnectTimer?.cancel();
@@ -88,7 +94,9 @@ class ExamWebSocketService {
         _onMessageReceived,
         onDone: _onConnectionClosed,
         onError: (err) {
-          debugPrint('[WebSocket] Error: $err');
+          if (kDebugMode) {
+            debugPrint('[WebSocket] Error: $err');
+          }
           _onConnectionClosed();
         },
         cancelOnError: true,
@@ -97,7 +105,9 @@ class ExamWebSocketService {
       // Start periodic heartbeats (every 5 seconds)
       _startHeartbeats();
     } catch (e) {
-      debugPrint('[WebSocket] Connection failed: $e');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Connection failed: $e');
+      }
       _onConnectionClosed();
     }
   }
@@ -141,11 +151,15 @@ class ExamWebSocketService {
           break;
 
         case 'error':
-          debugPrint('[WebSocket Server Error] ${payload['message']}');
+          if (kDebugMode) {
+            debugPrint('[WebSocket Server Error] ${payload['message']}');
+          }
           break;
       }
     } catch (e) {
-      debugPrint('[WebSocket] Error parsing frame: $e');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Error parsing frame: $e');
+      }
     }
   }
 
@@ -155,7 +169,9 @@ class ExamWebSocketService {
     _statusController.add(false);
     _heartbeatTimer?.cancel();
     _socket = null;
-    debugPrint('[WebSocket] Connection lost.');
+    if (kDebugMode) {
+      debugPrint('[WebSocket] Connection lost.');
+    }
 
     // Trigger exponential backoff reconnect
     if (_currentAttemptId != null) {
@@ -175,18 +191,24 @@ class ExamWebSocketService {
 
       attempt++;
       if (attempt > maxAttempts) {
-        debugPrint('[WebSocket] Reconnection timeout. Auto-submitting.');
+        if (kDebugMode) {
+          debugPrint('[WebSocket] Reconnection timeout. Auto-submitting.');
+        }
         _terminateController.add('🔌 Network connection lost. Exam auto-submitted.');
         return;
       }
 
       // Exponential backoff: 2s, 4s, 8s, 16s...
       final delaySeconds = (1 << attempt);
-      debugPrint('[WebSocket] Scheduled reconnect in $delaySeconds seconds (attempt $attempt)...');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Scheduled reconnect in $delaySeconds seconds (attempt $attempt)...');
+      }
 
       _reconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
         if (ConnectivityManager().isOnline) {
-          debugPrint('[WebSocket] Retrying connection now...');
+          if (kDebugMode) {
+            debugPrint('[WebSocket] Retrying connection now...');
+          }
           await _establishConnection();
         }
         if (!_isConnected) {
@@ -200,7 +222,9 @@ class ExamWebSocketService {
 
   void sendEvent(String event, Map<String, dynamic> data) {
     if (!_isConnected || _socket == null) {
-      debugPrint('[WebSocket] Cannot send event $event: socket offline.');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Cannot send event $event: socket offline.');
+      }
       return;
     }
     try {
@@ -209,14 +233,15 @@ class ExamWebSocketService {
         'data': data
       }));
     } catch (e) {
-      debugPrint('[WebSocket] Failed to send event $event: $e');
+      if (kDebugMode) {
+        debugPrint('[WebSocket] Failed to send event $event: $e');
+      }
     }
   }
 
   // API to submit selected answer (continuous syncing)
   void syncAnswer(String questionId, String answer) {
     if (!_isConnected || _socket == null) {
-      debugPrint('[WebSocket] Stashing answer for question $questionId: $answer');
       _pendingAnswers[questionId] = answer;
       return;
     }
@@ -228,7 +253,7 @@ class ExamWebSocketService {
 
   void _reconcileAnswers() {
     if (_pendingAnswers.isNotEmpty) {
-      debugPrint('[WebSocket] Reconnected! Reconciling ${_pendingAnswers.length} stashed answers.');
+      if (kDebugMode) debugPrint('[WebSocket] Reconnected. Reconciling pending answers.');
       _pendingAnswers.forEach((qId, ans) {
         sendEvent('submit_answer', {
           'questionId': qId,

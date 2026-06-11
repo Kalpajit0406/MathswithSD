@@ -149,11 +149,13 @@ class ResilientHttpClient {
     int statusCode,
     Duration delay,
   ) {
-    final op = operationName ?? 'Request';
-    debugPrint(
-      '[$op] Attempt $attemptNumber failed: $error. '
-      'Retrying in ${delay.inMilliseconds}ms...',
-    );
+    if (kDebugMode) {
+      final op = operationName ?? 'Request';
+      debugPrint(
+        '[$op] Attempt $attemptNumber failed: $error. '
+        'Retrying in ${delay.inMilliseconds}ms...',
+      );
+    }
   }
 }
 
@@ -208,10 +210,23 @@ extension ApiServiceRetry on ApiService {
   Future<Map<String, dynamic>> submitAnswersWithRetry({
     required String attemptId,
     required List<Map<String, dynamic>> answers,
+    List<Map<String, dynamic>>? violations,
+    bool isAutoSubmitted = false,
+    String? autoSubmitReason,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
   }) async {
     final resilient = getResilientClient();
     return resilient.executeWithRetry(
-      () => submitAnswers(attemptId: attemptId, answers: answers),
+      () => submitAnswers(
+        attemptId: attemptId,
+        answers: answers,
+        violations: violations,
+        isAutoSubmitted: isAutoSubmitted,
+        autoSubmitReason: autoSubmitReason,
+        emulatorDetected: emulatorDetected,
+        rootDetected: rootDetected,
+      ),
       timeout: const Duration(seconds: 30),
       operationName: 'Submit Answers',
     );
@@ -225,5 +240,19 @@ extension ApiServiceRetry on ApiService {
       timeout: const Duration(seconds: 15),
       operationName: 'Fetch Announcements',
     );
+  }
+
+  /// Execute with retry for fetching completed exam IDs; returns [] on failure
+  Future<List<String>> getCompletedExamIdsWithRetry() async {
+    final resilient = getResilientClient();
+    try {
+      return await resilient.executeWithRetry(
+        () => getCompletedExamIds(),
+        timeout: const Duration(seconds: 15),
+        operationName: 'Get Completed Exam IDs',
+      );
+    } catch (_) {
+      return [];
+    }
   }
 }

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/exam_model.dart';
@@ -43,17 +43,17 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _connectivitySubscription = ConnectivityManager().statusChanges.listen((status) async {
         if (_isDisposed) return;
         if (status != ConnectivityResult.none) {
-          debugPrint('[ExamProvider] Connectivity restored. Checking for resumable exam...');
+          if (kDebugMode) debugPrint('[ExamProvider] Connectivity restored. Checking for resumable exam...');
           final cached = await checkForResumableExam();
           if (_isDisposed) return;
           if (cached != null && _currentAttemptId == null) {
-            debugPrint('[ExamProvider] Found resumable exam, restoring state.');
+            if (kDebugMode) debugPrint('[ExamProvider] Found resumable exam, restoring state.');
             await resumeExam(cached);
           }
         }
       });
     }).catchError((e) {
-      debugPrint('[ExamProvider] Failed to initialize connectivity listener: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Failed to initialize connectivity listener: $e');
     });
   }
 
@@ -101,13 +101,13 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       await prefs.setStringList('active_visited_ids', _visitedQuestionIds.toList());
       await prefs.setStringList('active_marked_review_ids', _markedForReview.toList());
     } catch (e) {
-      debugPrint('Error caching exam attempt locally: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error caching exam attempt locally: $e');
     }
   }
 
   void _scheduleAttemptSave() {
     _pendingAttemptSave = _pendingAttemptSave.then((_) => _saveAttemptToPrefs()).catchError((e) {
-      debugPrint('Error scheduling exam attempt save: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error scheduling exam attempt save: $e');
     });
   }
 
@@ -122,7 +122,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       await prefs.remove('active_visited_ids');
       await prefs.remove('active_marked_review_ids');
     } catch (e) {
-      debugPrint('Error clearing cached exam attempt: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error clearing cached exam attempt: $e');
     }
   }
 
@@ -143,8 +143,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       final calculatedRemaining = cachedRemaining - elapsedSeconds;
 
       if (calculatedRemaining <= 0) {
-        debugPrint('[ExamProvider] Resumable exam has expired. Triggering auto-submit.');
-        try {
+          if (kDebugMode) debugPrint('[ExamProvider] Resumable exam expired. Triggering auto-submit.');
+          try {
           final answers = Map<String, String>.from(jsonDecode(answersRaw));
           List<Map<String, dynamic>> submitPayload = answers.entries.map((e) => {
             'questionId': e.key,
@@ -157,9 +157,9 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
             isAutoSubmitted: true,
             autoSubmitReason: '⏰ Exam duration expired while app was closed.',
           );
-        } catch (err) {
-          debugPrint('[ExamProvider] Failed to auto-submit expired exam on restore: $err');
-        } finally {
+          } catch (err) {
+            if (kDebugMode) debugPrint('[ExamProvider] Failed to auto-submit expired exam on restore.');
+          } finally {
           await _clearAttemptFromPrefs();
         }
         return null;
@@ -174,7 +174,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         'marked': markedRaw,
       };
     } catch (e) {
-      debugPrint('Error checking for resumable exam: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error checking for resumable exam: $e');
       return null;
     }
   }
@@ -199,7 +199,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       if (!_isDisposed) notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Resume Exam failed: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Resume exam failed: $e');
       return false;
     }
   }
@@ -214,7 +214,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _announcements = await _apiService.getAnnouncementsWithRetry(targetClass: targetClass);
       _announcementsState = LoadState.loaded;
     } catch (e) {
-      debugPrint('Error loading announcements: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error loading announcements: $e');
       _announcementsError = 'Failed to load announcements. Please check your internet connection.';
       _announcementsState = LoadState.error;
     }
@@ -235,7 +235,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         loadExamDifficulty(test.id);
       }
     } catch (e) {
-      debugPrint('Error loading tests: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error loading tests: $e');
       _testsState = LoadState.error;
       if (!_isDisposed) notifyListeners();
     }
@@ -248,7 +248,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _examDifficulties[examId] = diff;
       if (!_isDisposed) notifyListeners();
     } catch (e) {
-      debugPrint('Error loading exam difficulty: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error loading exam difficulty: $e');
     }
   }
 
@@ -289,7 +289,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
       if (!_isDisposed) notifyListeners();
     } catch (e) {
-      debugPrint('Error starting exam: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error starting exam: $e');
       _timer?.cancel();
       _currentAttemptId = null;
       _currentExamId = null;
@@ -311,7 +311,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         if (!_isDisposed) notifyListeners();
       };
     } catch (e) {
-      debugPrint('Failed to connect to security WS: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Failed to connect WebSocket: $e');
     }
   }
 
@@ -352,7 +352,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         final syncVal = _userAnswers.containsKey(questionId) ? answer : '';
         ExamWebSocketService().syncAnswer(questionId, syncVal);
       } catch (e) {
-        debugPrint('Failed to sync answer over WS: $e');
+        if (kDebugMode) debugPrint('[ExamProvider] WS answer sync failed.');
       }
     }
     
@@ -423,7 +423,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
         markAsVisited(exam.questions[_currentQuestionIndex].id);
       }
     } catch (e) {
-      debugPrint('Error marking current question visited: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error marking current question visited: $e');
     }
   }
 
@@ -438,7 +438,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   }) async {
     if (_currentAttemptId == null) return;
     if (_isLoading) {
-      debugPrint('[ExamProvider] submitExam called while already loading. Ignoring duplicate call.');
+      if (kDebugMode) debugPrint('[ExamProvider] submitExam called while already loading. Ignoring duplicate call.');
       return;
     }
     
@@ -449,7 +449,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     try {
       ExamWebSocketService().disconnect();
     } catch (e) {
-      debugPrint('Error disconnecting WS: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error disconnecting WS: $e');
     }
 
     try {
@@ -472,7 +472,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('offline_answers_$_currentExamId');
         } catch (e) {
-          debugPrint('Error clearing local offline answers: $e');
+          if (kDebugMode) debugPrint('[ExamProvider] Error clearing local offline cache: $e');
         }
       } else {
         await _apiService.submitAnswersWithRetry(
@@ -489,7 +489,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _currentExamId = null;
       await _clearAttemptFromPrefs();
     } catch (e) {
-      debugPrint('Error submitting exam: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error submitting exam: $e');
       rethrow;
     } finally {
       _isLoading = false;
@@ -514,7 +514,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching student performance: $e');
+      if (kDebugMode) debugPrint('[ExamProvider] Error fetching student performance: $e');
       rethrow;
     }
   }

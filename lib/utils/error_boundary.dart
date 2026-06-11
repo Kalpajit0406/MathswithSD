@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Global error handler for uncaught exceptions
@@ -22,11 +23,12 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
 
     // Catch all Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
-      debugPrint(
-        'Flutter Error caught: ${details.exceptionAsString()}\n'
-        'Error: ${details.exception}\n'
-        'StackTrace: ${details.stack}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'Flutter Error: ${details.exceptionAsString()}\n'
+          'StackTrace: ${details.stack}',
+        );
+      }
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -41,7 +43,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
 
     // Catch platform channel errors
     PlatformDispatcher.instance.onError = (error, stack) {
-      debugPrint('Platform Error: $error\nStackTrace: $stack');
+      if (kDebugMode) debugPrint('Platform Error: $error\nStackTrace: $stack');
       return true;
     };
   }
@@ -105,7 +107,9 @@ class ErrorDisplayWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              error,
+              kDebugMode
+                  ? error
+                  : 'Something went wrong. Please restart the app.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: Colors.red[900]),

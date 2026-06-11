@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
@@ -113,7 +113,7 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('[AuthProvider] Error refreshing profile: $e');
+      if (kDebugMode) debugPrint('[AuthProvider] Error refreshing profile: $e');
     }
   }
 
