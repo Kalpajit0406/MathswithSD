@@ -1,4 +1,4 @@
-package com.example.mathswithsd
+package com.mathswithsd.mathswithsd
 
 import android.app.Notification
 import android.app.NotificationChannel

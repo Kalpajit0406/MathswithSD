@@ -1,4 +1,4 @@
-package com.example.mathswithsd
+package com.mathswithsd.mathswithsd
 
 import android.content.Context
 import android.content.pm.PackageManager
