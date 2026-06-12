@@ -246,12 +246,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // "MathsWithSD" Title
+                // "MathswithSD" Title
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'MathsWith',
+                      'Mathswith',
                       style: TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.w900,
