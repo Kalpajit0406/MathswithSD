@@ -247,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             delay: const Duration(milliseconds: 100),
                             slideOffset: 20,
                             child: Text(
-                              'MathsWithSD',
+                              'MathswithSD',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
@@ -411,7 +411,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "New to MathsWithSD? ",
+                                "New to MathswithSD? ",
                                 style: TextStyle(
                                   color: isDark ? const Color(0xFFA8A5B8) : const Color(0xFF64748B),
                                   fontSize: 15,
