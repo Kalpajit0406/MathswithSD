@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.mathswithsd.student"
+    namespace = "com.mathswithsd.mathswithsd"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -39,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.mathswithsd.student"
+        applicationId = "com.mathswithsd.mathswithsd"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode

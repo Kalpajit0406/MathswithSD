@@ -1,4 +1,4 @@
-package com.mathswithsd.student
+package com.mathswithsd.mathswithsd
 
 import android.app.Activity
 import android.content.Context
