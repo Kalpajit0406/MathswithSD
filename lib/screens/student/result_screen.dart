@@ -29,6 +29,49 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  int totalQuestions = 0;
+  int totalAttempted = 0;
+  int totalCorrect = 0;
+  int totalIncorrect = 0;
+  int totalUnattempted = 0;
+  double accuracy = 0.0;
+
+  bool isAttempted(String? answer) {
+    if (answer == null) return false;
+    final clean = answer.trim();
+    return clean.isNotEmpty && clean.toLowerCase() != 'null';
+  }
+
+  bool isAnswersMatch(String? qAns, String? uAns) {
+    if (qAns == null || uAns == null) return false;
+    return qAns.trim().toLowerCase() == uAns.trim().toLowerCase();
+  }
+
+  void _calculateMetrics() {
+    totalQuestions = widget.questions.length;
+    totalAttempted = 0;
+    totalCorrect = 0;
+    totalIncorrect = 0;
+    totalUnattempted = 0;
+
+    for (var q in widget.questions) {
+      final userAns = widget.userAnswers[q.id];
+      if (isAttempted(userAns)) {
+        totalAttempted++;
+        if (isAnswersMatch(q.correctAnswer, userAns)) {
+          totalCorrect++;
+        } else {
+          totalIncorrect++;
+        }
+      } else {
+        totalUnattempted++;
+      }
+    }
+
+    accuracy = totalAttempted > 0
+        ? (totalCorrect / totalAttempted) * 100
+        : 0.0;
+  }
 
   @override
   void initState() {
@@ -37,6 +80,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       vsync: this,
       duration: const Duration(seconds: 25),
     )..repeat();
+    _calculateMetrics();
   }
 
   @override
@@ -47,10 +91,11 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = widget.totalQuestions > 0
-        ? (widget.score / widget.totalQuestions) * 100
+    final double percentage = accuracy;
+    final double scorePercentage = totalQuestions > 0
+        ? (totalCorrect / totalQuestions) * 100
         : 0;
-    final bool passed = percentage >= 40;
+    final bool passed = scorePercentage >= 40;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
@@ -212,7 +257,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   children: [
                     _StatColumn(
                       label: 'Score',
-                      value: '${widget.score} / ${widget.totalQuestions}',
+                      value: '$totalCorrect / $totalQuestions',
                       textColor: textColor,
                       secondaryTextColor: secondaryTextColor,
                     ),
@@ -226,6 +271,38 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                       label: 'Time',
                       value: '${(widget.timeTaken / 60).floor()}m ${widget.timeTaken % 60}s',
                       textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Divider(color: textColor.withValues(alpha: 0.1)),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _StatColumn(
+                      label: 'Attempted',
+                      value: '$totalAttempted',
+                      textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _StatColumn(
+                      label: 'Correct',
+                      value: '$totalCorrect',
+                      textColor: Colors.green,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _StatColumn(
+                      label: 'Incorrect',
+                      value: '$totalIncorrect',
+                      textColor: Colors.red,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _StatColumn(
+                      label: 'Unattempted',
+                      value: '$totalUnattempted',
+                      textColor: Colors.orange,
                       secondaryTextColor: secondaryTextColor,
                     ),
                   ],
@@ -312,8 +389,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       itemBuilder: (context, index) {
         final q = widget.questions[index];
         final userAns = widget.userAnswers[q.id];
-        final isCorrect = userAns == q.correctAnswer;
-        final isUnanswered = userAns == null;
+        final attempted = isAttempted(userAns);
+        final isCorrect = attempted && isAnswersMatch(q.correctAnswer, userAns);
+        final isUnanswered = !attempted;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -341,7 +419,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                       const SizedBox(width: 12),
                       Text(
                         isUnanswered
-                            ? 'UNANSWERED'
+                            ? 'UNATTEMPTED'
                             : (isCorrect ? 'CORRECT' : 'INCORRECT'),
                         style: TextStyle(
                           fontSize: 12,
@@ -379,16 +457,18 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                       const SizedBox(height: 16),
                       _ReviewOption(
                         label: 'Your Answer',
-                        value: userAns ?? 'Not Answered',
+                        value: attempted ? (userAns ?? '—') : '—',
                         isCorrect: isCorrect,
-                        color: isCorrect ? Colors.green : Colors.red,
+                        color: isUnanswered
+                            ? Colors.orange
+                            : (isCorrect ? Colors.green : Colors.red),
                         textColor: textColor,
                       ),
                       if (!isCorrect) const SizedBox(height: 8),
                       if (!isCorrect)
                         _ReviewOption(
                           label: 'Correct Answer',
-                          value: q.correctAnswer ?? 'N/A',
+                          value: q.correctAnswer ?? '—',
                           isCorrect: true,
                           color: Colors.green,
                           textColor: textColor,

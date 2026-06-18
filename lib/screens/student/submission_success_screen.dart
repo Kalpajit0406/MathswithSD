@@ -140,15 +140,24 @@ class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
         timeTaken = widget.exam.duration * 60;
       }
 
+      final List<Question> resolvedQuestions = [];
+      if (resultData['examId'] != null && resultData['examId']['questions'] != null) {
+        final List qList = resultData['examId']['questions'] as List;
+        for (var qJson in qList) {
+          resolvedQuestions.add(Question.fromJson(Map<String, dynamic>.from(qJson)));
+        }
+      }
+      final questionsToUse = resolvedQuestions.isNotEmpty ? resolvedQuestions : widget.exam.questions;
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => ResultScreen(
               score: score,
-              totalQuestions: widget.exam.questions.length,
+              totalQuestions: questionsToUse.length,
               timeTaken: timeTaken,
-              questions: widget.exam.questions,
+              questions: questionsToUse,
               userAnswers: userAnswers,
               isOffline: false,
             ),

@@ -1785,15 +1785,24 @@ class _ExamCard extends StatelessWidget {
                       timeTaken = test.duration * 60;
                     }
 
+                    final List<Question> resolvedQuestions = [];
+                    if (resultData['examId'] != null && resultData['examId']['questions'] != null) {
+                      final List qList = resultData['examId']['questions'] as List;
+                      for (var qJson in qList) {
+                        resolvedQuestions.add(Question.fromJson(Map<String, dynamic>.from(qJson)));
+                      }
+                    }
+                    final questionsToUse = resolvedQuestions.isNotEmpty ? resolvedQuestions : test.questions;
+
                     if (context.mounted) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ResultScreen(
                             score: score,
-                            totalQuestions: test.questions.length,
+                            totalQuestions: questionsToUse.length,
                             timeTaken: timeTaken,
-                            questions: test.questions,
+                            questions: questionsToUse,
                             userAnswers: userAnswers,
                             isOffline: false,
                           ),
