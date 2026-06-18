@@ -434,6 +434,8 @@ class _HomeTabState extends State<_HomeTab> {
     "Die with memories, not dreams.",
   ];
 
+  bool _isPinned = false;
+
   @override
   void initState() {
     super.initState();
@@ -445,6 +447,7 @@ class _HomeTabState extends State<_HomeTab> {
         });
       }
     });
+    _checkPinStatus();
   }
 
   String _getRandomQuote() {
@@ -461,6 +464,70 @@ class _HomeTabState extends State<_HomeTab> {
   void dispose() {
     _timer.cancel();
     super.dispose();
+  }
+
+  Future<void> _checkPinStatus() async {
+    final pinned = await KioskService.isAppPinned();
+    if (mounted) {
+      setState(() {
+        _isPinned = pinned;
+      });
+    }
+  }
+
+  Future<void> _handlePinUnpin() async {
+    final currentlyPinned = await KioskService.isAppPinned();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1B4B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              currentlyPinned ? Icons.pin_drop_rounded : Icons.push_pin_rounded,
+              color: const Color(0xFF8B5CF6),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              currentlyPinned ? 'Unpin App' : 'Pin App',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        content: Text(
+          currentlyPinned ? 'The app will be unpinned.' : 'The app will be pinned.',
+          style: const TextStyle(color: Color(0xFFCCC3D4), fontWeight: FontWeight.w500),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFFA8A5B8), fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (currentlyPinned) {
+                await KioskService.stopKioskMode();
+              } else {
+                await KioskService.startKioskMode();
+              }
+              // Wait a bit for OS to react and update
+              Future.delayed(const Duration(milliseconds: 1000), () {
+                _checkPinStatus();
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showUpgradeDialog(BuildContext context) {
@@ -554,6 +621,14 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             tooltip: 'Exit App',
             onPressed: () => KioskService.showExitDialog(context),
+          ),
+          IconButton(
+            icon: Icon(
+              _isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+              color: _isPinned ? const Color(0xFF38BDF8) : textColor,
+            ),
+            tooltip: _isPinned ? 'Unpin App' : 'Pin App',
+            onPressed: _handlePinUnpin,
           ),
           IconButton(
             icon: Icon(Icons.notifications_none_rounded, color: textColor),
