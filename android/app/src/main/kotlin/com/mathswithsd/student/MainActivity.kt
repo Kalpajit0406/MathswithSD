@@ -74,17 +74,15 @@ class MainActivity : FlutterActivity() {
         }
         */
 
-        // 3. Block emulator risk (Part 3) - BYPASSED FOR TESTING
-        /*
+        // 3. Block emulator risk (Part 3) - ACTIVE
         val detector = AdvancedEmulatorDetector(this)
         val report = detector.getRiskEvaluation()
         val risk = report["cumulativeRisk"] as? Double ?: 0.0
-        if (risk >= 0.70) {
-            val sandboxDetector = SandboxDetector(this)
+        val sandboxDetector = SandboxDetector(this)
+        if (risk >= 0.70 || sandboxDetector.isVirtualEnvironmentDetected()) {
             sandboxDetector.selfDestruct(this)
             return
         }
-        */
 
         // 4. Harden overlay protection and enforce FLAG_SECURE
         overlayDetector = OverlayDetector(this)
@@ -246,7 +244,13 @@ class MainActivity : FlutterActivity() {
 
     // ── 3. Emulator Risk Checks ──────────────────────────────────────────────
     private fun isEmulator(): Boolean {
-        return false
+        val detector = AdvancedEmulatorDetector(this)
+        val report = detector.getRiskEvaluation()
+        val risk = report["cumulativeRisk"] as? Double ?: 0.0
+        if (risk >= 0.70) return true
+
+        val sandboxDetector = SandboxDetector(this)
+        return sandboxDetector.isVirtualEnvironmentDetected()
     }
 
     // ── 4. Debugger & Frida Detection (Part 6) ────────────────────────────────

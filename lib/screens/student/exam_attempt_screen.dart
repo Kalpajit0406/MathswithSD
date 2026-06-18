@@ -382,16 +382,20 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
 
       if (mounted) {
         final examStart = widget.exam.getExamDateTime();
-        bool examEnded = true;
+        final remainingSeconds = examProvider.remainingSeconds;
+        final bool examEnded = remainingSeconds <= 0;
+        
         String endTimeStr = '';
         if (examStart != null) {
           final examEnd = examStart.add(
             Duration(minutes: widget.exam.duration),
           );
-          final now = NetworkTimeService().istNow;
-          examEnded = now.isAfter(examEnd);
           endTimeStr =
               '${widget.exam.date} @ ${DateFormat('hh:mm a').format(examEnd)}';
+        } else {
+          final now = DateTime.now();
+          final examEnd = now.add(Duration(seconds: remainingSeconds));
+          endTimeStr = DateFormat('hh:mm a').format(examEnd);
         }
 
         if (examEnded) {
@@ -417,6 +421,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 exam: widget.exam,
                 attemptId: attemptId ?? '',
                 endTimeStr: endTimeStr,
+                initialRemainingSeconds: remainingSeconds,
               ),
             ),
           );

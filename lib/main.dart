@@ -54,7 +54,15 @@ void main() async {
 }
 
 Future<bool> _isEmulator() async {
-  return false;
+  if (!Platform.isAndroid) return false;
+  try {
+    const channel = MethodChannel('com.mathswithsd.exam_security');
+    final bool result = await channel.invokeMethod('isEmulator');
+    return result;
+  } catch (e) {
+    debugPrint('[EmulatorCheck] Platform channel error: $e');
+    return false;
+  }
 }
 
 class EmulatorWarningApp extends StatefulWidget {

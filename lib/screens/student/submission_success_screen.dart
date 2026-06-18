@@ -11,12 +11,14 @@ class SubmissionSuccessScreen extends StatefulWidget {
   final Exam exam;
   final String attemptId;
   final String endTimeStr;
+  final int? initialRemainingSeconds;
 
   const SubmissionSuccessScreen({
     super.key,
     required this.exam,
     required this.attemptId,
     required this.endTimeStr,
+    this.initialRemainingSeconds,
   });
 
   @override
@@ -31,12 +33,27 @@ class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
   @override
   void initState() {
     super.initState();
-    _calculateRemainingTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        _calculateRemainingTime();
-      }
-    });
+    if (widget.initialRemainingSeconds != null) {
+      _remainingSeconds = widget.initialRemainingSeconds!;
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            if (_remainingSeconds > 0) {
+              _remainingSeconds--;
+            } else {
+              _timer?.cancel();
+            }
+          });
+        }
+      });
+    } else {
+      _calculateRemainingTime();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          _calculateRemainingTime();
+        }
+      });
+    }
   }
 
   void _calculateRemainingTime() {

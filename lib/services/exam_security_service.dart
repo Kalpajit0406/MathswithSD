@@ -137,11 +137,21 @@ class ExamSecurityService {
   }
 
   Future<bool> isDeviceRooted() async {
-    return false;
+    try {
+      final bool rooted = await _channel.invokeMethod('isRooted');
+      return rooted;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<bool> isDeviceEmulator() async {
-    return false;
+    try {
+      final bool emulator = await _channel.invokeMethod('isEmulator');
+      return emulator;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Call when exam ends (submitted, auto-submitted, or error).

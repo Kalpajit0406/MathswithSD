@@ -20,7 +20,7 @@ class SandboxDetector(private val context: Context) {
      * Returns true if any virtualization indicator is detected.
      */
     fun isVirtualEnvironmentDetected(): Boolean {
-        return false
+        return checkBuildProperties() || checkSystemProperties() || checkPhysicalSensors() || checkEmulatorFiles() || checkCpuInfo() || checkProcVersion() || checkSupportedAbis()
     }
 
     /**
@@ -38,20 +38,22 @@ class SandboxDetector(private val context: Context) {
 
         return (fingerprint.startsWith("generic")
                 || fingerprint.startsWith("unknown")
-                || model.contains("google_sdk")
-                || model.contains("Emulator")
-                || model.contains("Android SDK built for x86")
-                || model.contains("BlueStacks")
-                || manufacturer.contains("Genymotion")
-                || manufacturer.contains("nox")
+                || model.lowercase().contains("google_sdk")
+                || model.lowercase().contains("emulator")
+                || model.lowercase().contains("android sdk built for x86")
+                || model.lowercase().contains("bluestacks")
+                || manufacturer.lowercase().contains("genymotion")
+                || manufacturer.lowercase().contains("nox")
+                || manufacturer.lowercase().contains("bluestacks")
                 || brand.startsWith("generic") && device.startsWith("generic")
                 || "google_sdk" == product
-                || product.contains("sdk_gphone")
-                || product.contains("emulator")
-                || product.contains("vbox86")
-                || hardware.contains("goldfish")
-                || hardware.contains("ranchu")
-                || hardware.contains("vbox86")
+                || product.lowercase().contains("sdk_gphone")
+                || product.lowercase().contains("emulator")
+                || product.lowercase().contains("vbox86")
+                || product.lowercase().contains("bluestacks")
+                || hardware.lowercase().contains("goldfish")
+                || hardware.lowercase().contains("ranchu")
+                || hardware.lowercase().contains("vbox86")
                 || board.lowercase().contains("nox")
                 || board.lowercase().contains("android")
                 || bootloaderMatchesEmulator())
@@ -59,7 +61,7 @@ class SandboxDetector(private val context: Context) {
 
     private fun bootloaderMatchesEmulator(): Boolean {
         val bootloader = Build.BOOTLOADER ?: ""
-        return bootloader.lowercase().contains("qemu")
+        return bootloader.lowercase().contains("qemu") || bootloader.lowercase().contains("unknown")
     }
 
     /**
@@ -73,9 +75,17 @@ class SandboxDetector(private val context: Context) {
             val qemu = getMethod.invoke(null, "ro.kernel.qemu") as? String
             val qemuHw = getMethod.invoke(null, "ro.kernel.qemu.gles") as? String
             val hardware = getMethod.invoke(null, "ro.hardware") as? String
+            val model = getMethod.invoke(null, "ro.product.model") as? String
+            val board = getMethod.invoke(null, "ro.product.board") as? String
 
             if (qemu == "1" || qemuHw == "1") return true
-            if (hardware != null && (hardware.contains("goldfish") || hardware.contains("ranchu") || hardware.contains("vbox86"))) {
+            if (hardware != null && (hardware.lowercase().contains("goldfish") || hardware.lowercase().contains("ranchu") || hardware.lowercase().contains("vbox86") || hardware.lowercase().contains("nox") || hardware.lowercase().contains("bluestacks"))) {
+                return true
+            }
+            if (model != null && (model.lowercase().contains("bluestacks") || model.lowercase().contains("nox"))) {
+                return true
+            }
+            if (board != null && board.lowercase().contains("nox")) {
                 return true
             }
         } catch (e: Exception) {
@@ -111,13 +121,81 @@ class SandboxDetector(private val context: Context) {
         val pipes = arrayOf(
             "/dev/socket/qemud",
             "/dev/qemu_pipe",
-            "system/lib/libc_malloc_debug_qemu.so",
-            "sys/qemu_trace",
-            "system/bin/nox-prop",
-            "system/bin/noxd"
+            "/system/lib/libc_malloc_debug_qemu.so",
+            "/sys/qemu_trace",
+            "/system/bin/nox-prop",
+            "/system/bin/noxd",
+            "/mnt/windows/BstSharedFolder",
+            "/sdcard/windows/BstSharedFolder",
+            "/storage/emulated/0/windows/BstSharedFolder",
+            "/data/media/0/windows/BstSharedFolder",
+            "/sys/module/bstfolders",
+            "/dev/socket/bsthald",
+            "/dev/socket/bstplay",
+            "/dev/socket/bst_channel",
+            "/system/bin/bstfolder",
+            "/system/bin/bstsync",
+            "/data/bluestacks.prop",
+            "/sys/module/bluestacks",
+            "/data/system/bluestacks"
         )
         for (pipe in pipes) {
             if (File(pipe).exists()) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun checkCpuInfo(): Boolean {
+        try {
+            val file = File("/proc/cpuinfo")
+            if (file.exists()) {
+                val content = file.readText().lowercase()
+                if (content.contains("intel") || 
+                    content.contains("amd") || 
+                    content.contains("qemu") || 
+                    content.contains("goldfish") ||
+                    content.contains("virtual")
+                ) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+        return false
+    }
+
+    private fun checkProcVersion(): Boolean {
+        try {
+            val file = File("/proc/version")
+            if (file.exists()) {
+                val content = file.readText().lowercase()
+                if (content.contains("virt") || 
+                    content.contains("qemu") || 
+                    content.contains("oracle") || 
+                    content.contains("virtualbox") || 
+                    content.contains("bluestacks") ||
+                    content.contains("nox")
+                ) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+        return false
+    }
+
+    private fun checkSupportedAbis(): Boolean {
+        for (abi in Build.SUPPORTED_ABIS) {
+            val lower = abi.lowercase()
+            if (lower.contains("x86") || 
+                lower.contains("x86_64") || 
+                lower.contains("i386") || 
+                lower.contains("i686")
+            ) {
                 return true
             }
         }

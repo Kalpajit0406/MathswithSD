@@ -3,6 +3,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' as math;
 import '../models/test_model.dart';
 import '../models/exam_model.dart' as exam;
 import '../utils/constants.dart';
@@ -157,15 +160,59 @@ class ApiService {
 
   // ─── Auth ────────────────────────────────────────────────────────────────────
 
+  Future<Map<String, String>> _getDeviceBlueprint() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String androidId = '';
+    String model = '';
+    String manufacturer = '';
+
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        androidId = androidInfo.id;
+        model = androidInfo.model;
+        manufacturer = androidInfo.manufacturer;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        androidId = iosInfo.identifierForVendor ?? '';
+        model = iosInfo.model;
+        manufacturer = 'Apple';
+      }
+    } catch (e) {
+      debugPrint('Error getting device info: $e');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    String? installId = prefs.getString('app_install_id');
+    if (installId == null) {
+      final randomVal = DateTime.now().millisecondsSinceEpoch.toString() + '_' + (100000 + math.Random().nextInt(900000)).toString();
+      installId = randomVal;
+      await prefs.setString('app_install_id', installId);
+    }
+
+    return {
+      'androidId': androidId,
+      'model': model,
+      'manufacturer': manufacturer,
+      'appInstallId': installId,
+      'platform': Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'unknown'),
+    };
+  }
+
   Future<Map<String, dynamic>> login(String phone, String password) async {
     return _safeRequest(operation: 'Login', () async {
+      final blueprint = await _getDeviceBlueprint();
       final uri = await _uri(AppConstants.loginEndpoint);
       final headers = await _headers(includeAuth: false);
       final response = await http
           .post(
             uri,
             headers: headers,
-            body: jsonEncode({'studentPhone': phone, 'password': password}),
+            body: jsonEncode({
+              'studentPhone': phone,
+              'password': password,
+              'deviceBlueprint': blueprint,
+            }),
           )
           .timeout(const Duration(seconds: 20));
       final data = await _processResponse(response);
