@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mathswithsd/widgets/glass_card.dart';
 
 class KioskService {
   static const _channel = MethodChannel('com.mathswithsd.exam_security');
@@ -67,57 +68,85 @@ class KioskService {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1B4B),
-            title: const Row(
-              children: [
-                Icon(Icons.lock_outline_rounded, color: Colors.amberAccent),
-                SizedBox(width: 8),
-                Text('Pinning Required', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-              ],
-            ),
-            content: const Text(
-              'This application must be pinned (Kiosk Mode) to start or resume exams. If it was unpinned, please pin the app to continue.',
-              style: TextStyle(color: Color(0xFFCCC3D4), fontWeight: FontWeight.w500),
-            ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFFA8A5B8), fontWeight: FontWeight.w600)),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await startKioskMode();
-                  // Re-check after attempting to pin
-                  Future.delayed(const Duration(milliseconds: 1500), () async {
-                    if (context.mounted) {
-                      final reChecked = await isAppPinned();
-                      if (reChecked) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => targetScreen),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('⚠️ App is still not pinned. Please approve the pinning prompt.'),
-                            backgroundColor: Colors.redAccent,
+          builder: (ctx) {
+            final textColor = const Color(0xFF0F172A);
+            final subTextColor = const Color(0xFF475569);
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: GlassCard(
+                color: Colors.white.withValues(alpha: 0.85),
+                padding: const EdgeInsets.all(24),
+                borderRadius: 24,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_outline_rounded, color: Colors.amber, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Pinning Required',
+                            style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 20),
                           ),
-                        );
-                      }
-                    }
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'This application must be pinned (Kiosk Mode) to start or resume exams. If it was unpinned, please pin the app to continue.',
+                      style: TextStyle(color: subTextColor, fontWeight: FontWeight.w500, fontSize: 15, height: 1.5),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await startKioskMode();
+                            // Re-check after attempting to pin
+                            Future.delayed(const Duration(milliseconds: 1500), () async {
+                              if (context.mounted) {
+                                final reChecked = await isAppPinned();
+                                if (reChecked) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => targetScreen),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('⚠️ App is still not pinned. Please approve the pinning prompt.'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+                              }
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Pin App Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: const Text('Pin App Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
               ),
-            ],
-          ),
+            );
+          },
         );
       }
     }
@@ -127,34 +156,66 @@ class KioskService {
   static void showExitDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1B4B),
-        title: const Row(
-          children: [
-            Icon(Icons.exit_to_app_rounded, color: Colors.redAccent),
-            SizedBox(width: 8),
-            Text('Exit App?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to exit the application?',
-          style: TextStyle(color: Color(0xFFCCC3D4), fontWeight: FontWeight.w500),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFFD3BBFF), fontWeight: FontWeight.w700)),
+      builder: (ctx) {
+        final textColor = const Color(0xFF0F172A);
+        final subTextColor = const Color(0xFF475569);
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: GlassCard(
+            color: Colors.white.withValues(alpha: 0.85),
+            padding: const EdgeInsets.all(24),
+            borderRadius: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent, size: 28),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Exit App?',
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Are you sure you want to exit the application?',
+                  style: TextStyle(color: subTextColor, fontWeight: FontWeight.w500, fontSize: 15, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        exitApp();
+                      },
+                      child: const Text(
+                        'Exit',
+                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              exitApp();
-            },
-            child: const Text('Exit', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

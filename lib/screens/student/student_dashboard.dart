@@ -483,52 +483,79 @@ class _HomeTabState extends State<_HomeTab> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1B4B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(
-              currentlyPinned ? Icons.pin_drop_rounded : Icons.push_pin_rounded,
-              color: const Color(0xFF8B5CF6),
+      builder: (ctx) {
+        final textColor = const Color(0xFF0F172A);
+        final subTextColor = const Color(0xFF475569);
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: GlassCard(
+            color: Colors.white.withValues(alpha: 0.85),
+            padding: const EdgeInsets.all(24),
+            borderRadius: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      currentlyPinned ? Icons.pin_drop_rounded : Icons.push_pin_rounded,
+                      color: const Color(0xFF8B5CF6),
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      currentlyPinned ? 'Unpin App' : 'Pin App',
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  currentlyPinned ? 'The app will be unpinned.' : 'The app will be pinned.',
+                  style: TextStyle(color: subTextColor, fontWeight: FontWeight.w500, fontSize: 15, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        if (currentlyPinned) {
+                          await KioskService.stopKioskMode();
+                        } else {
+                          await KioskService.startKioskMode();
+                        }
+                        // Wait a bit for OS to react and update
+                        Future.delayed(const Duration(milliseconds: 1000), () {
+                          _checkPinStatus();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B5CF6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              currentlyPinned ? 'Unpin App' : 'Pin App',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-            ),
-          ],
-        ),
-        content: Text(
-          currentlyPinned ? 'The app will be unpinned.' : 'The app will be pinned.',
-          style: const TextStyle(color: Color(0xFFCCC3D4), fontWeight: FontWeight.w500),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFFA8A5B8), fontWeight: FontWeight.w600)),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              if (currentlyPinned) {
-                await KioskService.stopKioskMode();
-              } else {
-                await KioskService.startKioskMode();
-              }
-              // Wait a bit for OS to react and update
-              Future.delayed(const Duration(milliseconds: 1000), () {
-                _checkPinStatus();
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

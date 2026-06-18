@@ -82,14 +82,14 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       lastDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF8B5CF6),
-            surface: Color(0xFF1E1B4B),
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF0051D5),
+            surface: Colors.white,
             onPrimary: Colors.white,
-            onSurface: Colors.white,
+            onSurface: Colors.black87,
           ),
-          dialogTheme: DialogThemeData(
-            backgroundColor: const Color(0xFF0A0F1D),
+          dialogTheme: const DialogThemeData(
+            backgroundColor: Colors.white,
           ),
         ),
         child: child!,
@@ -173,41 +173,59 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         await showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: const Color(0xFF1A0A2E),
-            title: const Row(
-              children: [
-                Icon(Icons.block_rounded, color: Colors.redAccent, size: 26),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Number Blacklisted',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
+          builder: (ctx) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: GlassCard(
+                color: Colors.white.withValues(alpha: 0.85),
+                padding: const EdgeInsets.all(24),
+                borderRadius: 24,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.block_rounded, color: Colors.redAccent, size: 28),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Number Blacklisted',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Your phone number has been temporarily blacklisted due to '
+                      'repeated rejected registrations.\n\n'
+                      'Please contact the Administrator (Soumen Sir) to resolve this.',
+                      style: TextStyle(color: Color(0xFF475569), height: 1.5, fontSize: 15),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('OK',
+                              style: TextStyle(
+                                  color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: const Text(
-              'Your phone number has been temporarily blacklisted due to '
-              'repeated rejected registrations.\n\n'
-              'Please contact the Administrator (Soumen Sir) to resolve this.',
-              style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK',
-                    style: TextStyle(
-                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
               ),
-            ],
-          ),
+            );
+          },
         );
         return;
       }
@@ -216,53 +234,73 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         final bool? proceed = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: const Color(0xFF1A0A2E),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.amber, size: 26),
-                SizedBox(width: 10),
-                Text(
-                  'Final Attempt',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
+          builder: (ctx) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: GlassCard(
+                color: Colors.white.withValues(alpha: 0.85),
+                padding: const EdgeInsets.all(24),
+                borderRadius: 24,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Final Attempt',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'This is your last registration attempt.\n\n'
+                      'If your registration is rejected again, your phone number '
+                      'will be temporarily blocked for 30 days and you will need to contact '
+                      'the Administrator.\n\n'
+                      'Do you still wish to proceed?',
+                      style: TextStyle(color: Color(0xFF475569), height: 1.5, fontSize: 15),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text('Cancel',
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Proceed Anyway',
+                              style: TextStyle(
+                                  color: Colors.black, fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: const Text(
-              'This is your last registration attempt.\n\n'
-              'If your registration is rejected again, your phone number '
-              'will be temporarily blocked for 30 days and you will need to contact '
-              'the Administrator.\n\n'
-              'Do you still wish to proceed?',
-              style: TextStyle(color: Color(0xFFCBB8FF), height: 1.5),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel',
-                    style: TextStyle(
-                        color: Color(0xFFCBB8FF), fontWeight: FontWeight.bold)),
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Proceed Anyway',
-                    style: TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.w900)),
-              ),
-            ],
-          ),
+            );
+          },
         );
         if (proceed != true || !mounted) return;
       }
