@@ -106,18 +106,11 @@ class AdvancedEmulatorDetector(private val context: Context) {
             return 1.0f
         }
 
-        val hasLight = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null
-        val hasGyro = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
         val hasAccel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
 
         // Accelerometer missing is a major anomaly for physical phones
         if (!hasAccel) {
             score += 0.7f
-        }
-        
-        // Emulators typically do not map ambient light or gyroscope hardware
-        if (!hasLight && !hasGyro) {
-            score += 0.4f
         }
 
         // Check for Multitouch support (emulators often only support single-touch mouse events)

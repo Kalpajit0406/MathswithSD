@@ -20,7 +20,35 @@ class SandboxDetector(private val context: Context) {
      * Returns true if any virtualization indicator is detected.
      */
     fun isVirtualEnvironmentDetected(): Boolean {
-        return checkBuildProperties() || checkSystemProperties() || checkPhysicalSensors() || checkEmulatorFiles() || checkCpuInfo() || checkProcVersion() || checkSupportedAbis()
+        if (checkBuildProperties()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkBuildProperties")
+            return true
+        }
+        if (checkSystemProperties()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkSystemProperties")
+            return true
+        }
+        if (checkPhysicalSensors()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkPhysicalSensors")
+            return true
+        }
+        if (checkEmulatorFiles()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkEmulatorFiles")
+            return true
+        }
+        if (checkCpuInfo()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkCpuInfo")
+            return true
+        }
+        if (checkProcVersion()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkProcVersion")
+            return true
+        }
+        if (checkSupportedAbis()) {
+            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkSupportedAbis")
+            return true
+        }
+        return false
     }
 
     /**
@@ -36,7 +64,7 @@ class SandboxDetector(private val context: Context) {
         val device = Build.DEVICE ?: ""
         val board = Build.BOARD ?: ""
 
-        return (fingerprint.startsWith("generic")
+        val isEmulatorBuild = (fingerprint.startsWith("generic")
                 || fingerprint.startsWith("unknown")
                 || model.lowercase().contains("google_sdk")
                 || model.lowercase().contains("emulator")
@@ -57,6 +85,11 @@ class SandboxDetector(private val context: Context) {
                 || board.lowercase().contains("nox")
                 || board.lowercase().contains("android")
                 || bootloaderMatchesEmulator())
+
+        if (isEmulatorBuild) {
+            Log.w(TAG, "[SandboxDetector] checkBuildProperties trigger: fingerprint=$fingerprint, model=$model, hardware=$hardware, manufacturer=$manufacturer, product=$product, brand=$brand, device=$device, board=$board")
+        }
+        return isEmulatorBuild
     }
 
     private fun bootloaderMatchesEmulator(): Boolean {
@@ -78,14 +111,20 @@ class SandboxDetector(private val context: Context) {
             val model = getMethod.invoke(null, "ro.product.model") as? String
             val board = getMethod.invoke(null, "ro.product.board") as? String
 
-            if (qemu == "1" || qemuHw == "1") return true
+            if (qemu == "1" || qemuHw == "1") {
+                Log.w(TAG, "[SandboxDetector] checkSystemProperties trigger: qemu=$qemu, qemuHw=$qemuHw")
+                return true
+            }
             if (hardware != null && (hardware.lowercase().contains("goldfish") || hardware.lowercase().contains("ranchu") || hardware.lowercase().contains("vbox86") || hardware.lowercase().contains("nox") || hardware.lowercase().contains("bluestacks"))) {
+                Log.w(TAG, "[SandboxDetector] checkSystemProperties trigger: hardware=$hardware")
                 return true
             }
             if (model != null && (model.lowercase().contains("bluestacks") || model.lowercase().contains("nox"))) {
+                Log.w(TAG, "[SandboxDetector] checkSystemProperties trigger: model=$model")
                 return true
             }
             if (board != null && board.lowercase().contains("nox")) {
+                Log.w(TAG, "[SandboxDetector] checkSystemProperties trigger: board=$board")
                 return true
             }
         } catch (e: Exception) {
@@ -96,22 +135,22 @@ class SandboxDetector(private val context: Context) {
 
     /**
      * Layer 3: Check for absence of standard physical sensors
-     * Emulators/VMs typically do not contain standard ambient light or gyroscope hardware sensors.
+     * Emulators/VMs typically do not contain standard accelerometer hardware sensors.
      */
     private fun checkPhysicalSensors(): Boolean {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         if (sensorManager == null) {
-            // If no sensor manager exists, likely a VM/emulator
+            Log.w(TAG, "[SandboxDetector] checkPhysicalSensors trigger: SensorManager is null")
             return true
         }
 
-        val hasLightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null
-        val hasGyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
         val hasAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+        if (!hasAccelerometer) {
+            Log.w(TAG, "[SandboxDetector] checkPhysicalSensors trigger: Accelerometer is missing")
+            return true
+        }
 
-        // Most real physical phones have at least an accelerometer AND either a light sensor or gyroscope.
-        // If neither is present, it's highly indicative of a virtualized runner.
-        return !hasAccelerometer || (!hasLightSensor && !hasGyroscope)
+        return false
     }
 
     /**
@@ -141,6 +180,7 @@ class SandboxDetector(private val context: Context) {
         )
         for (pipe in pipes) {
             if (File(pipe).exists()) {
+                Log.w(TAG, "[SandboxDetector] checkEmulatorFiles trigger: file $pipe exists")
                 return true
             }
         }
@@ -158,6 +198,7 @@ class SandboxDetector(private val context: Context) {
                     content.contains("goldfish") ||
                     content.contains("virtual")
                 ) {
+                    Log.w(TAG, "[SandboxDetector] checkCpuInfo trigger: content contains suspicious hardware description: $content")
                     return true
                 }
             }
@@ -179,6 +220,7 @@ class SandboxDetector(private val context: Context) {
                     content.contains("bluestacks") ||
                     content.contains("nox")
                 ) {
+                    Log.w(TAG, "[SandboxDetector] checkProcVersion trigger: content contains suspicious version description: $content")
                     return true
                 }
             }
@@ -196,6 +238,7 @@ class SandboxDetector(private val context: Context) {
                 lower.contains("i386") || 
                 lower.contains("i686")
             ) {
+                Log.w(TAG, "[SandboxDetector] checkSupportedAbis trigger: supported ABI is $abi")
                 return true
             }
         }

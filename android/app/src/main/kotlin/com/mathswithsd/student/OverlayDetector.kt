@@ -81,6 +81,13 @@ class OverlayDetector(private val activity: Activity) {
      * cleanly when an overlay is detected to prevent further UI exposure.
      */
     fun terminateApp(reason: String) {
+        val isDebug = (activity.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebug) {
+            activity.runOnUiThread {
+                Toast.makeText(activity, "[DEBUG] Bypass termination: $reason", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
         activity.runOnUiThread {
             Toast.makeText(activity, reason, Toast.LENGTH_LONG).show()
             
