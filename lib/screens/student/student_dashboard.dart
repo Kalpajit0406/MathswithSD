@@ -15,6 +15,8 @@ import '../student/performance_screen.dart';
 import 'profile_screen.dart';
 import 'exam_attempt_screen.dart';
 import 'self_assessment_screen.dart';
+import 'submission_success_screen.dart';
+import 'result_screen.dart';
 import 'package:intl/intl.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/kiosk_service.dart';
@@ -1567,9 +1569,7 @@ class _ExamCard extends StatelessWidget {
         ? const Color(0xFF5D9BFF)
         : const Color(0xFF0051D5);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
+    final cardWidget = GlassCard(
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1700,7 +1700,122 @@ class _ExamCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: isCompleted
+          ? BounceOnTap(
+              onTap: () async {
+                final provider = Provider.of<ExamProvider>(context, listen: false);
+                final attemptId = provider.completedExamAttempts[test.id] ?? '';
+                final now = NetworkTimeService().istNow;
+                final examStart = test.getExamDateTime();
+                final examEnd = examStart != null
+                    ? examStart.add(Duration(minutes: test.duration))
+                    : now;
+                final isExamEnded = now.isAfter(examEnd);
+
+                if (!isExamEnded) {
+                  final endTimeStr = examStart != null
+                      ? DateFormat('hh:mm a').format(examEnd)
+                      : '';
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SubmissionSuccessScreen(
+                        exam: test,
+                        attemptId: attemptId,
+                        endTimeStr: endTimeStr,
+                      ),
+                    ),
+                  );
+                } else {
+                  if (attemptId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Unable to find completion record for this exam.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Show loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+
+                  try {
+                    final resultData = await provider.getResult(attemptId);
+                    if (context.mounted) {
+                      Navigator.pop(context); // Hide loading dialog
+                    }
+
+                    final userAnswers = <String, String>{};
+                    if (resultData['responses'] != null) {
+                      for (var resp in resultData['responses']) {
+                        final qId = resp['questionId']?.toString();
+                        final uAns = resp['userAnswer']?.toString() ??
+                            resp['selectedAnswer']?.toString() ??
+                            '';
+                        if (qId != null) {
+                          userAnswers[qId] = uAns;
+                        }
+                      }
+                    }
+
+                    final score = resultData['score'] is num
+                        ? (resultData['score'] as num).toInt()
+                        : 0;
+                    int timeTaken = 0;
+                    if (resultData['startTime'] != null &&
+                        resultData['endTime'] != null) {
+                      try {
+                        final start = DateTime.parse(resultData['startTime']);
+                        final end = DateTime.parse(resultData['endTime']);
+                        timeTaken = end.difference(start).inSeconds;
+                      } catch (_) {}
+                    }
+                    if (timeTaken <= 0) {
+                      timeTaken = test.duration * 60;
+                    }
+
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ResultScreen(
+                            score: score,
+                            totalQuestions: test.questions.length,
+                            timeTaken: timeTaken,
+                            questions: test.questions,
+                            userAnswers: userAnswers,
+                            isOffline: false,
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Hide loading dialog
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to load result: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              child: cardWidget,
+            )
+          : cardWidget,
     );
   }
 

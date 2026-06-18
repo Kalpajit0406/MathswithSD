@@ -66,6 +66,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   List<Exam> _scheduledTests = [];
   List<String> _completedExamIds = [];
+  Map<String, String> _completedExamAttempts = {};
   LoadState _testsState = LoadState.idle;
   final Map<String, double> _examDifficulties = {};
 
@@ -85,6 +86,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
 
   List<Exam> get scheduledTests => _scheduledTests;
   List<String> get completedExamIds => _completedExamIds;
+  Map<String, String> get completedExamAttempts => _completedExamAttempts;
   LoadState get testsState => _testsState;
   Map<String, double> get examDifficulties => _examDifficulties;
 
@@ -228,6 +230,12 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     try {
       _scheduledTests = await _apiService.fetchExamsWithRetry();
       _completedExamIds = await _apiService.getCompletedExamIdsWithRetry();
+      final completedAttempts = await _apiService.getCompletedAttemptsWithRetry();
+      _completedExamAttempts = {
+        for (var a in completedAttempts)
+          if (a['examId'] != null && a['attemptId'] != null)
+            a['examId'].toString(): a['attemptId'].toString()
+      };
       _testsState = LoadState.loaded;
       if (!_isDisposed) notifyListeners();
 

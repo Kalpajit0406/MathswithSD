@@ -638,6 +638,36 @@ class ApiService {
     return []; // Return empty list on failure rather than crashing
   }
 
+  Future<List<Map<String, dynamic>>> getCompletedAttempts() async {
+    final response = await http
+        .get(
+          await _uri('/api/v1/testResponse/completed-attempts'),
+          headers: await _headers(),
+        )
+        .timeout(const Duration(seconds: 15));
+    final data = await _processResponse(response);
+    final list = data['data'] as List? ?? [];
+    return list.map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getCompletedAttemptsWithRetry() async {
+    int attempt = 0;
+    const maxAttempts = 3;
+    Duration delay = const Duration(seconds: 1);
+
+    while (attempt < maxAttempts) {
+      try {
+        return await getCompletedAttempts();
+      } on ApiException {
+        attempt++;
+        if (attempt >= maxAttempts) rethrow;
+        await Future.delayed(delay);
+        delay = Duration(seconds: delay.inSeconds * 2);
+      }
+    }
+    return [];
+  }
+
   Future<DateTime> getServerTime() async {
     final response = await http
         .get(
