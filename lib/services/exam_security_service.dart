@@ -110,7 +110,6 @@ class ExamSecurityService {
     _emulatorDetected = emulator;
 
     await _enterKioskMode();
-    await _startForegroundMonitor();
     _startAutosave();
     _subscribeToWindowEvents();
 
@@ -159,7 +158,6 @@ class ExamSecurityService {
     _unsubscribeWindowEvents();
     _stopAutosave();
     await _exitKioskMode();
-    await _stopForegroundMonitor();
     _currentExamId = null;
     _answersProvider = null;
     debugPrint('[ExamSecurity] Secure exam session ended.');
@@ -272,23 +270,7 @@ class ExamSecurityService {
     debugPrint('[ExamSecurity] Global Kiosk mode remains active after exam.');
   }
 
-  // ── Foreground Service ────────────────────────────────────────────────────
 
-  Future<void> _startForegroundMonitor() async {
-    try {
-      await _channel.invokeMethod('startForegroundMonitor');
-    } catch (e) {
-      debugPrint('[ExamSecurity] Could not start foreground monitor: $e');
-    }
-  }
-
-  Future<void> _stopForegroundMonitor() async {
-    try {
-      await _channel.invokeMethod('stopForegroundMonitor');
-    } catch (e) {
-      debugPrint('[ExamSecurity] Could not stop foreground monitor: $e');
-    }
-  }
 
   // ── Autosave Engine ───────────────────────────────────────────────────────
 

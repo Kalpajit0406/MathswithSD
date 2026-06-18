@@ -181,29 +181,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // ── Foreground Service ────────────────────────────────────
-                    "startForegroundMonitor" -> {
-                        try {
-                            val intent = Intent(this, ExamMonitorService::class.java)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                startForegroundService(intent)
-                            } else {
-                                startService(intent)
-                            }
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("SERVICE_ERROR", "Failed to start monitor: ${e.message}", null)
-                        }
-                    }
-
-                    "stopForegroundMonitor" -> {
-                        try {
-                            stopService(Intent(this, ExamMonitorService::class.java))
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("SERVICE_ERROR", "Failed to stop monitor: ${e.message}", null)
-                        }
-                    }
 
                     // ── Instant multi-window poll ─────────────────────────────
                     "isInMultiWindowMode" -> {

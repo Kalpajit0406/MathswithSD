@@ -3,9 +3,7 @@
     <!-- Internet permission for network requests -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Foreground Service permissions -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <!-- Prevent PiP / split screen overlays during exams -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Required to hide overlay windows natively on Android 12+ (API 31+) -->
@@ -36,15 +34,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Exam Monitor Foreground Service -->
-        <service
-            android:name=".ExamMonitorService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="examMonitor"/>
-        </service>
+
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
