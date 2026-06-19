@@ -2,7 +2,7 @@ name: mathswithsd
 description: "MathsWithSD - Math learning and examination platform for students."
 publish_to: 'none'
 
-version: 1.0.8+108
+version: 1.0.9+109
 
 environment:
   sdk: ^3.11.5
