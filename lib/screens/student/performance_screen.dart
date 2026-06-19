@@ -510,9 +510,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> with SingleTicker
       final examTitle = attemptData['examTitle'] ?? 'Test';
       final score = attemptData['score'] ?? 0;
       final maxScore = attemptData['maxScore'] ?? 100;
-      final percentage = maxScore > 0
-          ? (score / maxScore * 100).toStringAsFixed(1)
-          : '0.0';
+      final percentage = attemptData['accuracyPercent'] != null
+          ? (attemptData['accuracyPercent'] as num).toDouble().toStringAsFixed(1)
+          : (maxScore > 0 ? (score / maxScore * 100).toStringAsFixed(1) : '0.0');
       final date = attemptData['date'] ?? '';
 
       return FadeInSlide(

@@ -1832,6 +1832,7 @@ class _ExamCard extends StatelessWidget {
                             questions: questionsToUse,
                             userAnswers: userAnswers,
                             isOffline: false,
+                            evaluationSummary: resultData['evaluationSummary'],
                           ),
                         ),
                       );

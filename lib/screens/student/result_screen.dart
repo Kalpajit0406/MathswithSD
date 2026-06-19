@@ -12,6 +12,7 @@ class ResultScreen extends StatefulWidget {
   final List<Question> questions;
   final Map<String, String> userAnswers;
   final bool isOffline;
+  final Map<String, dynamic>? evaluationSummary;
 
   const ResultScreen({
     super.key,
@@ -21,6 +22,7 @@ class ResultScreen extends StatefulWidget {
     required this.questions,
     required this.userAnswers,
     this.isOffline = false,
+    this.evaluationSummary,
   });
 
   @override
@@ -48,6 +50,17 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   }
 
   void _calculateMetrics() {
+    if (widget.evaluationSummary != null) {
+      final summary = widget.evaluationSummary!;
+      totalQuestions = (summary['totalQuestions'] as num?)?.toInt() ?? widget.totalQuestions;
+      totalAttempted = (summary['attemptedQuestions'] as num?)?.toInt() ?? 0;
+      totalCorrect = (summary['correctQuestions'] as num?)?.toInt() ?? 0;
+      totalIncorrect = (summary['incorrectQuestions'] as num?)?.toInt() ?? 0;
+      totalUnattempted = (summary['unattemptedQuestions'] as num?)?.toInt() ?? 0;
+      accuracy = (summary['accuracyPercent'] as num?)?.toDouble() ?? 0.0;
+      return;
+    }
+
     totalQuestions = widget.questions.length;
     totalAttempted = 0;
     totalCorrect = 0;
@@ -68,8 +81,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       }
     }
 
-    accuracy = totalAttempted > 0
-        ? (totalCorrect / totalAttempted) * 100
+    accuracy = totalQuestions > 0
+        ? (totalCorrect / totalQuestions) * 100
         : 0.0;
   }
 
@@ -224,6 +237,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     final themePrimary = isDark
         ? const Color(0xFF5D9BFF)
         : const Color(0xFF0051D5);
+    final double attemptedAccuracy = widget.evaluationSummary != null
+        ? (widget.evaluationSummary!['attemptedAccuracyPercent'] as num?)?.toDouble() ?? 0.0
+        : (totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : 0.0);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -264,6 +280,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     _StatColumn(
                       label: 'Accuracy',
                       value: '${percentage.toStringAsFixed(1)}%',
+                      textColor: textColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _StatColumn(
+                      label: 'Attempted Accuracy',
+                      value: '${attemptedAccuracy.toStringAsFixed(1)}%',
                       textColor: textColor,
                       secondaryTextColor: secondaryTextColor,
                     ),
@@ -390,8 +412,34 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         final q = widget.questions[index];
         final userAns = widget.userAnswers[q.id];
         final attempted = isAttempted(userAns);
-        final isCorrect = attempted && isAnswersMatch(q.correctAnswer, userAns);
-        final isUnanswered = !attempted;
+        
+        bool isCorrect = false;
+        bool isUnanswered = true;
+        String statusStr = 'UNATTEMPTED';
+
+        if (widget.evaluationSummary != null && widget.evaluationSummary!['questions'] != null) {
+          final evalQs = widget.evaluationSummary!['questions'] as List;
+          Map<String, dynamic>? evalQ;
+          for (var item in evalQs) {
+            if (item is Map && item['questionId'] == q.id) {
+              evalQ = Map<String, dynamic>.from(item);
+              break;
+            }
+          }
+          if (evalQ != null) {
+            statusStr = evalQ['status'] ?? 'UNATTEMPTED';
+            isCorrect = statusStr == 'CORRECT';
+            isUnanswered = statusStr == 'UNATTEMPTED';
+          } else {
+            isCorrect = attempted && isAnswersMatch(q.correctAnswer, userAns);
+            isUnanswered = !attempted;
+            statusStr = isUnanswered ? 'UNATTEMPTED' : (isCorrect ? 'CORRECT' : 'INCORRECT');
+          }
+        } else {
+          isCorrect = attempted && isAnswersMatch(q.correctAnswer, userAns);
+          isUnanswered = !attempted;
+          statusStr = isUnanswered ? 'UNATTEMPTED' : (isCorrect ? 'CORRECT' : 'INCORRECT');
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -418,9 +466,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        isUnanswered
-                            ? 'UNATTEMPTED'
-                            : (isCorrect ? 'CORRECT' : 'INCORRECT'),
+                        statusStr,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,

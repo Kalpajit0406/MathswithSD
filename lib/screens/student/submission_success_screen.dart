@@ -160,6 +160,7 @@ class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
               questions: questionsToUse,
               userAnswers: userAnswers,
               isOffline: false,
+              evaluationSummary: resultData['evaluationSummary'],
             ),
           ),
         );

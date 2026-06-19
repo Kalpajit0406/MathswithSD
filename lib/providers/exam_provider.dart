@@ -436,7 +436,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     }
   }
 
-  Future<void> submitExam(
+  Future<Map<String, dynamic>?> submitExam(
     List<Map<String, dynamic>> answers, {
     bool isOffline = false,
     List<Map<String, dynamic>>? violations,
@@ -445,10 +445,10 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     bool emulatorDetected = false,
     bool rootDetected = false,
   }) async {
-    if (_currentAttemptId == null) return;
+    if (_currentAttemptId == null) return null;
     if (_isLoading) {
       if (kDebugMode) debugPrint('[ExamProvider] submitExam called while already loading. Ignoring duplicate call.');
-      return;
+      return null;
     }
     
     _timer?.cancel();
@@ -460,6 +460,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     } catch (e) {
       if (kDebugMode) debugPrint('[ExamProvider] Error disconnecting WS: $e');
     }
+
+    Map<String, dynamic>? submitResponse;
 
     try {
         await _pendingAttemptSave;
@@ -484,7 +486,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
           if (kDebugMode) debugPrint('[ExamProvider] Error clearing local offline cache: $e');
         }
       } else {
-        await _apiService.submitAnswersWithRetry(
+        submitResponse = await _apiService.submitAnswersWithRetry(
           attemptId: _currentAttemptId!,
           answers: answers,
           violations: violations,
@@ -497,6 +499,7 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
       _currentAttemptId = null;
       _currentExamId = null;
       await _clearAttemptFromPrefs();
+      return submitResponse;
     } catch (e) {
       if (kDebugMode) debugPrint('[ExamProvider] Error submitting exam: $e');
       rethrow;

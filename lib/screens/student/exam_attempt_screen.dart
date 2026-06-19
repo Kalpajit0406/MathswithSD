@@ -368,7 +368,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
         (examProvider.currentAttemptId?.startsWith('offline_') ?? false);
 
     try {
-      await examProvider.submitExam(
+      final response = await examProvider.submitExam(
         finalAnswers,
         isOffline: isOffline,
         violations: violationsJson,
@@ -379,6 +379,9 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
       );
       // Clear autosave after successful submit
       await _security.clearAutosavedAnswers(widget.exam.id);
+
+      final Map<String, dynamic>? attemptData = response != null ? response['data'] as Map<String, dynamic>? : null;
+      final Map<String, dynamic>? evaluationSummary = attemptData != null ? attemptData['evaluationSummary'] as Map<String, dynamic>? : null;
 
       if (mounted) {
         final examStart = widget.exam.getExamDateTime();
@@ -410,6 +413,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
                 questions: widget.exam.questions,
                 userAnswers: examProvider.userAnswers,
                 isOffline: isOffline,
+                evaluationSummary: evaluationSummary,
               ),
             ),
           );
