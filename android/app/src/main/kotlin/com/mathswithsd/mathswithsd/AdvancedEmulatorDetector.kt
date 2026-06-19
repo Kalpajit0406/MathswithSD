@@ -77,11 +77,11 @@ class AdvancedEmulatorDetector(private val context: Context) {
         // Suspicious values
         if (brand.startsWith("generic") && device.startsWith("generic")) score += 0.6f
         if (board.lowercase().contains("nox") || hardware.lowercase().contains("nox") || product.lowercase().contains("nox")) score += 0.8f
-        if (fingerprint.startsWith("generic") || fingerprint.startsWith("unknown")) score += 0.5f
+        if (fingerprint.startsWith("generic")) score += 0.5f
 
         // Bootloader check
         val bootloader = Build.BOOTLOADER ?: ""
-        if (bootloader.lowercase().contains("qemu") || bootloader.lowercase().contains("unknown")) score += 0.8f
+        if (bootloader.lowercase().contains("qemu")) score += 0.8f
 
         // Check system properties via reflection
         val roHardware = getSystemProperty("ro.hardware").lowercase()
@@ -130,11 +130,8 @@ class AdvancedEmulatorDetector(private val context: Context) {
             val file = File("/proc/cpuinfo")
             if (file.exists()) {
                 val content = file.readText().lowercase()
-                if (content.contains("intel") || 
-                    content.contains("amd") || 
-                    content.contains("qemu") || 
-                    content.contains("goldfish") ||
-                    content.contains("virtual")
+                if (content.contains("qemu") || 
+                    content.contains("goldfish")
                 ) {
                     return true
                 }
@@ -150,8 +147,7 @@ class AdvancedEmulatorDetector(private val context: Context) {
             val file = File("/proc/version")
             if (file.exists()) {
                 val content = file.readText().lowercase()
-                if (content.contains("virt") || 
-                    content.contains("qemu") || 
+                if (content.contains("qemu") || 
                     content.contains("oracle") || 
                     content.contains("virtualbox") || 
                     content.contains("bluestacks") ||
@@ -167,17 +163,13 @@ class AdvancedEmulatorDetector(private val context: Context) {
     }
 
     private fun checkSupportedAbis(): Boolean {
-        for (abi in Build.SUPPORTED_ABIS) {
+        val abis = Build.SUPPORTED_ABIS
+        if (abis.isEmpty()) return false
+        val allX86 = abis.all { abi ->
             val lower = abi.lowercase()
-            if (lower.contains("x86") || 
-                lower.contains("x86_64") || 
-                lower.contains("i386") || 
-                lower.contains("i686")
-            ) {
-                return true
-            }
+            lower.contains("x86") || lower.contains("x86_64") || lower.contains("i386") || lower.contains("i686")
         }
-        return false
+        return allX86
     }
 
     private fun checkSystemEnvironment(): Float {

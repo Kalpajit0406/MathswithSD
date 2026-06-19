@@ -28,24 +28,8 @@ class SandboxDetector(private val context: Context) {
             Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkSystemProperties")
             return true
         }
-        if (checkPhysicalSensors()) {
-            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkPhysicalSensors")
-            return true
-        }
         if (checkEmulatorFiles()) {
             Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkEmulatorFiles")
-            return true
-        }
-        if (checkCpuInfo()) {
-            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkCpuInfo")
-            return true
-        }
-        if (checkProcVersion()) {
-            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkProcVersion")
-            return true
-        }
-        if (checkSupportedAbis()) {
-            Log.e(TAG, "[SandboxDetector] Virtual environment detected via: checkSupportedAbis")
             return true
         }
         return false
@@ -65,7 +49,6 @@ class SandboxDetector(private val context: Context) {
         val board = Build.BOARD ?: ""
 
         val isEmulatorBuild = (fingerprint.startsWith("generic")
-                || fingerprint.startsWith("unknown")
                 || model.lowercase().contains("google_sdk")
                 || model.lowercase().contains("emulator")
                 || model.lowercase().contains("android sdk built for x86")
@@ -83,7 +66,7 @@ class SandboxDetector(private val context: Context) {
                 || hardware.lowercase().contains("ranchu")
                 || hardware.lowercase().contains("vbox86")
                 || board.lowercase().contains("nox")
-                || board.lowercase().contains("android")
+                || (board.lowercase().contains("android") && hardware.lowercase().contains("goldfish"))
                 || bootloaderMatchesEmulator())
 
         if (isEmulatorBuild) {
@@ -94,7 +77,7 @@ class SandboxDetector(private val context: Context) {
 
     private fun bootloaderMatchesEmulator(): Boolean {
         val bootloader = Build.BOOTLOADER ?: ""
-        return bootloader.lowercase().contains("qemu") || bootloader.lowercase().contains("unknown")
+        return bootloader.lowercase().contains("qemu")
     }
 
     /**
@@ -192,11 +175,8 @@ class SandboxDetector(private val context: Context) {
             val file = File("/proc/cpuinfo")
             if (file.exists()) {
                 val content = file.readText().lowercase()
-                if (content.contains("intel") || 
-                    content.contains("amd") || 
-                    content.contains("qemu") || 
-                    content.contains("goldfish") ||
-                    content.contains("virtual")
+                if (content.contains("qemu") || 
+                    content.contains("goldfish")
                 ) {
                     Log.w(TAG, "[SandboxDetector] checkCpuInfo trigger: content contains suspicious hardware description: $content")
                     return true
@@ -213,8 +193,7 @@ class SandboxDetector(private val context: Context) {
             val file = File("/proc/version")
             if (file.exists()) {
                 val content = file.readText().lowercase()
-                if (content.contains("virt") || 
-                    content.contains("qemu") || 
+                if (content.contains("qemu") || 
                     content.contains("oracle") || 
                     content.contains("virtualbox") || 
                     content.contains("bluestacks") ||
@@ -231,18 +210,13 @@ class SandboxDetector(private val context: Context) {
     }
 
     private fun checkSupportedAbis(): Boolean {
-        for (abi in Build.SUPPORTED_ABIS) {
+        val abis = Build.SUPPORTED_ABIS
+        if (abis.isEmpty()) return false
+        val allX86 = abis.all { abi ->
             val lower = abi.lowercase()
-            if (lower.contains("x86") || 
-                lower.contains("x86_64") || 
-                lower.contains("i386") || 
-                lower.contains("i686")
-            ) {
-                Log.w(TAG, "[SandboxDetector] checkSupportedAbis trigger: supported ABI is $abi")
-                return true
-            }
+            lower.contains("x86") || lower.contains("x86_64") || lower.contains("i386") || lower.contains("i686")
         }
-        return false
+        return allX86
     }
 
     /**

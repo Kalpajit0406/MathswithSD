@@ -74,23 +74,6 @@ class MainActivity : FlutterActivity() {
         }
         */
 
-        // 3. Block emulator risk (Part 3) - ACTIVE
-        val detector = AdvancedEmulatorDetector(this)
-        val report = detector.getRiskEvaluation()
-        val risk = report["cumulativeRisk"] as? Double ?: 0.0
-        val sandboxDetector = SandboxDetector(this)
-        val isVirtual = sandboxDetector.isVirtualEnvironmentDetected()
-        Log.i(TAG, "[IntegrityCheck] Cumulative Risk Score: $risk, isVirtualEnvironment: $isVirtual")
-        if (risk >= 0.70 || isVirtual) {
-            val isDebug = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            if (isDebug) {
-                Log.w(TAG, "[IntegrityCheck] Security violation: emulator or virtual environment detected (risk: $risk, isVirtual: $isVirtual), BUT bypassing self-destruct because this is a DEBUG build.")
-            } else {
-                Log.e(TAG, "[IntegrityCheck] Security violation: emulator or virtual environment detected. Self-destructing...")
-                sandboxDetector.selfDestruct(this)
-                return
-            }
-        }
 
         // 4. Harden overlay protection and enforce FLAG_SECURE
         overlayDetector = OverlayDetector(this)
