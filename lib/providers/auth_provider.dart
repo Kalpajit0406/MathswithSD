@@ -52,13 +52,13 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String phone, String password) async {
+  Future<bool> login(String phone, String password, {bool logoutFromOtherDevices = false}) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.loginWithRetry(phone, password);
+      final response = await _apiService.loginWithRetry(phone, password, logoutFromOtherDevices: logoutFromOtherDevices);
       final data = response['data'];
       if (data == null) {
         throw Exception('Invalid response from server');

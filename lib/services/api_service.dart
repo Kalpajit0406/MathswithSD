@@ -199,7 +199,7 @@ class ApiService {
     };
   }
 
-  Future<Map<String, dynamic>> login(String phone, String password) async {
+  Future<Map<String, dynamic>> login(String phone, String password, {bool logoutFromOtherDevices = false}) async {
     return _safeRequest(operation: 'Login', () async {
       final blueprint = await _getDeviceBlueprint();
       final uri = await _uri(AppConstants.loginEndpoint);
@@ -212,6 +212,7 @@ class ApiService {
               'studentPhone': phone,
               'password': password,
               'deviceBlueprint': blueprint,
+              'logoutFromOtherDevices': logoutFromOtherDevices,
             }),
           )
           .timeout(const Duration(seconds: 20));
@@ -436,15 +437,16 @@ class ApiService {
   /// Login with exponential backoff retry (1s → 2s → 4s)
   Future<Map<String, dynamic>> loginWithRetry(
     String phone,
-    String password,
-  ) async {
+    String password, {
+    bool logoutFromOtherDevices = false,
+  }) async {
     int attempt = 0;
     const maxAttempts = 3;
     Duration delay = const Duration(seconds: 1);
 
     while (attempt < maxAttempts) {
       try {
-        return await login(phone, password);
+        return await login(phone, password, logoutFromOtherDevices: logoutFromOtherDevices);
       } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
