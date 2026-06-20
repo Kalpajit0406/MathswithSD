@@ -2262,7 +2262,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
                   Wrap(
                     spacing: 8.0,
                     runSpacing: 8.0,
-                    children: [5, 10, 15, 20, 25].map((count) {
+                    children: [5, 10, 20, 40].map((count) {
                       final isSelected = _selectedLimit == count;
                       return GestureDetector(
                         onTap: () {
