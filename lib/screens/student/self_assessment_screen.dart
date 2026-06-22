@@ -192,8 +192,8 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
       _startHeartbeats();
       _startCountdownTimer();
 
-      // Fetch first batch of questions (offset 0)
-      await _loadNextQuestionsBatch(0);
+      // Fetch all questions of the assessment session in one go (offset 0, limit = _totalQuestions)
+      await _loadNextQuestionsBatch(0, limit: _totalQuestions);
 
       setState(() {
         _isConfiguring = false;
@@ -264,7 +264,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
     });
   }
 
-  Future<void> _loadNextQuestionsBatch(int offset) async {
+  Future<void> _loadNextQuestionsBatch(int offset, {int limit = 5}) async {
     if (_sessionToken == null || _fetchingNextBatch) return;
     if (_questionsList.length > offset) {
       return; // Batch already loaded or loading
@@ -275,7 +275,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
       final data = await _apiService.getSelfAssessmentQuestionsBatch(
         _sessionToken!,
         offset: offset,
-        limit: 5,
+        limit: limit,
       );
 
       final List<dynamic> questionsData = data['questions'] ?? [];
@@ -320,16 +320,6 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
       setState(() {
         _visitedQuestionIds.add(currentId);
       });
-    }
-
-    // Prefetching check: if at index 3 (4th question), prefetch indices 5-9 (offset 5)
-    // General prefetching rule: when user reaches index % 5 >= 3, trigger prefetch of next batch (offset = next multiple of 5)
-    if (index % 5 >= 3) {
-      final nextBatchOffset = ((index ~/ 5) + 1) * 5;
-      if (nextBatchOffset < _totalQuestions &&
-          _questionsList.length <= nextBatchOffset) {
-        _loadNextQuestionsBatch(nextBatchOffset);
-      }
     }
   }
 
