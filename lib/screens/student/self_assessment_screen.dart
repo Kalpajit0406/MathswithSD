@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../services/api_service.dart';
 import '../../services/connectivity_manager.dart';
@@ -19,6 +20,7 @@ class SelfAssessmentScreen extends StatefulWidget {
 class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
     with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
+  final TextEditingController _customLimitController = TextEditingController();
 
   // State variables
   bool _isLoading = true;
@@ -73,6 +75,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
 
   @override
   void dispose() {
+    _customLimitController.dispose();
     _animationController.dispose();
     _heartbeatTimer?.cancel();
     _countdownTimer?.cancel();
@@ -143,6 +146,16 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least one chapter.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedLimit < 10 || _selectedLimit > 80) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select or enter a number of questions between 10 and 80.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -2262,56 +2275,139 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
                   Wrap(
                     spacing: 8.0,
                     runSpacing: 8.0,
-                    children: [5, 10, 20, 40].map((count) {
-                      final isSelected = _selectedLimit == count;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedLimit = count;
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? themePrimary
-                                : (isDark
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : Colors.white),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      ...[10, 20, 40].map((count) {
+                        final isSelected = _selectedLimit == count;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedLimit = count;
+                              _customLimitController.clear();
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
                               color: isSelected
                                   ? themePrimary
                                   : (isDark
-                                      ? Colors.white.withValues(alpha: 0.1)
-                                      : const Color(0xFFECEEF0)),
-                              width: 1.5,
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.white),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected
+                                    ? themePrimary
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : const Color(0xFFECEEF0)),
+                                width: 1.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: themePrimary.withValues(alpha: 0.25),
+                                        blurRadius: 10,
+                                        spreadRadius: 1,
+                                      )
+                                    ]
+                                  : [],
                             ),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: themePrimary.withValues(alpha: 0.25),
-                                      blurRadius: 10,
-                                      spreadRadius: 1,
-                                    )
-                                  ]
-                                : [],
+                            child: Text(
+                              '$count Qs',
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : textColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                          child: Text(
-                            '$count Qs',
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : textColor,
-                              fontWeight: FontWeight.bold,
+                        );
+                      }),
+                      // Custom question count text field
+                      SizedBox(
+                        width: 100,
+                        height: 40,
+                        child: TextField(
+                          controller: _customLimitController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(2),
+                          ],
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              if (val.trim().isEmpty) {
+                                _selectedLimit = 10;
+                              } else {
+                                final parsed = int.tryParse(val);
+                                if (parsed != null) {
+                                  _selectedLimit = parsed;
+                                }
+                              }
+                            });
+                          },
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            hintText: 'Custom',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.35)
+                                  : Colors.black.withValues(alpha: 0.4),
                               fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            filled: true,
+                            fillColor: _customLimitController.text.isNotEmpty
+                                ? themePrimary.withValues(alpha: 0.1)
+                                : (isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.white),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: _customLimitController.text.isNotEmpty
+                                    ? themePrimary
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : const Color(0xFFECEEF0)),
+                                width: 1.5,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: _customLimitController.text.isNotEmpty
+                                    ? themePrimary
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : const Color(0xFFECEEF0)),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: themePrimary,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
