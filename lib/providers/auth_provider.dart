@@ -38,14 +38,19 @@ class AuthProvider with ChangeNotifier {
     final lastName = await AuthStorageService.getUserLastName();
     final phone = await AuthStorageService.getUserPhone();
     final classNo = await AuthStorageService.getUserClass();
+    final id = await AuthStorageService.getUserId() ?? '';
+    final accountType = await AuthStorageService.getUserAccountType() ?? 'NORMAL';
+    final isJoint = await AuthStorageService.getUserIsJoint();
     _isAdmin = await AuthStorageService.getIsAdmin();
 
     _user = AppUser(
-      id: '',
+      id: id,
       firstName: firstName,
       lastName: lastName,
       phone: phone,
       classNo: classNo,
+      accountType: accountType,
+      isJoint: isJoint,
       token: token!,
     );
     _status = AuthStatus.authenticated;
@@ -77,6 +82,9 @@ class AuthProvider with ChangeNotifier {
       await AuthStorageService.saveUserPhone(_user!.phone ?? phone);
       await AuthStorageService.saveUserClass(_user!.classNo ?? 0);
       await AuthStorageService.saveUserName(_user!.firstName, _user!.lastName);
+      await AuthStorageService.saveUserId(_user!.id);
+      await AuthStorageService.saveUserAccountType(_user!.accountType ?? 'NORMAL');
+      await AuthStorageService.saveUserIsJoint(_user!.isJoint ?? false);
 
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -110,6 +118,9 @@ class AuthProvider with ChangeNotifier {
         _user = AppUser.fromJson(userData, _user!.token);
         await AuthStorageService.saveUserClass(_user!.classNo ?? 0);
         await AuthStorageService.saveUserName(_user!.firstName, _user!.lastName);
+        await AuthStorageService.saveUserId(_user!.id);
+        await AuthStorageService.saveUserAccountType(_user!.accountType ?? 'NORMAL');
+        await AuthStorageService.saveUserIsJoint(_user!.isJoint ?? false);
         notifyListeners();
       }
     } catch (e) {

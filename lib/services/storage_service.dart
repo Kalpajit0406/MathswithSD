@@ -52,6 +52,31 @@ class AuthStorageService {
     return await _storage.read(key: AppConstants.userLastNameKey) ?? '';
   }
 
+  static Future<void> saveUserId(String id) async {
+    await _storage.write(key: AppConstants.userIdKey, value: id);
+  }
+
+  static Future<String?> getUserId() async {
+    return await _storage.read(key: AppConstants.userIdKey);
+  }
+
+  static Future<void> saveUserAccountType(String accountType) async {
+    await _storage.write(key: AppConstants.userAccountTypeKey, value: accountType);
+  }
+
+  static Future<String?> getUserAccountType() async {
+    return await _storage.read(key: AppConstants.userAccountTypeKey);
+  }
+
+  static Future<void> saveUserIsJoint(bool isJoint) async {
+    await _storage.write(key: AppConstants.userIsJointKey, value: isJoint.toString());
+  }
+
+  static Future<bool> getUserIsJoint() async {
+    final val = await _storage.read(key: AppConstants.userIsJointKey);
+    return val == 'true';
+  }
+
   static Future<void> clearAll() async {
     await _storage.deleteAll();
   }
@@ -70,3 +95,4 @@ class AuthStorageService {
     return await _storage.read(key: AppConstants.baseUrlOverrideKey);
   }
 }
+
