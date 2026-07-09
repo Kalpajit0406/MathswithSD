@@ -1321,6 +1321,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
                         text: qText,
                         fontSize: 16,
                         color: textColor,
+                        allowHorizontalScroll: false,
                       ),
                       if (qDiagram != null && qDiagram.isNotEmpty) ...[
                         const SizedBox(height: 12),
@@ -2043,6 +2044,7 @@ class _SelfAssessmentScreenState extends State<SelfAssessmentScreen>
                       InlineMathText(
                         text: qText,
                         color: textColor,
+                        allowHorizontalScroll: false,
                       ),
                       if (diagram != null && diagram.isNotEmpty) ...[
                         const SizedBox(height: 12),

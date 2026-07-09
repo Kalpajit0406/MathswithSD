@@ -187,12 +187,14 @@ class InlineMathText extends StatelessWidget {
   final String text;
   final double fontSize;
   final Color? color;
+  final bool allowHorizontalScroll;
 
   const InlineMathText({
     super.key,
     required this.text,
     this.fontSize = 15,
     this.color,
+    this.allowHorizontalScroll = true,
   });
 
   bool get _hasMath =>
@@ -209,11 +211,17 @@ class InlineMathText extends StatelessWidget {
             : const Color(0xFF1A1A2E));
 
     if (_hasMath) {
-      return LaTeXWidget(
+      final latexWidget = LaTeXWidget(
         text: text,
         color: resolvedColor,
         textAlign: TextAlign.start,
       );
+      return allowHorizontalScroll
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: latexWidget,
+            )
+          : latexWidget;
     }
     return Text(
       text,
