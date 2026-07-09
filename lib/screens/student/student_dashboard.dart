@@ -1915,10 +1915,7 @@ class _ExamCard extends StatelessWidget {
 
     return ElevatedButton(
       onPressed: enabled
-          ? () => KioskService.checkPinAndNavigate(
-              context,
-              ExamAttemptScreen(exam: test),
-            )
+          ? () => _showChecklistDialog(context, test, themePrimary, isDark)
           : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: themePrimary,
@@ -1942,6 +1939,204 @@ class _ExamCard extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
       ),
+    );
+  }
+
+  void _showChecklistDialog(
+    BuildContext context,
+    Exam test,
+    Color themePrimary,
+    bool isDark,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+        final secondaryTextColor = isDark ? Colors.white70 : const Color(0xFF475569);
+        final cardColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: cardColor,
+          elevation: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: themePrimary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.security_rounded,
+                        color: themePrimary,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Exam Rules & Checklist',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: textColor,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Please review and confirm the checklist below before starting the exam:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildChecklistItem(
+                  icon: Icons.do_not_disturb_on_rounded,
+                  iconColor: Colors.orange,
+                  title: 'Turn on DND Mode',
+                  subtitle: 'Make sure Do Not Disturb (DND) mode is active to block notifications or calls.',
+                  textColor: textColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                const SizedBox(height: 14),
+                _buildChecklistItem(
+                  icon: Icons.push_pin_rounded,
+                  iconColor: Colors.red,
+                  title: 'Do Not Unpin App',
+                  subtitle: 'Do not unpin the application. Your exam will be auto-submitted after 3 warnings.',
+                  textColor: textColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                const SizedBox(height: 14),
+                _buildChecklistItem(
+                  icon: Icons.wifi_rounded,
+                  iconColor: Colors.blue,
+                  title: 'Stable Connection Required',
+                  subtitle: 'Ensure you are connected to a reliable, stable internet connection throughout.',
+                  textColor: textColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                const SizedBox(height: 14),
+                _buildChecklistItem(
+                  icon: Icons.exit_to_app_rounded,
+                  iconColor: Colors.purple,
+                  title: 'Do Not Attempt to Exit',
+                  subtitle: 'Exiting or switching away from the app is strictly prohibited during the exam.',
+                  textColor: textColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          KioskService.checkPinAndNavigate(
+                            context,
+                            ExamAttemptScreen(exam: test),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: themePrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'I UNDERSTAND',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildChecklistItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required Color textColor,
+    required Color secondaryTextColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: iconColor, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
