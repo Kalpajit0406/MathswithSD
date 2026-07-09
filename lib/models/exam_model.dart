@@ -21,10 +21,14 @@ class Exam {
     required this.language,
   });
 
+  static String _cleanTitle(String rawTitle) {
+    return rawTitle.replaceAll('(H)', '').replaceAll('  ', ' ').trim();
+  }
+
   factory Exam.fromJson(Map<String, dynamic> json) {
     return Exam(
       id: json['id'] ?? json['_id'] ?? '',
-      title: json['title'] ?? '',
+      title: _cleanTitle(json['title'] ?? ''),
       duration: json['duration'] ?? 0,
       questions: (json['questions'] as List? ?? [])
           .map((q) => Question.fromJson(q))
