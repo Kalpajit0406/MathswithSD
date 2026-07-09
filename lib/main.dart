@@ -187,8 +187,8 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
       child: MaterialApp(
         title: 'MathswithSD',
         theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: Provider.of<ThemeProvider>(context).themeMode,
+        darkTheme: AppTheme.lightTheme,
+        themeMode: ThemeMode.light,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return Stack(

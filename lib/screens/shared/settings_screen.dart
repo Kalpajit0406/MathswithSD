@@ -291,44 +291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
 
-              // Theme selector UI
-              Text(
-                'App Theme Mode',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ThemeOptionCard(
-                      title: 'Light Mode',
-                      icon: Icons.light_mode_rounded,
-                      isActive: themeProvider.themeMode == ThemeMode.light,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.light),
-                      textColor: textColor,
-                      borderColor: borderColor,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _ThemeOptionCard(
-                      title: 'Dark Mode',
-                      icon: Icons.dark_mode_rounded,
-                      isActive: themeProvider.themeMode == ThemeMode.dark,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
-                      textColor: textColor,
-                      borderColor: borderColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
 
               Text(
                 'Current Status',
@@ -397,60 +360,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _ThemeOptionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final bool isActive;
-  final VoidCallback onTap;
-  final Color textColor;
-  final Color borderColor;
 
-  const _ThemeOptionCard({
-    required this.title,
-    required this.icon,
-    required this.isActive,
-    required this.onTap,
-    required this.textColor,
-    required this.borderColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isActive
-              ? const Color(0xFF0051D5).withValues(alpha: 0.08)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? const Color(0xFF0051D5) : borderColor,
-            width: isActive ? 1.5 : 1.0,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isActive
-                  ? const Color(0xFF0051D5)
-                  : (textColor.withValues(alpha: 0.6)),
-              size: 28,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: isActive ? const Color(0xFF0051D5) : textColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
