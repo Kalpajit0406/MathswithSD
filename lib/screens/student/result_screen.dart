@@ -269,33 +269,75 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(height: 32),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _StatColumn(
-                      label: 'Score',
-                      value: '$totalCorrect / $totalQuestions',
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Score',
+                        value: '$totalCorrect / $totalQuestions',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
                     ),
-                    _StatColumn(
-                      label: 'Accuracy',
-                      value: '${percentage.toStringAsFixed(1)}%',
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
+                    Container(
+                      height: 36,
+                      width: 1,
+                      color: textColor.withValues(alpha: 0.12),
                     ),
-                    _StatColumn(
-                      label: 'Attempted Accuracy',
-                      value: '${attemptedAccuracy.toStringAsFixed(1)}%',
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Accuracy',
+                        value: '${percentage.toStringAsFixed(1)}%',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
                     ),
-                    _StatColumn(
-                      label: 'Time',
-                      value: '${(widget.timeTaken / 60).floor()}m ${widget.timeTaken % 60}s',
-                      textColor: textColor,
-                      secondaryTextColor: secondaryTextColor,
+                    Container(
+                      height: 36,
+                      width: 1,
+                      color: textColor.withValues(alpha: 0.12),
+                    ),
+                    Expanded(
+                      child: _StatColumn(
+                        label: 'Attempted Accuracy',
+                        value: '${attemptedAccuracy.toStringAsFixed(1)}%',
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: themePrimary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: themePrimary.withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: themePrimary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Time: ${(widget.timeTaken / 60).floor()}m ${widget.timeTaken % 60}s',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Divider(color: textColor.withValues(alpha: 0.1)),
