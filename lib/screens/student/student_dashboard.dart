@@ -9,7 +9,6 @@ import '../../models/exam_model.dart';
 import '../shared/announcements_screen.dart';
 import '../shared/settings_screen.dart';
 import '../../widgets/animations.dart';
-import '../../widgets/difficulty_badge.dart';
 import '../../widgets/glass_card.dart';
 import '../student/performance_screen.dart';
 import 'profile_screen.dart';
@@ -1702,19 +1701,6 @@ class _ExamCard extends StatelessWidget {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 11,
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          DifficultyIndicator(
-                            difficulty:
-                                Provider.of<ExamProvider>(
-                                  context,
-                                  listen: false,
-                                ).examDifficulties[test.id] ??
-                                3.0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
                             ),
                           ),
                         ],
