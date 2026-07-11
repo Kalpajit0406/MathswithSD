@@ -203,6 +203,12 @@ class InlineMathText extends StatelessWidget {
       text.contains(r'\[') ||
       text.contains('\\');
 
+  bool _isMathLike(String val) {
+    // Check if it has operators, brackets, superscripts/subscripts
+    final mathRegExp = RegExp(r'[+\-*/=<>()[\]{}^_]');
+    return mathRegExp.hasMatch(val);
+  }
+
   @override
   Widget build(BuildContext context) {
     final resolvedColor = color ??
@@ -223,9 +229,20 @@ class InlineMathText extends StatelessWidget {
             )
           : latexWidget;
     }
-    return Text(
+
+    final textWidget = Text(
       text,
       style: TextStyle(fontSize: fontSize, color: resolvedColor),
     );
+
+    // Scroll horizontally if permitted AND the text is either a space-free formula or contains math operators
+    final shouldScroll = allowHorizontalScroll && (!text.trim().contains(' ') || _isMathLike(text));
+
+    return shouldScroll
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: textWidget,
+          )
+        : textWidget;
   }
 }
