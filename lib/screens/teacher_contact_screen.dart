@@ -105,129 +105,132 @@ class TeacherContactScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 20),
-                // Heading
-                Text(
-                  'Teacher Contact Details',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Please contact the teacher to coordinate registration and classroom access.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Teacher Info Card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 20),
+                  // Heading
+                  Text(
+                    'Teacher Contact Details',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      letterSpacing: -0.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Name
-                      const Text(
-                        'TEACHER NAME',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF8B5CF6),
-                          letterSpacing: 1.0,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please contact the teacher to coordinate registration and classroom access.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+  
+                  // Teacher Info Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Soumen Das',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name
+                        const Text(
+                          'TEACHER NAME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF8B5CF6),
+                            letterSpacing: 1.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Phone 1
-                      _buildContactTile(
-                        context,
-                        label: 'Phone / WhatsApp',
-                        value: '+91 7278000101',
-                        icon: Icons.chat_rounded,
-                        isDark: isDark,
-                      ),
-                      const Divider(height: 32, color: Color(0xFFECEEF0)),
-
-                      // Phone 2
-                      _buildContactTile(
-                        context,
-                        label: 'Alternate Contact (Phone 2)',
-                        value: '+91 7278000102',
-                        icon: Icons.phone_android_rounded,
-                        isDark: isDark,
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          'Soumen Das',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+  
+                        // Phone 1
+                        _buildContactTile(
+                          context,
+                          label: 'Phone / WhatsApp',
+                          value: '+91 7278000101',
+                          icon: Icons.chat_rounded,
+                          isDark: isDark,
+                        ),
+                        const Divider(height: 32, color: Color(0xFFECEEF0)),
+  
+                        // Phone 2
+                        _buildContactTile(
+                          context,
+                          label: 'Alternate Contact (Phone 2)',
+                          value: '+91 7278000102',
+                          icon: Icons.phone_android_rounded,
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const Spacer(),
-
-                // Actions
-                ElevatedButton.icon(
-                  onPressed: () => _handleRegisterClick(context),
-                  icon: const Icon(Icons.app_registration_rounded, color: Colors.white),
-                  label: const Text(
-                    'Proceed to Register',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  const SizedBox(height: 32),
+  
+                  // Actions
+                  ElevatedButton.icon(
+                    onPressed: () => _handleRegisterClick(context),
+                    icon: const Icon(Icons.app_registration_rounded, color: Colors.white),
+                    label: const Text(
+                      'Proceed to Register',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shadowColor: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                      elevation: 8,
+                    ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5CF6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    shadowColor: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-                    elevation: 8,
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _closeApp,
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFFEF4444)),
+                    label: const Text(
+                      'Close App',
+                      style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _closeApp,
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFFEF4444)),
-                  label: const Text(
-                    'Close App',
-                    style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),

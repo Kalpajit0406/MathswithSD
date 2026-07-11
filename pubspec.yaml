@@ -2,7 +2,7 @@ name: mathswithsd
 description: "MathsWithSD - Math learning and examination platform for students."
 publish_to: 'none'
 
-version: 1.1.6+116
+version: 1.1.7+117
 
 environment:
   sdk: ^3.11.5
@@ -43,6 +43,7 @@ dependencies:
   dio: ^5.9.2
   sqflite: ^2.4.2+1
   flutter_avif: ^3.1.0
+  in_app_update: ^4.2.5
 
 dependency_overrides:
   path_provider_android: 2.2.12

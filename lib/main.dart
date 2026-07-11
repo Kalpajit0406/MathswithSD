@@ -191,9 +191,17 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
         themeMode: ThemeMode.light,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
-          return Stack(
-            children: [
-              OfflineIndicator(child: child!),
+          final mediaQueryData = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQueryData.copyWith(
+              textScaler: mediaQueryData.textScaler.clamp(
+                minScaleFactor: 0.85,
+                maxScaleFactor: 1.25,
+              ),
+            ),
+            child: Stack(
+              children: [
+                OfflineIndicator(child: child!),
               if (_isMultiWindowPhase)
                 Positioned.fill(
                   child: ClipRect(
@@ -238,8 +246,9 @@ class _MathsWithSDAppState extends State<MathsWithSDApp>
                   ),
                 ),
             ],
-          );
-        },
+          ),
+        );
+      },
         home: const SplashScreen(),
         routes: {
           '/login': (context) => LoginScreen(

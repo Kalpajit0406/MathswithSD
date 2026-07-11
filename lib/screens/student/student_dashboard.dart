@@ -20,6 +20,7 @@ import 'package:intl/intl.dart';
 import '../../services/offline_exam_service.dart';
 import '../../services/kiosk_service.dart';
 import '../../services/network_time_service.dart';
+import '../../services/in_app_update_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -48,6 +49,9 @@ class _StudentDashboardState extends State<StudentDashboard>
     )..repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Check for available updates in Google Play Store
+      InAppUpdateService.checkForUpdates(context);
+
       final examProvider = Provider.of<ExamProvider>(context, listen: false);
       final cached = await examProvider.checkForResumableExam();
       if (cached != null) {
@@ -1948,136 +1952,139 @@ class _ExamCard extends StatelessWidget {
           ),
           backgroundColor: cardColor,
           elevation: 10,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: themePrimary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.security_rounded,
-                        color: themePrimary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Exam Rules & Checklist',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: textColor,
-                          letterSpacing: -0.5,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: themePrimary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.security_rounded,
+                          color: themePrimary,
+                          size: 28,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Please review and confirm the checklist below before starting the exam:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: secondaryTextColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _buildChecklistItem(
-                  icon: Icons.do_not_disturb_on_rounded,
-                  iconColor: Colors.orange,
-                  title: 'Turn on DND Mode',
-                  subtitle: 'Make sure Do Not Disturb (DND) mode is active to block notifications or calls.',
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                const SizedBox(height: 14),
-                _buildChecklistItem(
-                  icon: Icons.push_pin_rounded,
-                  iconColor: Colors.red,
-                  title: 'Do Not Unpin App',
-                  subtitle: 'Do not unpin the application. Your exam will be auto-submitted after 3 warnings.',
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                const SizedBox(height: 14),
-                _buildChecklistItem(
-                  icon: Icons.wifi_rounded,
-                  iconColor: Colors.blue,
-                  title: 'Stable Connection Required',
-                  subtitle: 'Ensure you are connected to a reliable, stable internet connection throughout.',
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                const SizedBox(height: 14),
-                _buildChecklistItem(
-                  icon: Icons.exit_to_app_rounded,
-                  iconColor: Colors.purple,
-                  title: 'Do Not Attempt to Exit',
-                  subtitle: 'Exiting or switching away from the app is strictly prohibited during the exam.',
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Text(
-                          'Cancel',
+                          'Exam Rules & Checklist',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          KioskService.checkPinAndNavigate(
-                            context,
-                            ExamAttemptScreen(exam: test),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: themePrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'I UNDERSTAND',
-                          style: TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: textColor,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Please review and confirm the checklist below before starting the exam:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryTextColor,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildChecklistItem(
+                    icon: Icons.do_not_disturb_on_rounded,
+                    iconColor: Colors.orange,
+                    title: 'Turn on DND Mode',
+                    subtitle: 'Make sure Do Not Disturb (DND) mode is active to block notifications or calls.',
+                    textColor: textColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildChecklistItem(
+                    icon: Icons.push_pin_rounded,
+                    iconColor: Colors.red,
+                    title: 'Do Not Unpin App',
+                    subtitle: 'Do not unpin the application. Your exam will be auto-submitted after 3 warnings.',
+                    textColor: textColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildChecklistItem(
+                    icon: Icons.wifi_rounded,
+                    iconColor: Colors.blue,
+                    title: 'Stable Connection Required',
+                    subtitle: 'Ensure you are connected to a reliable, stable internet connection throughout.',
+                    textColor: textColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildChecklistItem(
+                    icon: Icons.exit_to_app_rounded,
+                    iconColor: Colors.purple,
+                    title: 'Do Not Attempt to Exit',
+                    subtitle: 'Exiting or switching away from the app is strictly prohibited during the exam.',
+                    textColor: textColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: secondaryTextColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            KioskService.checkPinAndNavigate(
+                              context,
+                              ExamAttemptScreen(exam: test),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: themePrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'I UNDERSTAND',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );

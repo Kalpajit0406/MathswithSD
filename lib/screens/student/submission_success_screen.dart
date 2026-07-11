@@ -195,204 +195,206 @@ class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                          width: 1.5,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 12),
+                GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_rounded,
+                          size: 72,
+                          color: Color(0xFF10B981),
                         ),
                       ),
-                      child: const Icon(
-                        Icons.check_circle_rounded,
-                        size: 72,
-                        color: Color(0xFF10B981),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Submission Successful!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: textColor,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Your responses for "${widget.exam.title}" have been successfully submitted.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: secondaryTextColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: themePrimary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: themePrimary.withValues(alpha: 0.15),
-                          width: 1,
+                      const SizedBox(height: 24),
+                      Text(
+                        'Submission Successful!',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: textColor,
+                          letterSpacing: -0.5,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.schedule_rounded,
-                            color: themePrimary,
-                            size: 24,
+                      const SizedBox(height: 12),
+                      Text(
+                        'Your responses for "${widget.exam.title}" have been successfully submitted.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: secondaryTextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: themePrimary.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: themePrimary.withValues(alpha: 0.15),
+                            width: 1,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Evaluation Deferred',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Since the exam is still in progress, answers cannot be viewed yet. You can check your marks and results after the exam ends at:',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: secondaryTextColor,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            widget.endTimeStr,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
                               color: themePrimary,
+                              size: 24,
                             ),
-                          ),
-                          if (_remainingSeconds > 0) ...[
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 8),
                             Text(
-                              'Remaining Time:',
+                              'Evaluation Deferred',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Since the exam is still in progress, answers cannot be viewed yet. You can check your marks and results after the exam ends at:',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: secondaryTextColor,
+                                height: 1.4,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 10),
                             Text(
-                              _formatDuration(_remainingSeconds),
+                              widget.endTimeStr,
                               style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
                                 color: themePrimary,
                               ),
                             ),
-                          ] else ...[
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.check_circle_outline,
-                                  color: Colors.green,
-                                  size: 20,
+                            if (_remainingSeconds > 0) ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                'Remaining Time:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: secondaryTextColor,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Exam period has ended',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDuration(_remainingSeconds),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: themePrimary,
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_outline,
                                     color: Colors.green,
+                                    size: 20,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Exam period has ended',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: _remainingSeconds > 0 || _fetchingResult ? null : _handleViewResult,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: themePrimary,
-                  foregroundColor: isDark ? Colors.black : Colors.white,
-                  disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    ],
                   ),
-                  elevation: 0,
                 ),
-                child: _fetchingResult
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            isDark ? Colors.black : Colors.white,
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _remainingSeconds > 0 || _fetchingResult ? null : _handleViewResult,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themePrimary,
+                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _fetchingResult
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          _remainingSeconds > 0
+                              ? 'Assessment Result (Available in ${_formatDuration(_remainingSeconds)})'
+                              : 'View Assessment Result',
+                          style: TextStyle(
+                            color: _remainingSeconds > 0
+                                ? (isDark ? Colors.white38 : Colors.black38)
+                                : (isDark ? Colors.black : Colors.white),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                      )
-                    : Text(
-                        _remainingSeconds > 0
-                            ? 'Assessment Result (Available in ${_formatDuration(_remainingSeconds)})'
-                            : 'View Assessment Result',
-                        style: TextStyle(
-                          color: _remainingSeconds > 0
-                              ? (isDark ? Colors.white38 : Colors.black38)
-                              : (isDark ? Colors.black : Colors.white),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/student', (_) => false),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: themePrimary.withValues(alpha: 0.5), width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/student', (_) => false),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: themePrimary.withValues(alpha: 0.5), width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Go to Dashboard',
+                    style: TextStyle(
+                      color: themePrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-                child: Text(
-                  'Go to Dashboard',
-                  style: TextStyle(
-                    color: themePrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
