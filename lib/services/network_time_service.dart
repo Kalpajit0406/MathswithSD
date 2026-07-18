@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'api_service.dart';
 
 class NetworkTimeService {
   static final NetworkTimeService _instance = NetworkTimeService._internal();
@@ -45,7 +46,48 @@ class NetworkTimeService {
   }
 
   Future<void> syncTime() async {
-    // Try WorldTimeAPI
+    // 1. Try our backend server first (most reliable, matches server clock Authority)
+    try {
+      final baseUrl = ApiService().baseUrl;
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/v1/health'))
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final int? timestamp = data['timestamp'] as int?;
+        if (timestamp != null) {
+          final apiTime = DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true);
+          _timeOffset = apiTime.difference(DateTime.now().toUtc());
+          _isSynced = true;
+          debugPrint('[NetworkTimeService] Synced via Backend (/api/v1/health): Offset = $_timeOffset');
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('[NetworkTimeService] Backend /api/v1/health sync failed: $e');
+    }
+
+    try {
+      final baseUrl = ApiService().baseUrl;
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/health'))
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final int? timestamp = data['timestamp'] as int?;
+        if (timestamp != null) {
+          final apiTime = DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true);
+          _timeOffset = apiTime.difference(DateTime.now().toUtc());
+          _isSynced = true;
+          debugPrint('[NetworkTimeService] Synced via Backend (/api/health): Offset = $_timeOffset');
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('[NetworkTimeService] Backend /api/health sync failed: $e');
+    }
+
+    // 2. Try WorldTimeAPI (Fallback 1)
     try {
       final response = await http
           .get(Uri.parse('https://worldtimeapi.org/api/timezone/Asia/Kolkata'))
@@ -63,7 +105,7 @@ class NetworkTimeService {
       debugPrint('[NetworkTimeService] WorldTimeAPI sync failed: $e');
     }
 
-    // Try TimeAPI.io fallback
+    // 3. Try TimeAPI.io (Fallback 2)
     try {
       final response = await http
           .get(Uri.parse('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata'))
@@ -81,7 +123,7 @@ class NetworkTimeService {
       debugPrint('[NetworkTimeService] TimeAPI.io sync failed: $e');
     }
 
-    // Fallback: Check HTTP date header from a highly available server (like google.com)
+    // 4. Fallback: Check HTTP date header from a highly available server (like google.com)
     try {
       final response = await http
           .head(Uri.parse('https://www.google.com'))

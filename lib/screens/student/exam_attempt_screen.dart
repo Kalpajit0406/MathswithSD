@@ -396,7 +396,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen>
           endTimeStr =
               '${widget.exam.date} @ ${DateFormat('hh:mm a').format(examEnd)}';
         } else {
-          final now = DateTime.now();
+          final now = NetworkTimeService().istNow;
           final examEnd = now.add(Duration(seconds: remainingSeconds));
           endTimeStr = DateFormat('hh:mm a').format(examEnd);
         }

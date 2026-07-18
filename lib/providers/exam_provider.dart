@@ -227,6 +227,8 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
   Future<void> loadTests() async {
     _testsState = LoadState.loading;
     if (!_isDisposed) notifyListeners();
+    // Resync time with the server in the background to ensure test availability locks are accurate
+    NetworkTimeService().syncTime();
     try {
       _scheduledTests = await _apiService.fetchExamsWithRetry();
       _completedExamIds = await _apiService.getCompletedExamIdsWithRetry();
