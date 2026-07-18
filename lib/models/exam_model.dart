@@ -80,7 +80,7 @@ class Exam {
       }
       
       int hour = 0, minute = 0;
-      final timeParts = cleanTime.split(':');
+      final timeParts = cleanTime.split(RegExp(r'[:.]'));
       if (timeParts.length >= 2) {
         hour = int.parse(timeParts[0]);
         final minPart = timeParts[1].replaceAll(RegExp(r'[^0-9]'), '');
