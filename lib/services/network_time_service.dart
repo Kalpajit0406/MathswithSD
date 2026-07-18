@@ -34,10 +34,19 @@ class NetworkTimeService {
     _syncTimer?.cancel();
   }
 
-  // Get current corrected Indian Standard Time (IST)
+  // Get current corrected Indian Standard Time (IST) as a local DateTime
   DateTime get istNow {
     final utc = DateTime.now().toUtc().add(_timeOffset);
-    return utc.add(const Duration(hours: 5, minutes: 30));
+    final istTime = utc.add(const Duration(hours: 5, minutes: 30));
+    return DateTime(
+      istTime.year,
+      istTime.month,
+      istTime.day,
+      istTime.hour,
+      istTime.minute,
+      istTime.second,
+      istTime.millisecond,
+    );
   }
 
   // Get current corrected UTC time

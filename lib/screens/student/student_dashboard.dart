@@ -1423,16 +1423,7 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                     );
                   }
 
-                  final ist = NetworkTimeService().istNow;
-                  final now = DateTime(
-                    ist.year,
-                    ist.month,
-                    ist.day,
-                    ist.hour,
-                    ist.minute,
-                    ist.second,
-                    ist.millisecond,
-                  );
+                  final now = NetworkTimeService().istNow;
                   final filteredTests = provider.scheduledTests.where((test) {
                     final testTime = test.getExamDateTime();
                     final isCompleted =
@@ -1441,27 +1432,20 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
 
                     if (testTime == null) return !widget.isStartTest;
 
-                    final diff = testTime.difference(now);
-                    final isUpcoming = diff.inSeconds > 0;
-                    final isOngoing =
-                        diff.inMinutes <= 0 &&
-                        now.isBefore(
-                          testTime.add(Duration(minutes: test.duration)),
-                        );
-                    final isMissed =
-                        !isCompleted &&
-                        diff.inMinutes < 0 &&
-                        now.isAfter(
-                          testTime.add(Duration(minutes: test.duration)),
-                        );
+                    final isUpcoming = now.isBefore(testTime);
+                    final isOngoing = (now.isAfter(testTime) || now.isAtSameMomentAs(testTime)) &&
+                        now.isBefore(testTime.add(Duration(minutes: test.duration)));
+                    final isMissed = !isCompleted &&
+                        (now.isAfter(testTime.add(Duration(minutes: test.duration))) ||
+                            now.isAtSameMomentAs(testTime.add(Duration(minutes: test.duration))));
 
                     if (widget.isStartTest) {
-                      final isUpcomingWithin1Hour =
-                          diff.inMinutes > 0 && diff.inMinutes <= 60;
+                      final diff = testTime.difference(now);
+                      final isUpcomingWithin1Hour = isUpcoming && diff.inMinutes <= 60;
                       return !isCompleted &&
                           (isUpcomingWithin1Hour || isOngoing);
                     } else {
-                      return isUpcoming || isCompleted || isMissed;
+                      return isUpcoming || isCompleted || isMissed || isOngoing;
                     }
                   }).toList();
 
@@ -1534,10 +1518,9 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                       Duration? timeToStart;
 
                       if (testTime != null) {
-                        final diff = testTime.difference(now);
-                        if (diff.inSeconds > 0) {
+                        if (now.isBefore(testTime)) {
                           isUpcoming = true;
-                          timeToStart = diff;
+                          timeToStart = testTime.difference(now);
                         } else if (now.isBefore(
                           testTime.add(Duration(minutes: test.duration)),
                         )) {
