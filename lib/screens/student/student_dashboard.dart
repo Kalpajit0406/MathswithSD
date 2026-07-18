@@ -1346,6 +1346,7 @@ class ScheduledExamsScreen extends StatefulWidget {
 
 class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
   Set<String> _localCompletedExamIds = {};
+  Timer? _rebuildTimer;
 
   @override
   void initState() {
@@ -1371,6 +1372,19 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
         debugPrint('Error loading local completed exams: $e');
       }
     });
+
+    // Start a periodic 1-second timer to update countdowns and pick up time sync
+    _rebuildTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _rebuildTimer?.cancel();
+    super.dispose();
   }
 
   @override
