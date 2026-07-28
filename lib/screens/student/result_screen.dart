@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/exam_model.dart';
 import '../shared/latex_widget.dart';
 import '../../widgets/glass_card.dart';
+import 'student_dashboard.dart';
 
 class ResultScreen extends StatefulWidget {
   final int score;
@@ -632,9 +633,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         ),
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/student', (_) => false),
+        onPressed: () => Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const StudentDashboard()),
+          (_) => false,
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: themePrimary,
           foregroundColor: isDark ? Colors.black : Colors.white,

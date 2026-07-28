@@ -6,6 +6,7 @@ import '../../providers/exam_provider.dart';
 import '../../services/network_time_service.dart';
 import '../../widgets/glass_card.dart';
 import 'result_screen.dart';
+import 'student_dashboard.dart';
 
 class SubmissionSuccessScreen extends StatefulWidget {
   final Exam exam;
@@ -375,8 +376,10 @@ class _SubmissionSuccessScreenState extends State<SubmissionSuccessScreen> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () => Navigator.of(context)
-                      .pushNamedAndRemoveUntil('/student', (_) => false),
+                  onPressed: () => Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const StudentDashboard()),
+                    (_) => false,
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: themePrimary.withValues(alpha: 0.5), width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
