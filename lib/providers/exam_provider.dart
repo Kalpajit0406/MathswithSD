@@ -468,7 +468,12 @@ class ExamProvider with ChangeNotifier, NotifierResourceDisposal {
     try {
         await _pendingAttemptSave;
       if (isOffline) {
-        await OfflineExamService().completeOfflineExam(_currentExamId!);
+        await OfflineExamService().completeOfflineExam(
+          _currentExamId!,
+          violations: violations,
+          emulatorDetected: emulatorDetected,
+          rootDetected: rootDetected,
+        );
         for (var ans in answers) {
           final response = OfflineResponse(
             responseId: '${_currentAttemptId}_${ans['questionId']}',

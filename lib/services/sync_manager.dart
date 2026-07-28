@@ -113,6 +113,9 @@ class SyncManager {
           await _apiService.syncOfflineAttemptWithRetry(
             examId: exam.examId,
             responses: answers,
+            violations: exam.violations,
+            emulatorDetected: exam.emulatorDetected,
+            rootDetected: exam.rootDetected,
           );
           
           // Mark as synced

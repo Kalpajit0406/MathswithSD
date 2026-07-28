@@ -14,6 +14,9 @@ class OfflineExam {
   final DateTime? completedAt;
   final bool isCompleted;
   final String status; // 'started', 'completed', 'synced'
+  final List<Map<String, dynamic>>? violations;
+  final bool emulatorDetected;
+  final bool rootDetected;
 
   OfflineExam({
     required this.examId,
@@ -24,6 +27,9 @@ class OfflineExam {
     this.completedAt,
     this.isCompleted = false,
     this.status = 'started',
+    this.violations,
+    this.emulatorDetected = false,
+    this.rootDetected = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -36,6 +42,9 @@ class OfflineExam {
       'completedAt': completedAt?.toIso8601String(),
       'isCompleted': isCompleted ? 1 : 0,
       'status': status,
+      'violations': violations != null ? jsonEncode(violations) : null,
+      'emulatorDetected': emulatorDetected ? 1 : 0,
+      'rootDetected': rootDetected ? 1 : 0,
     };
   }
 
@@ -53,6 +62,21 @@ class OfflineExam {
     } catch (e) {
       // fallback
     }
+
+    List<Map<String, dynamic>>? violationsList;
+    try {
+      if (map['violations'] != null) {
+        final decoded = jsonDecode(map['violations']);
+        if (decoded is List) {
+          violationsList = List<Map<String, dynamic>>.from(
+            decoded.map((v) => Map<String, dynamic>.from(v))
+          );
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+
     return OfflineExam(
       examId: map['examId'],
       title: map['title'],
@@ -64,6 +88,9 @@ class OfflineExam {
         : null,
       isCompleted: map['isCompleted'] == 1,
       status: map['status'],
+      violations: violationsList,
+      emulatorDetected: map['emulatorDetected'] == 1,
+      rootDetected: map['rootDetected'] == 1,
     );
   }
 }
@@ -131,7 +158,7 @@ class OfflineExamService {
     
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) {
         db.execute(
           '''CREATE TABLE offline_exams(
@@ -142,7 +169,10 @@ class OfflineExamService {
             startedAt TEXT NOT NULL,
             completedAt TEXT,
             isCompleted INTEGER DEFAULT 0,
-            status TEXT DEFAULT 'started'
+            status TEXT DEFAULT 'started',
+            violations TEXT,
+            emulatorDetected INTEGER DEFAULT 0,
+            rootDetected INTEGER DEFAULT 0
           )''',
         );
         
@@ -157,6 +187,17 @@ class OfflineExamService {
             FOREIGN KEY (examId) REFERENCES offline_exams(examId)
           )''',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute("ALTER TABLE offline_exams ADD COLUMN violations TEXT");
+            await db.execute("ALTER TABLE offline_exams ADD COLUMN emulatorDetected INTEGER DEFAULT 0");
+            await db.execute("ALTER TABLE offline_exams ADD COLUMN rootDetected INTEGER DEFAULT 0");
+          } catch (e) {
+            // Ignore if column already exists
+          }
+        }
       },
     );
   }
@@ -219,7 +260,12 @@ class OfflineExamService {
   }
 
   /// Update exam completion status
-  Future<void> completeOfflineExam(String examId) async {
+  Future<void> completeOfflineExam(
+    String examId, {
+    List<Map<String, dynamic>>? violations,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
+  }) async {
     final db = await database;
     await db.update(
       'offline_exams',
@@ -227,6 +273,9 @@ class OfflineExamService {
         'isCompleted': 1,
         'completedAt': NetworkTimeService().istNow.toIso8601String(),
         'status': 'completed',
+        'violations': violations != null ? jsonEncode(violations) : null,
+        'emulatorDetected': emulatorDetected ? 1 : 0,
+        'rootDetected': rootDetected ? 1 : 0,
       },
       where: 'examId = ?',
       whereArgs: [examId],

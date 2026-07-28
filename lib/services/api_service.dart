@@ -560,6 +560,9 @@ class ApiService {
   Future<Map<String, dynamic>> syncOfflineAttempt({
     required String examId,
     required List<Map<String, dynamic>> responses,
+    List<Map<String, dynamic>>? violations,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
   }) async {
     final Map<String, dynamic> bodyData = {
       'examId': examId,
@@ -573,6 +576,9 @@ class ApiService {
             },
           )
           .toList(),
+      'violations': violations,
+      'emulatorDetected': emulatorDetected,
+      'rootDetected': rootDetected,
     };
 
     final response = await http
@@ -589,6 +595,9 @@ class ApiService {
   Future<Map<String, dynamic>> syncOfflineAttemptWithRetry({
     required String examId,
     required List<Map<String, dynamic>> responses,
+    List<Map<String, dynamic>>? violations,
+    bool emulatorDetected = false,
+    bool rootDetected = false,
   }) async {
     int attempt = 0;
     const maxAttempts = 3;
@@ -596,7 +605,13 @@ class ApiService {
 
     while (attempt < maxAttempts) {
       try {
-        return await syncOfflineAttempt(examId: examId, responses: responses);
+        return await syncOfflineAttempt(
+          examId: examId,
+          responses: responses,
+          violations: violations,
+          emulatorDetected: emulatorDetected,
+          rootDetected: rootDetected,
+        );
       } on ApiException {
         attempt++;
         if (attempt >= maxAttempts) rethrow;
