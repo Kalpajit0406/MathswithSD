@@ -15,7 +15,8 @@ import android.util.DisplayMetrics
 import android.util.Log
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import io.flutter.embedding.android.FlutterActivity
+import androidx.activity.enableEdgeToEdge
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
@@ -25,7 +26,7 @@ import java.io.FileReader
 import java.net.Socket
 import java.security.MessageDigest
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
 
     companion object {
         private const val TAG = "HardenedMainActivity"
@@ -56,6 +57,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         
         // 1. Enforce signature and installer source checks immediately (Part 5) - BYPASSED FOR TESTING
