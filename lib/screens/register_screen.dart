@@ -42,6 +42,8 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   bool _termsAccepted = false;
   bool _agreementScrolledBottom = false;
   bool _agreementAccepted = false;
+  bool _isUnder18 = false;
+  bool _parentalConsentAccepted = false;
 
   late final List<String> _classes;
   final _languages = ['Bengali', 'English', 'Both'];
@@ -97,7 +99,33 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     );
     if (picked != null) {
       _dobCtrl.text = '${picked.day}/${picked.month}/${picked.year}';
+      _checkAge(_dobCtrl.text);
     }
+  }
+
+  void _checkAge(String dobText) {
+    if (dobText.isEmpty) return;
+    try {
+      final parts = dobText.split('/');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        final birthDate = DateTime(year, month, day);
+        final today = DateTime.now();
+        var age = today.year - birthDate.year;
+        if (today.month < birthDate.month ||
+            (today.month == birthDate.month && today.day < birthDate.day)) {
+          age--;
+        }
+        setState(() {
+          _isUnder18 = age < 18;
+          if (!_isUnder18) {
+            _parentalConsentAccepted = false;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<Map<String, String>> _getDeviceBlueprint() async {
@@ -142,6 +170,13 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     if (!_formKey.currentState!.validate()) return;
     if (_passwordCtrl.text != _confirmPasswordCtrl.text) {
       _showError('Passwords do not match');
+      return;
+    }
+
+    // Parental Consent Validation for users under 18 (COMP-001 / DPDP Act 2023)
+    _checkAge(_dobCtrl.text);
+    if (_isUnder18 && !_parentalConsentAccepted) {
+      _showError('Parental/Guardian consent is required for users under 18 (DPDP Act 2023).');
       return;
     }
 
@@ -844,6 +879,32 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                         )
                                       else
                                         const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                                    ],
+                                  ),
+                                ],
+                                if (_isUnder18) ...[
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _parentalConsentAccepted,
+                                        activeColor: const Color(0xFF10B981),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _parentalConsentAccepted = val ?? false;
+                                          });
+                                        },
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'I confirm that my parent/guardian consents to this registration and data processing (DPDP Act 2023)',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],
