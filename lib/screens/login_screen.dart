@@ -215,29 +215,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subtitleColor = isDark ? const Color(0xFFCCC3D4) : const Color(0xFF475569);
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF0F172A), const Color(0xFF020617)]
-                  : [const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: AnnotatedRegion<SystemUiOverlayStyle>(
-            value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-            child: Stack(
-              children: [
-                // Animated ambient glowing circles for glassmorphism
-                AnimatedBuilder(
-                  animation: _animationController,
-                  builder: (context, child) {
-                    final progress = _animationController.value;
-                    final angle = progress * 2 * math.pi;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: Stack(
+            children: [
+              // Full screen gradient background
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF0F172A), const Color(0xFF020617)]
+                          : [const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+              ),
+              // Animated ambient glowing circles for glassmorphism
+              AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  final progress = _animationController.value;
+                  final angle = progress * 2 * math.pi;
 
                     // Sinusoidal drift offsets to simulate fluid flow
                     final dx1 = math.sin(angle) * 45;
@@ -594,8 +599,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         ),
       ),
     ),
-  ),
-);
+  );
 }
 
   Widget _buildLabel(String text) {
