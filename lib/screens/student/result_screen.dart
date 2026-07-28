@@ -407,6 +407,47 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           ],
           const SizedBox(height: 32),
           _buildInsightCard(textColor, isDark),
+          _buildDisclaimerCard(textColor, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisclaimerCard(Color textColor, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Disclaimer: MathsWithSD is an educational practice tool. Scores and results on this platform are for practice purposes only and do not constitute official examination results or certification.',
+              style: TextStyle(
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+          ),
         ],
       ),
     );
