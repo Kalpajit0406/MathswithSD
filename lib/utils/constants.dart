@@ -25,6 +25,12 @@ class AppConstants {
   static const String submitAttemptEndpoint = '/api/v1/testResponse/submit';
   static const String syncOfflineAttemptEndpoint = '/api/v1/testResponse/sync-offline';
   static const String testResponseEndpoint = '/api/v1/testResponse';
+  static const String appVersionEndpoint = '/api/v1/app-version';
+
+  // App Metadata
+  static const String appVersion = '1.2.1';
+  static const int appBuildNumber = 121;
+  static const String playStoreUrl = 'https://play.google.com/store/apps/details?id=in.mathswithsd.app';
 
   // Storage Keys
   static const String tokenKey = 'access_token';

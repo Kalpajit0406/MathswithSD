@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/storage_service.dart';
+import '../../services/in_app_update_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/kiosk_service.dart';
@@ -17,27 +18,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _baseUrlController;
   String? _currentOverride;
   bool _loading = true;
+  bool _checkingUpdate = false;
+  AppVersionInfo? _versionInfo;
 
   @override
   void initState() {
     super.initState();
     _baseUrlController = TextEditingController();
     _loadCurrentBaseUrl();
+    _loadVersionInfo();
   }
 
   Future<void> _loadCurrentBaseUrl() async {
     try {
       final override = await AuthStorageService.getBaseUrlOverride();
-      setState(() {
-        _currentOverride = override;
-        _baseUrlController.text = override ?? AppConstants.baseUrl;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentOverride = override;
+          _baseUrlController.text = override ?? AppConstants.baseUrl;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error loading settings: $e')));
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading settings: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadVersionInfo() async {
+    try {
+      final info = await InAppUpdateService.getAppVersionInfo();
+      if (mounted) {
+        setState(() {
+          _versionInfo = info;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading version info: $e');
+    }
+  }
+
+  Future<void> _handleCheckForUpdates() async {
+    if (_checkingUpdate) return;
+    setState(() => _checkingUpdate = true);
+    try {
+      await InAppUpdateService.checkForUpdates(context, manualCheck: true);
+      await _loadVersionInfo();
+    } finally {
+      if (mounted) {
+        setState(() => _checkingUpdate = false);
+      }
     }
   }
 
@@ -59,9 +93,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error saving base URL: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving base URL: $e')),
+      );
     }
   }
 
@@ -78,9 +112,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error clearing override: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error clearing override: $e')),
+      );
     }
   }
 
@@ -96,12 +130,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
-    final borderColor = isDark
-        ? const Color(0xFF334155)
-        : const Color(0xFFECEEF0);
-    final containerFillColor = isDark
-        ? const Color(0xFF1E293B)
-        : const Color(0xFFF8FAFC);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFECEEF0);
+    final containerFillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final themePrimary = const Color(0xFF0051D5);
+
+    final currentVersion = _versionInfo?.currentVersion ?? AppConstants.appVersion;
+    final currentBuild = _versionInfo?.currentBuildNumber ?? AppConstants.appBuildNumber;
+    final isUpdateAvailable = _versionInfo?.isUpdateAvailable ?? false;
+    final isForceUpdate = _versionInfo?.isForceUpdate ?? false;
 
     if (_loading) {
       return Scaffold(
@@ -167,197 +203,355 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20.0),
-        child: GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'API Base URL Configuration',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: textColor,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Default: ${AppConstants.baseUrl}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: secondaryTextColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Manual Override (optional)',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _baseUrlController,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Base URL',
-                  labelStyle: TextStyle(
-                    color: secondaryTextColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  hintText: 'e.g., https://api.mathswithsd.in',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.white30 : Colors.black38,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.link_rounded,
-                    color: Color(0xFF0051D5),
-                  ),
-                  filled: true,
-                  fillColor: containerFillColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF0051D5),
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
+        child: Column(
+          children: [
+            // ─── Current App Version Indicator Card ──────────────────────────
+            GlassCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveBaseUrl,
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: themePrimary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: themePrimary.withValues(alpha: 0.25),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.verified_rounded,
+                          color: themePrimary,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'MathsWithSD Student App',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                color: textColor,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text(
+                                  'Version $currentVersion ($currentBuild)',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: secondaryTextColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Status Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (isForceUpdate
+                                  ? Colors.red
+                                  : isUpdateAvailable
+                                      ? Colors.orange
+                                      : const Color(0xFF10B981))
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: (isForceUpdate
+                                    ? Colors.red
+                                    : isUpdateAvailable
+                                        ? Colors.orange
+                                        : const Color(0xFF10B981))
+                                .withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isForceUpdate
+                                    ? Colors.red
+                                    : isUpdateAvailable
+                                        ? Colors.orange
+                                        : const Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isForceUpdate
+                                  ? 'Update Required'
+                                  : isUpdateAvailable
+                                      ? 'Update Available'
+                                      : 'Up to Date',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: isForceUpdate
+                                    ? Colors.red
+                                    : isUpdateAvailable
+                                        ? Colors.orange
+                                        : const Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: borderColor, height: 1),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _checkingUpdate ? null : _handleCheckForUpdates,
+                      icon: _checkingUpdate
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.system_update_rounded, size: 18),
+                      label: Text(
+                        _checkingUpdate
+                            ? 'Checking for updates...'
+                            : (isUpdateAvailable ? 'Update Now' : 'Check for Updates'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0051D5),
+                        backgroundColor: isUpdateAvailable
+                            ? (isForceUpdate ? Colors.redAccent : const Color(0xFF10B981))
+                            : themePrimary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ),
-                      child: const Text(
-                        'Save Override',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _clearOverride,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: textColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      child: const Text(
-                        'Clear Override',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
+                        elevation: 0,
                       ),
                     ),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
 
-
-              Text(
-                'Current Status',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: containerFillColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Using: ${_currentOverride ?? AppConstants.baseUrl}',
-                      style: TextStyle(
+            // ─── API Base URL Configuration Card ─────────────────────────────
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'API Base URL Configuration',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Default: ${AppConstants.baseUrl}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: secondaryTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Manual Override (optional)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _baseUrlController,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Base URL',
+                      labelStyle: TextStyle(
+                        color: secondaryTextColor,
                         fontSize: 13,
-                        color: textColor,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      hintText: 'e.g., https://api.mathswithsd.in',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white30 : Colors.black38,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.link_rounded,
+                        color: Color(0xFF0051D5),
+                      ),
+                      filled: true,
+                      fillColor: containerFillColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF0051D5),
+                          width: 1.5,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentOverride == null
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFF59E0B),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _saveBaseUrl,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0051D5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save Override',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _currentOverride == null
-                              ? 'Default URL active'
-                              : 'Custom override active',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: _currentOverride == null
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFF59E0B),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _clearOverride,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: textColor,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: borderColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: Colors.transparent,
                           ),
+                          child: const Text(
+                            'Clear Override',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Current Status',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: containerFillColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Using: ${_currentOverride ?? AppConstants.baseUrl}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: textColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentOverride == null
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF59E0B),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _currentOverride == null
+                                  ? 'Default URL active'
+                                  : 'Custom override active',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _currentOverride == null
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF59E0B),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
-
