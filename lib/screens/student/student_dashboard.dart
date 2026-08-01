@@ -1454,10 +1454,10 @@ class _ScheduledExamsScreenState extends State<ScheduledExamsScreen> {
                             now.isAtSameMomentAs(testTime.add(Duration(minutes: test.duration))));
 
                     if (widget.isStartTest) {
-                      final diff = testTime.difference(now);
-                      final isUpcomingWithin1Hour = isUpcoming && diff.inMinutes <= 60;
-                      return !isCompleted &&
-                          (isUpcomingWithin1Hour || isOngoing);
+                      // Show ALL upcoming exams (not just within 60 min) and ongoing exams.
+                      // Previously this was limited to 60-minute window, causing some students
+                      // to miss seeing exams when they opened the app more than 1 hour early.
+                      return !isCompleted && (isUpcoming || isOngoing);
                     } else {
                       return isUpcoming || isCompleted || isMissed || isOngoing;
                     }
