@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'network_time_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,6 +114,15 @@ class ExamSecurityService {
     _startAutosave();
     _subscribeToWindowEvents();
 
+    // Keep screen on for the entire exam — prevents false violations from
+    // screen auto-timeout and ensures the timer stays visible to the student.
+    try {
+      await WakelockPlus.enable();
+      debugPrint('[ExamSecurity] WakeLock enabled — screen will stay on during exam.');
+    } catch (e) {
+      debugPrint('[ExamSecurity] WakeLock not available on this device: $e');
+    }
+
     if (rooted) {
       _addViolation(
         ViolationEvent(
@@ -160,6 +170,15 @@ class ExamSecurityService {
     await _exitKioskMode();
     _currentExamId = null;
     _answersProvider = null;
+
+    // Release the screen wakelock so normal screen-off behaviour resumes.
+    try {
+      await WakelockPlus.disable();
+      debugPrint('[ExamSecurity] WakeLock released after exam end.');
+    } catch (e) {
+      debugPrint('[ExamSecurity] WakeLock release failed: $e');
+    }
+
     debugPrint('[ExamSecurity] Secure exam session ended.');
   }
 

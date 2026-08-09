@@ -2,7 +2,7 @@ name: mathswithsd
 description: "MathsWithSD - Math learning and examination platform for students."
 publish_to: 'none'
 
-version: 1.2.2+122
+version: 1.2.3+123
 
 environment:
   sdk: ^3.11.5
@@ -46,6 +46,9 @@ dependencies:
   in_app_update: ^4.2.5
   package_info_plus: ^10.2.1
   url_launcher: ^6.3.1
+  
+  # Screen Wake Lock (keep screen on during exam)
+  wakelock_plus: ^1.2.8
 
 dependency_overrides:
   path_provider_android: 2.2.12
